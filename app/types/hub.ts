@@ -8,6 +8,8 @@ export interface HubItem {
   type: HubItemType
   integrations: string[]
   verified: boolean
+  /** 卡片大图标颜色，支持 hex / rgb / hsl。未设置时按主 integration 或类型推断 */
+  iconColor?: string
   tags?: string[]
   createdAt: string
   popularity: number

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import type { HubItem } from '~/types/hub'
-import { formatIntegrationLabel, getItemHeroIcon, hubTypeLabels } from '~/utils/hub-icons'
+import { formatIntegrationLabel, getItemHeroIcon, getItemIconColor, getItemPreviewTint, hubTypeLabels } from '~/utils/hub-icons'
 
 const props = defineProps<{
   item: HubItem
 }>()
 
 const heroIcon = computed(() => getItemHeroIcon(props.item))
+const iconColor = computed(() => getItemIconColor(props.item))
+const previewStyle = computed(() => ({
+  '--card-icon-color': iconColor.value,
+  '--card-preview-tint': getItemPreviewTint(props.item)
+}))
 const primaryIntegration = computed(() => props.item.integrations[0])
 const extraIntegrations = computed(() => Math.max(0, props.item.integrations.length - 1))
 </script>
@@ -14,7 +19,7 @@ const extraIntegrations = computed(() => Math.max(0, props.item.integrations.len
 <template>
   <article class="card">
     <NuxtLink to="#" class="card__link">
-      <div class="card__preview" aria-hidden="true">
+      <div class="card__preview" :style="previewStyle" aria-hidden="true">
         <Icon :name="heroIcon" size="56" class="card__hero-icon" />
       </div>
 
@@ -84,14 +89,18 @@ const extraIntegrations = computed(() => Math.max(0, props.item.integrations.len
   justify-content: center;
   min-height: 132px;
   padding: 28px 20px;
-  background: var(--card-preview-bg);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--card-preview-tint, var(--accent)) 10%, var(--bg-muted)) 0%,
+      var(--card-preview-bg) 100%
+    );
   border-bottom: 1px solid var(--border);
 }
 
 .card__hero-icon {
-  color: var(--card-hero-icon);
-  opacity: 0.92;
-  filter: var(--icon-accent-filter);
+  color: var(--card-icon-color, var(--accent));
+  opacity: 0.95;
 }
 
 .card__body {

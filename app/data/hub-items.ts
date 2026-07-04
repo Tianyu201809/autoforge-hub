@@ -79,6 +79,7 @@ export const HUB_ITEMS: HubItem[] = [
     type: 'script',
     integrations: ['openai'],
     verified: true,
+    iconColor: '#10a37e',
     createdAt: '2026-02-10',
     popularity: 94
   },
