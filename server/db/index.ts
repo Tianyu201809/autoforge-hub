@@ -42,6 +42,7 @@ export async function getDb(): Promise<SqlJsDbType> {
       description TEXT NOT NULL DEFAULT '',
       owner_id TEXT NOT NULL REFERENCES users(id),
       member_ids TEXT NOT NULL DEFAULT '[]',
+      settings TEXT NOT NULL DEFAULT '{}',
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )
@@ -69,6 +70,9 @@ export async function getDb(): Promise<SqlJsDbType> {
   // Migration: add category and language to scripts
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN category TEXT NOT NULL DEFAULT ''") } catch (e) {}
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN language TEXT NOT NULL DEFAULT ''") } catch (e) {}
+
+  // Migration: add settings to teams
+  try { _sqlDb.run("ALTER TABLE teams ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'") } catch (e) {}
 
   return _sqlDb
 }

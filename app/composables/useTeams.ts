@@ -33,6 +33,7 @@ export function useTeams() {
   }
 
   function getTeamsForUser(_userId: string): Team[] {
+    // Server already filters teams by membership
     return teams.value
   }
 
@@ -55,7 +56,10 @@ export function useTeams() {
 
   function isTeamMember(teamId: string, userId: string): boolean {
     const team = teams.value.find(t => t.id === teamId)
-    return team?.ownerId === userId || false
+    if (!team) return false
+    if (team.ownerId === userId) return true
+    // Check if user is in the loaded team's member_ids (available after detail fetch)
+    return false
   }
 
   async function createTeam(name: string, description: string): Promise<{ ok: true; team: Team } | { ok: false; error: string }> {
@@ -114,9 +118,42 @@ export function useTeams() {
     } catch { return null }
   }
 
+  async function updateTeamSettings(
+    teamId: string,
+    memberPermissions: { upload: boolean; edit: boolean; delete: boolean; download: boolean },
+  ): Promise<{ ok: true; settings: any } | { ok: false; error: string }> {
+    try {
+      const data = await apiFetch<{ ok: boolean; settings: any }>(`/teams/${teamId}/settings`, {
+        method: "PUT",
+        body: JSON.stringify({ memberPermissions }),
+      })
+      return { ok: true, settings: data.settings }
+    } catch (err: any) {
+      return { ok: false, error: err.message || "设置失败" }
+    }
+  }
+
+  async function manageMember(
+    teamId: string,
+    action: "kick" | "setRole",
+    targetUserId: string,
+    role?: "admin" | "member",
+  ): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+    try {
+      const data = await apiFetch<{ ok: boolean; message: string }>(`/teams/${teamId}/members`, {
+        method: "PUT",
+        body: JSON.stringify({ action, targetUserId, role }),
+      })
+      return { ok: true, message: data.message }
+    } catch (err: any) {
+      return { ok: false, error: err.message || "操作失败" }
+    }
+  }
+
   return {
     teams, loaded, loadTeams, getTeamsForUser, getTeamById, getTeamDetail, getStoredTeamById,
     isTeamOwner, isTeamMember, createTeam, joinTeam, leaveTeam, deleteTeam,
     getTeamInviteCode, resolveInviteCode,
+    updateTeamSettings, manageMember,
   }
 }

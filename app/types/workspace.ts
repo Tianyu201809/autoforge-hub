@@ -4,6 +4,7 @@ export interface Script {
   description: string
   zipName: string
   zipSize: number
+  filePath: string
   tags: string[]
   category: string
   language: string
@@ -19,6 +20,7 @@ export interface StoredScript {
   description: string
   zipName: string
   zipSize: number
+  filePath: string
   tags: string[]
   category: string
   language: string

@@ -50,7 +50,7 @@ async function changeAvatar(e: Event) {
 
 <template>
   <div class="profile-page">
-    <WsHeader />
+    <WorkspaceWsHeader />
     <div class="profile-page__body">
       <NuxtLink to="/workspace" class="profile-page__back">
         <Icon name="lucide:arrow-left" size="16" /> 返回

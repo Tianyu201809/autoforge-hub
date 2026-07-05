@@ -121,13 +121,14 @@ function toScript(data: any): Script {
     language: data.language || "",
     zipName: data.zipName ?? data.file_name ?? "",
     zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
-      tags: (Array.isArray(data.tags) ? data.tags : []),
-      createdAt: data.createdAt ?? data.created_at ?? "",
-      updatedAt: data.updatedAt ?? data.updated_at ?? "",
-      ownerId: data.ownerId ?? data.owner_id ?? "",
-      teamId: data.teamId ?? data.team_id ?? undefined,
-    }
+    filePath: data.filePath ?? data.file_path ?? "",
+    tags: (Array.isArray(data.tags) ? data.tags : []),
+    createdAt: data.createdAt ?? data.created_at ?? "",
+    updatedAt: data.updatedAt ?? data.updated_at ?? "",
+    ownerId: data.ownerId ?? data.owner_id ?? "",
+    teamId: data.teamId ?? data.team_id ?? undefined,
   }
+}
 
   return {
     scripts, loadScripts, getPersonalScripts, getTeamScripts,

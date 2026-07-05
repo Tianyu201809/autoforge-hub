@@ -1,5 +1,6 @@
 import { getDb, saveDb } from "../../db/index"
 import { saveFile } from "../../utils/storage"
+import { parseSettings, getTeamRole, checkMemberPermission } from "../../utils/team-permissions"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -32,8 +33,27 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: "Only .zip format is supported" })
   }
 
-  const tags: string[] = tagsRaw ? JSON.parse(tagsRaw) : []
   const userId = auth.user.userId
+
+  // If uploading to a team, check permission
+  if (teamId) {
+    const db = await getDb()
+    const teamStmt = db.prepare("SELECT * FROM teams WHERE id = ?")
+    teamStmt.bind([teamId])
+    if (!teamStmt.step()) { teamStmt.free(); throw createError({ statusCode: 404, message: "Team not found" }) }
+    const team = teamStmt.getAsObject() as any
+    teamStmt.free()
+    const memberIds: string[] = JSON.parse(team.member_ids || "[]")
+    if (team.owner_id !== userId && !memberIds.includes(userId)) {
+      throw createError({ statusCode: 403, message: "你不是该团队成员" })
+    }
+    const teamSettings = parseSettings(team.settings)
+    if (!checkMemberPermission(teamSettings, userId, team.owner_id, "upload")) {
+      throw createError({ statusCode: 403, message: "没有上传脚本的权限" })
+    }
+  }
+
+  const tags: string[] = tagsRaw ? JSON.parse(tagsRaw) : []
   const folder = teamId ? `files/${teamId}` : `files/${userId}`
   const filePath = await saveFile(filename, fileField.data, folder)
 

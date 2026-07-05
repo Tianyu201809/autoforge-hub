@@ -7,11 +7,9 @@ useHead({
   title: '选择空间 - Autoforge Hub'
 })
 
-const { user, logout } = useAuth()
+const { user } = useAuth()
 const { loadScripts } = useScripts()
 const { getTeamsForUser, loadTeams } = useTeams()
-
-const showLogoutConfirm = ref(false)
 
 onMounted(() => {
   loadScripts()
@@ -26,7 +24,7 @@ const userTeams = computed(() => {
 
 <template>
   <div class="ws-dashboard" v-if="user">
-    <WsHeader />
+    <WorkspaceWsHeader />
 
     <div class="ws-dashboard__body">
       <!-- Hero -->
@@ -102,36 +100,7 @@ const userTeams = computed(() => {
           </NuxtLink>
         </div>
       </section>
-
-      <!-- Logout -->
-      <div class="ws-footer">
-        <button type="button" class="ws-footer__logout" @click="showLogoutConfirm = true">
-          <Icon name="lucide:log-out" size="14" />
-          退出登录
-        </button>
-      </div>
     </div>
-
-    <!-- Logout confirm modal -->
-    <Teleport to="body">
-      <div v-if="showLogoutConfirm" class="ws-modal-overlay" @click.self="showLogoutConfirm = false">
-        <div class="ws-modal">
-          <div class="ws-modal__icon">
-            <Icon name="lucide:log-out" size="32" />
-          </div>
-          <h3 class="ws-modal__title">退出登录</h3>
-          <p class="ws-modal__desc">确认要退出当前账号吗？</p>
-          <div class="ws-modal__actions">
-            <button type="button" class="ws-modal__cancel" @click="showLogoutConfirm = false">取消</button>
-            <button
-              type="button"
-              class="ws-modal__confirm"
-              @click="showLogoutConfirm = false; logout(); navigateTo('/login')"
-            >确认退出</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>
 
@@ -435,117 +404,6 @@ const userTeams = computed(() => {
   color: var(--text-muted);
 }
 
-/* ── Footer ── */
-.ws-footer {
-  display: flex;
-  justify-content: center;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
-}
-
-.ws-footer__logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-muted);
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.ws-footer__logout:hover {
-  border-color: var(--danger-border);
-  color: var(--danger);
-  background: var(--danger-soft);
-}
-
-/* ── Logout Confirm Modal ── */
-.ws-modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--overlay-bg);
-  backdrop-filter: blur(8px);
-  animation: fadeIn 0.15s ease;
-}
-
-.ws-modal {
-  width: min(360px, calc(100vw - 32px));
-  padding: 32px 24px 24px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-  animation: scaleIn 0.2s ease;
-}
-
-.ws-modal__icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 16px;
-  color: var(--danger);
-}
-
-.ws-modal__title {
-  margin: 0 0 8px;
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--text);
-}
-
-.ws-modal__desc {
-  margin: 0 0 24px;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.ws-modal__actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.ws-modal__cancel {
-  padding: 8px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-secondary);
-  transition: background 0.12s, border-color 0.12s;
-}
-
-.ws-modal__cancel:hover {
-  background: var(--bg-muted);
-  border-color: var(--border-strong);
-}
-
-.ws-modal__confirm {
-  padding: 8px 20px;
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius-md);
-  background: var(--danger-soft);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--danger);
-  transition: background 0.12s;
-}
-
-.ws-modal__confirm:hover {
-  background: var(--danger);
-  color: #fff;
-}
-
 /* ── Animations ── */
 @keyframes cardIn {
   from {
@@ -555,22 +413,6 @@ const userTeams = computed(() => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 

@@ -22,15 +22,19 @@ export default defineEventHandler(async (event) => {
   const id = crypto.randomUUID()
   const now = new Date().toISOString()
   const memberIds = JSON.stringify([userId])
+  const defaultSettings = JSON.stringify({
+    adminIds: [],
+    memberPermissions: { upload: true, edit: true, delete: false, download: true }
+  })
 
   db.run(
-    "INSERT INTO teams (id, name, description, owner_id, member_ids, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [id, name, description, userId, memberIds, now, now]
+    "INSERT INTO teams (id, name, description, owner_id, member_ids, settings, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, name, description, userId, memberIds, defaultSettings, now, now]
   )
   saveDb()
 
   return {
     ok: true,
-    team: { id, name, description, ownerId: userId, memberCount: 1, createdAt: now }
+    team: { id, name, description, ownerId: userId, memberCount: 1, settings: JSON.parse(defaultSettings), createdAt: now }
   }
 })

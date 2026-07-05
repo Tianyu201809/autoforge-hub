@@ -1,4 +1,5 @@
 import { getDb, saveDb } from "../../../db/index"
+import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -14,12 +15,34 @@ export default defineEventHandler(async (event) => {
   const row = stmt.getAsObject() as any
   stmt.free()
 
-  if (row.owner_id !== auth.user.userId) {
-    const teamStmt = db.prepare("SELECT owner_id FROM teams WHERE id = ?")
+  const userId = auth.user.userId
+
+  // Check permission
+  if (row.team_id) {
+    // Team script
+    const teamStmt = db.prepare("SELECT * FROM teams WHERE id = ?")
     teamStmt.bind([row.team_id])
-    const isTeamOwner = teamStmt.step() && (teamStmt.getAsObject() as any).owner_id === auth.user.userId
+    if (!teamStmt.step()) { teamStmt.free(); throw createError({ statusCode: 404, message: "团队不存在" }) }
+    const team = teamStmt.getAsObject() as any
     teamStmt.free()
-    if (!isTeamOwner) throw createError({ statusCode: 403, message: "无权编辑该脚本" })
+    const teamSettings = parseSettings(team.settings)
+    const role = getTeamRole(team.owner_id, teamSettings.adminIds, userId)
+
+    if (role === "owner" || role === "admin") {
+      // Owner/admin can edit any script
+    } else if (row.owner_id === userId) {
+      // Own script - check edit permission
+      if (!checkMemberPermission(teamSettings, userId, team.owner_id, "edit")) {
+        throw createError({ statusCode: 403, message: "没有编辑脚本的权限" })
+      }
+    } else {
+      throw createError({ statusCode: 403, message: "无权编辑该脚本" })
+    }
+  } else {
+    // Personal script - only owner
+    if (row.owner_id !== userId) {
+      throw createError({ statusCode: 403, message: "无权编辑该脚本" })
+    }
   }
 
   const body = await readBody(event)

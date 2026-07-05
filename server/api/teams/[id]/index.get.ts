@@ -1,4 +1,5 @@
 import { getDb } from "../../../db/index"
+import { parseSettings, getTeamRole } from "../../../utils/team-permissions"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -15,6 +16,7 @@ export default defineEventHandler(async (event) => {
   stmt.free()
 
   const memberIds: string[] = JSON.parse(row.member_ids || "[]")
+  const settings = parseSettings(row.settings)
   const userId = auth.user.userId
 
   // Check if user is member
@@ -22,15 +24,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: "你不是该团队成员" })
   }
 
+  const currentUserRole = getTeamRole(row.owner_id, settings.adminIds, userId)
+
   // Get member details
   const users = db.exec("SELECT id, email, display_name FROM users")[0]
   const members = users ? users.values
     .filter((r: any[]) => memberIds.includes(r[users.columns.indexOf("id")] as string))
-    .map((r: any[]) => ({
-      id: r[users.columns.indexOf("id")],
-      email: r[users.columns.indexOf("email")],
-      displayName: r[users.columns.indexOf("display_name")],
-    })) : []
+    .map((r: any[]) => {
+      const id = r[users.columns.indexOf("id")] as string
+      return {
+        id,
+        email: r[users.columns.indexOf("email")],
+        displayName: r[users.columns.indexOf("display_name")],
+        role: getTeamRole(row.owner_id, settings.adminIds, id),
+      }
+    }) : []
 
   // Get scripts count
   const scripts = db.exec("SELECT COUNT(*) as c FROM scripts WHERE team_id = ?")[0]
@@ -43,7 +51,9 @@ export default defineEventHandler(async (event) => {
     ownerId: row.owner_id,
     memberCount: memberIds.length,
     members,
+    settings,
     scriptCount,
     createdAt: row.created_at,
+    currentUserRole,
   }
 })

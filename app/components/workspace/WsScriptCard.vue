@@ -4,6 +4,8 @@ import type { Script } from '~/types/workspace'
 const props = defineProps<{
   script: Script
   deletable?: boolean
+  editable?: boolean
+  downloadable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -12,6 +14,7 @@ const emit = defineEmits<{
 }>()
 
 const showConfirm = ref(false)
+const downloading = ref(false)
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -36,6 +39,35 @@ function handleDelete() {
     setTimeout(() => { showConfirm.value = false }, 3000)
   }
 }
+
+async function handleDownload() {
+  if (downloading.value) return
+  downloading.value = true
+  try {
+    const token = localStorage.getItem('autoforge-token')
+    const res = await fetch(`/api/scripts/${props.script.id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: '下载失败' }))
+      console.error('[download]', err.message)
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = props.script.zipName
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (err) {
+    console.error('[download]', err)
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <template>
@@ -47,25 +79,28 @@ function handleDelete() {
     <div class="script-card__body">
       <div class="script-card__title-row">
         <h3 class="script-card__title">{{ script.title }}</h3>
-        <button
-          v-if="deletable"
-          type="button"
-          class="script-card__edit"
-          title="????"
-          @click="emit('edit', script)"
-        >
-          <Icon name="lucide:pencil" size="15" />
-        </button>
-        <button
-          v-if="deletable"
-          type="button"
-          class="script-card__delete"
-          :class="{ 'script-card__delete--confirm': showConfirm }"
-          :title="showConfirm ? '确认删除' : '删除脚本'"
-          @click="handleDelete"
-        >
-          <Icon :name="showConfirm ? 'lucide:trash-2' : 'lucide:trash-2'" size="15" />
-        </button>
+        <div v-if="deletable || editable" class="script-card__actions">
+          <button
+            v-if="editable"
+            type="button"
+            class="script-card__edit"
+            title="编辑脚本"
+            @click="emit('edit', script)"
+          >
+            <Icon name="lucide:pencil" size="15" />
+          </button>
+          <button
+            v-if="deletable"
+            type="button"
+            class="script-card__delete"
+            :class="{ 'script-card__delete--confirm': showConfirm }"
+            :title="showConfirm ? '再次点击确认删除' : '删除脚本'"
+            @click="handleDelete"
+          >
+            <Icon :name="showConfirm ? 'lucide:alert-triangle' : 'lucide:trash-2'" size="15" />
+            <span v-if="showConfirm" class="script-card__delete-text">确认?</span>
+          </button>
+        </div>
       </div>
 
       <p v-if="script.description" class="script-card__desc">{{ script.description }}</p>
@@ -88,6 +123,17 @@ function handleDelete() {
           <Icon name="lucide:calendar" size="13" />
           {{ formatDate(script.createdAt) }}
         </span>
+        <button
+          v-if="downloadable !== false"
+          type="button"
+          class="script-card__download"
+          :disabled="downloading"
+          title="下载脚本"
+          @click="handleDownload"
+        >
+          <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__download--spin': downloading }" />
+          {{ downloading ? '下载中...' : '下载' }}
+        </button>
       </div>
 
       <div v-if="script.tags.length" class="script-card__tags">
@@ -158,6 +204,14 @@ function handleDelete() {
   white-space: nowrap;
 }
 
+.script-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
 .script-card__edit {
   display: flex;
   align-items: center;
@@ -169,6 +223,7 @@ function handleDelete() {
   background: transparent;
   color: var(--text-muted);
   flex-shrink: 0;
+  cursor: pointer;
   transition: background 0.12s, color 0.12s;
 }
 
@@ -181,14 +236,19 @@ function handleDelete() {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
+  gap: 3px;
+  padding: 0 6px;
   height: 28px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
   flex-shrink: 0;
+  cursor: pointer;
   transition: background 0.12s, color 0.12s;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
 .script-card__delete:hover {
@@ -202,6 +262,10 @@ function handleDelete() {
   animation: pulse 0.8s ease infinite;
 }
 
+.script-card__delete-text {
+  white-space: nowrap;
+}
+
 .script-card__desc {
   margin: 0;
   font-size: var(--text-sm);
@@ -210,6 +274,7 @@ function handleDelete() {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   overflow: hidden;
 }
 
@@ -227,6 +292,35 @@ function handleDelete() {
   font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.script-card__download {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  margin-left: auto;
+}
+
+.script-card__download:hover {
+  opacity: 0.75;
+}
+
+.script-card__download:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.script-card__download--spin {
+  animation: spin 0.8s linear infinite;
 }
 
 .script-card__meta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
@@ -265,5 +359,10 @@ function handleDelete() {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

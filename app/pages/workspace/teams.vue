@@ -105,8 +105,8 @@ function copyInviteCode(teamId: string) {
 
 <template>
   <div class="ws-page" v-if="user">
-    <WsHeader />
-    
+    <WorkspaceWsHeader />
+
     <div class="ws-page__body">
       <div class="ws-page__hero">
         <div class="ws-page__glow" aria-hidden="true" />
@@ -138,7 +138,7 @@ function copyInviteCode(teamId: string) {
 
       <!-- Team list -->
       <div v-if="userTeams.length > 0" class="ws-team-grid">
-        <WsTeamCard
+        <WorkspaceWsTeamCard
           v-for="team in userTeams"
           :key="team.id"
           :team="team"
@@ -164,12 +164,12 @@ function copyInviteCode(teamId: string) {
     </div>
 
     <Teleport to="body">
-      <WsCreateTeamModal
+      <WorkspaceWsCreateTeamModal
         v-if="showCreate"
         @close="showCreate = false"
         @created="handleCreate"
       />
-      <WsJoinTeamModal
+      <WorkspaceWsJoinTeamModal
         v-if="showJoin"
         @close="showJoin = false"
         @joined="handleJoin"

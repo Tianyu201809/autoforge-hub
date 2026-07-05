@@ -18,6 +18,9 @@ const {
   deleteTeam,
   getTeamInviteCode,
   loadTeams,
+  getTeamDetail,
+  updateTeamSettings,
+  manageMember,
   hydrated: teamsHydrated
 } = useTeams()
 
@@ -37,9 +40,26 @@ const editingScript = ref<any>(null)
 const actionError = ref('')
 const actionSuccess = ref('')
 
+// Team detail (includes members, settings, currentUserRole)
+const teamDetail = ref<any>(null)
+const loadingDetail = ref(false)
+
+async function refreshDetail() {
+  if (!teamId.value) return
+  loadingDetail.value = true
+  try {
+    teamDetail.value = await getTeamDetail(teamId.value)
+  } catch {
+    teamDetail.value = null
+  } finally {
+    loadingDetail.value = false
+  }
+}
+
 onMounted(() => {
   loadTeams()
   loadScripts()
+  refreshDetail()
 })
 
 const team = computed(() => getTeamById(teamId.value))
@@ -54,6 +74,11 @@ const isMember = computed(() => {
   if (!user.value || !team.value) return false
   return isTeamMember(teamId.value, user.value.id)
 })
+
+// Current user's role in this team
+const currentUserRole = computed(() => teamDetail.value?.currentUserRole || "member")
+const isAdminOrOwner = computed(() => currentUserRole.value === "owner" || currentUserRole.value === "admin")
+const isOnlyOwner = computed(() => currentUserRole.value === "owner")
 
 const teamScripts = computed(() => {
   if (!team.value) return []
@@ -82,16 +107,30 @@ const teamScripts = computed(() => {
   return sorted
 })
 
-async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string }) {
+// Permissions
+const memberPermissions = computed(() =>
+  teamDetail.value?.settings?.memberPermissions || { upload: true, edit: true, delete: false, download: true }
+)
+const canUpload = computed(() => currentUserRole.value === "owner" || currentUserRole.value === "admin" || memberPermissions.value.upload)
+const canDeleteScript = computed(() => (script: any) => {
+  if (!user.value) return false
+  if (currentUserRole.value === "owner" || currentUserRole.value === "admin") return true
+  return script.ownerId === user.value.id && memberPermissions.value.delete
+})
+const canEditScript = computed(() => (script: any) => {
+  if (!user.value) return false
+  if (currentUserRole.value === "owner" || currentUserRole.value === "admin") return true
+  return script.ownerId === user.value.id && memberPermissions.value.edit
+})
+const canDownload = computed(() =>
+  currentUserRole.value === "owner" || currentUserRole.value === "admin" || memberPermissions.value.download
+)
+
+async function handleUpload(payload: any) {
   if (!user.value || !teamId.value) return
   await addScript(
-    payload.title,
-    payload.description,
-    payload.tags,
-    payload.category,
-    payload.language,
-    payload.file,
-    teamId.value,
+    payload.title, payload.description, payload.tags,
+    payload.category, payload.language, payload.file, teamId.value,
   )
   showUpload.value = false
   loadScripts()
@@ -124,10 +163,7 @@ async function handleLeave() {
   actionError.value = ''
   actionSuccess.value = ''
   const result = await leaveTeam(teamId.value)
-  if (!result.ok) {
-    actionError.value = result.error
-    return
-  }
+  if (!result.ok) { actionError.value = result.error; return }
   actionSuccess.value = '已退出团队'
   navigateTo('/workspace/teams')
 }
@@ -136,10 +172,7 @@ async function handleDeleteTeam() {
   if (!user.value) return
   actionError.value = ''
   const result = await deleteTeam(teamId.value)
-  if (!result.ok) {
-    actionError.value = result.error
-    return
-  }
+  if (!result.ok) { actionError.value = result.error; return }
   navigateTo('/workspace/teams')
 }
 
@@ -151,18 +184,95 @@ function copyInviteCode() {
   })
 }
 
+// ─── Member management ───
+async function handleKickMember(targetUserId: string) {
+  if (!user.value) return
+  actionError.value = ''
+  const result = await manageMember(teamId.value, "kick", targetUserId)
+  if (!result.ok) { actionError.value = result.error; return }
+  actionSuccess.value = result.message
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+  refreshDetail()
+  loadTeams()
+}
+
+async function handleSetRole(targetUserId: string, role: "admin" | "member") {
+  if (!user.value) return
+  actionError.value = ''
+  const result = await manageMember(teamId.value, "setRole", targetUserId, role)
+  if (!result.ok) { actionError.value = result.error; return }
+  actionSuccess.value = result.message
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+  refreshDetail()
+}
+
+// ─── Permission settings (owner only) ───
+const editingPermissions = ref(false)
+const pendingPermissions = ref({ upload: true, edit: true, delete: false, download: true })
+
+function startEditPermissions() {
+  pendingPermissions.value = { ...memberPermissions.value }
+  editingPermissions.value = true
+}
+
+async function savePermissions() {
+  if (!user.value || !teamId.value) return
+  actionError.value = ''
+  const result = await updateTeamSettings(teamId.value, pendingPermissions.value)
+  if (!result.ok) { actionError.value = result.error; return }
+  editingPermissions.value = false
+  actionSuccess.value = '权限设置已更新'
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+  refreshDetail()
+}
+
+function cancelEditPermissions() {
+  editingPermissions.value = false
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    year: 'numeric', month: 'long', day: 'numeric'
   })
+}
+
+// ─── Role display ───
+function roleLabel(role: string): string {
+  if (role === 'owner') return '创建者'
+  if (role === 'admin') return '管理员'
+  return '成员'
+}
+
+function roleBadgeClass(role: string): string {
+  if (role === 'owner') return 'ws-member__badge--owner'
+  if (role === 'admin') return 'ws-member__badge--admin'
+  return ''
+}
+
+function getMemberRole(member: any): string {
+  return member.role || 'member'
+}
+
+function canKick(member: any): boolean {
+  if (!user.value) return false
+  const mRole = getMemberRole(member)
+  if (mRole === 'owner') return false
+  if (currentUserRole.value === 'owner') return true
+  if (currentUserRole.value === 'admin' && mRole === 'admin') return false
+  if (currentUserRole.value === 'admin' && mRole === 'member') return true
+  return false
+}
+
+function canSetRole(member: any): boolean {
+  if (!user.value) return false
+  if (currentUserRole.value !== 'owner') return false
+  return getMemberRole(member) !== 'owner'
 }
 </script>
 
 <template>
   <div class="ws-page" v-if="user">
-    <WsHeader />
+    <WorkspaceWsHeader />
 
     <div class="ws-page__body">
       <template v-if="team">
@@ -209,7 +319,7 @@ function formatDate(iso: string): string {
         </NuxtLink>
       </div>
       <div class="ws-team-actions ws-team-actions--detail">
-          <button type="button" class="ws-team-btn ws-team-btn--primary" @click="showUpload = true">
+          <button v-if="canUpload" type="button" class="ws-team-btn ws-team-btn--primary" @click="showUpload = true">
             <Icon name="lucide:upload" size="16" />
             上传到团队
           </button>
@@ -225,6 +335,95 @@ function formatDate(iso: string): string {
             <Icon name="lucide:trash-2" size="16" />
             删除团队
           </button>
+        </div>
+
+        <!-- ═══ Member Management Panel ═══ (owner/admin only) -->
+        <div v-if="isAdminOrOwner && teamDetail?.members" class="ws-section">
+          <div class="ws-section__head">
+            <h2 class="ws-section__title">
+              <Icon name="lucide:users" size="16" />
+              团队成员管理
+            </h2>
+            <span class="ws-section__count">{{ teamDetail.members.length }} 人</span>
+          </div>
+          <div class="ws-member-list">
+            <div
+              v-for="member in teamDetail.members"
+              :key="member.id"
+              class="ws-member"
+            >
+              <div class="ws-member__avatar">
+                <span class="ws-member__avatar-text">{{ (member.displayName || member.email).slice(0, 2).toUpperCase() }}</span>
+              </div>
+              <div class="ws-member__info">
+                <span class="ws-member__name">
+                  {{ member.displayName }}
+                  <span v-if="member.id === user?.id" class="ws-member__self">(你)</span>
+                </span>
+                <span class="ws-member__email">{{ member.email }}</span>
+              </div>
+              <span
+                class="ws-member__badge"
+                :class="roleBadgeClass(getMemberRole(member))"
+              >{{ roleLabel(getMemberRole(member)) }}</span>
+              <div class="ws-member__actions">
+                <button
+                  v-if="canSetRole(member)"
+                  type="button"
+                  class="ws-member__btn"
+                  :title="getMemberRole(member) === 'admin' ? '撤销管理员' : '提升为管理员'"
+                  @click="handleSetRole(member.id, getMemberRole(member) === 'admin' ? 'member' : 'admin')"
+                >
+                  <Icon :name="getMemberRole(member) === 'admin' ? 'lucide:shield-off' : 'lucide:shield'" size="14" />
+                </button>
+                <button
+                  v-if="canKick(member)"
+                  type="button"
+                  class="ws-member__btn ws-member__btn--danger"
+                  title="踢出团队"
+                  @click="handleKickMember(member.id)"
+                >
+                  <Icon name="lucide:log-out" size="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Permission Settings Panel ═══ (owner only) -->
+        <div v-if="isOnlyOwner" class="ws-section">
+          <div class="ws-section__head">
+            <h2 class="ws-section__title">
+              <Icon name="lucide:shield" size="16" />
+              成员权限设置
+            </h2>
+            <span class="ws-section__hint">对所有普通成员统一生效</span>
+          </div>
+          <div class="ws-permissions">
+            <label class="ws-permission" v-for="perm in ([
+              { key: 'upload', label: '允许上传脚本', icon: 'lucide:upload' },
+              { key: 'edit', label: '允许编辑自己脚本', icon: 'lucide:pencil' },
+              { key: 'delete', label: '允许删除自己脚本', icon: 'lucide:trash-2' },
+              { key: 'download', label: '允许下载脚本', icon: 'lucide:download' },
+            ])" :key="perm.key">
+              <div class="ws-permission__info">
+                <Icon :name="perm.icon" size="15" />
+                <span>{{ perm.label }}</span>
+              </div>
+              <button
+                type="button"
+                class="ws-permission__toggle"
+                :class="{ 'ws-permission__toggle--on': editingPermissions ? pendingPermissions[perm.key as keyof typeof pendingPermissions.value] : memberPermissions[perm.key as keyof typeof memberPermissions.value] }"
+                @click="startEditPermissions(); pendingPermissions[perm.key as keyof typeof pendingPermissions.value] = !pendingPermissions[perm.key as keyof typeof pendingPermissions.value]"
+              >
+                <span class="ws-permission__toggle-knob" />
+              </button>
+            </label>
+            <div v-if="editingPermissions" class="ws-permissions__actions">
+              <button type="button" class="ws-permissions__cancel" @click="cancelEditPermissions">取消</button>
+              <button type="button" class="ws-permissions__save" @click="savePermissions">保存设置</button>
+            </div>
+          </div>
         </div>
 
         <!-- Search & sort -->
@@ -261,12 +460,14 @@ function formatDate(iso: string): string {
 
         <!-- Scripts list -->
         <div v-if="teamScripts.length > 0" class="ws-script-list">
-          <WsScriptCard
+          <WorkspaceWsScriptCard
             @edit="handleEditScript"
             v-for="script in teamScripts"
             :key="script.id"
             :script="script"
-            :deletable="isOwner || script.ownerId === user.id"
+            :deletable="canDeleteScript(script)"
+            :editable="canEditScript(script)"
+            :downloadable="canDownload"
             @delete="handleDeleteScript"
           />
         </div>
@@ -701,6 +902,260 @@ function formatDate(iso: string): string {
   border-color: var(--accent-border);
   color: var(--secondary);
   background: var(--accent-soft);
+}
+
+/* ── Section ── */
+.ws-section {
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.ws-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.ws-section__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ws-section__count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.ws-section__hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ── Member List ── */
+.ws-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ws-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.1s;
+}
+
+.ws-member:hover {
+  background: var(--bg-muted);
+}
+
+.ws-member__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--secondary-soft);
+  flex-shrink: 0;
+}
+
+.ws-member__avatar-text {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--secondary);
+}
+
+.ws-member__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-member__name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-member__self {
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.ws-member__email {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-member__badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ws-member__badge--owner {
+  background: var(--secondary-soft);
+  border: 1px solid var(--secondary-border);
+  color: var(--secondary);
+}
+
+.ws-member__badge--admin {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+
+.ws-member__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.ws-member:hover .ws-member__actions {
+  opacity: 1;
+}
+
+.ws-member__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ws-member__btn:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ws-member__btn--danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* ── Permission Toggles ── */
+.ws-permissions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ws-permission {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.ws-permission:hover {
+  background: var(--bg-muted);
+}
+
+.ws-permission__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.ws-permission__toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.ws-permission__toggle--on {
+  background: var(--accent);
+}
+
+.ws-permission__toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ws-permission__toggle--on .ws-permission__toggle-knob {
+  transform: translateX(16px);
+}
+
+.ws-permissions__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 8px 10px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.ws-permissions__cancel {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ws-permissions__save {
+  padding: 6px 14px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--gradient-orange);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--btn-primary-text);
+  cursor: pointer;
 }
 
 @media (max-width: 600px) {

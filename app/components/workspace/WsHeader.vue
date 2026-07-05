@@ -4,7 +4,13 @@ import type { User } from '~/types/auth'
 const { user, logout } = useAuth()
 
 const showMenu = ref(false)
+const showUserCard = ref(false)
 const menuRef = ref<HTMLElement>()
+
+const userStats = computed(() => ({
+  scripts: 0,
+  teams: 0,
+}))
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
