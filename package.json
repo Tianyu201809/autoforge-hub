@@ -14,7 +14,12 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.35",
     "@nuxt/icon": "^1.12.0",
+    "@types/sql.js": "^1.4.11",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
+    "jsonwebtoken": "^9.0.3",
     "nuxt": "^4.4.8",
+    "sql.js": "^1.14.1",
     "vue": "^3.5.38",
     "vue-router": "^5.1.0"
   },

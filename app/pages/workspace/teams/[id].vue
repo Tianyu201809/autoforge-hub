@@ -32,6 +32,8 @@ const {
 const searchQuery = ref('')
 const sortBy = ref<ScriptSort>('newest')
 const showUpload = ref(false)
+const showEdit = ref(false)
+const editingScript = ref<any>(null)
 const actionError = ref('')
 const actionSuccess = ref('')
 
@@ -80,29 +82,49 @@ const teamScripts = computed(() => {
   return sorted
 })
 
-function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[] }) {
+async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }) {
   if (!user.value || !teamId.value) return
-  addScript(
+  await addScript(
     payload.title,
     payload.description,
     payload.zipName,
     payload.zipSize,
     payload.tags,
     user.value.id,
-    teamId.value
+    teamId.value,
+    payload.file
   )
   showUpload.value = false
+  loadScripts()
+}
+
+function handleEditScript(script: any) {
+  editingScript.value = script
+  showEdit.value = true
+}
+
+async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[] }) {
+  const token = localStorage.getItem("autoforge-token")
+  try {
+    await fetch("/api/scripts/" + payload.id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags })
+    })
+  } catch (e) {}
+  showEdit.value = false
+  loadScripts()
 }
 
 function handleDeleteScript(id: string) {
   deleteScript(id)
 }
 
-function handleLeave() {
+async function handleLeave() {
   if (!user.value) return
   actionError.value = ''
   actionSuccess.value = ''
-  const result = leaveTeam(teamId.value, user.value.id)
+  const result = await leaveTeam(teamId.value)
   if (!result.ok) {
     actionError.value = result.error
     return
@@ -111,10 +133,10 @@ function handleLeave() {
   navigateTo('/workspace/teams')
 }
 
-function handleDeleteTeam() {
+async function handleDeleteTeam() {
   if (!user.value) return
   actionError.value = ''
-  const result = deleteTeam(teamId.value, user.value.id)
+  const result = await deleteTeam(teamId.value)
   if (!result.ok) {
     actionError.value = result.error
     return
@@ -177,7 +199,17 @@ function formatDate(iso: string): string {
         </div>
 
         <!-- Team actions -->
-        <div class="ws-team-actions ws-team-actions--detail">
+        <div class="ws-space-bar ws-space-bar--team">
+        <div class="ws-space-bar__info">
+          <Icon name="lucide:users" size="16" class="ws-space-bar__icon ws-space-bar__icon--team" />
+          <span class="ws-space-bar__label">团队空间：{{ team?.name || "" }}</span>
+        </div>
+        <NuxtLink to="/workspace/personal" class="ws-space-bar__switch">
+          <Icon name="lucide:user" size="14" />
+          切换到个人空间
+        </NuxtLink>
+      </div>
+      <div class="ws-team-actions ws-team-actions--detail">
           <button type="button" class="ws-team-btn ws-team-btn--primary" @click="showUpload = true">
             <Icon name="lucide:upload" size="16" />
             上传到团队
@@ -231,6 +263,7 @@ function formatDate(iso: string): string {
         <!-- Scripts list -->
         <div v-if="teamScripts.length > 0" class="ws-script-list">
           <WsScriptCard
+            @edit="handleEditScript"
             v-for="script in teamScripts"
             :key="script.id"
             :script="script"
@@ -268,6 +301,14 @@ function formatDate(iso: string): string {
         v-if="showUpload"
         @close="showUpload = false"
         @uploaded="handleUpload"
+      />
+    </Teleport>
+    <Teleport to="body">
+      <WsEditModal
+        v-if="showEdit && editingScript"
+        :script="editingScript"
+        @close="showEdit = false"
+        @saved="handleEditSave"
       />
     </Teleport>
   </div>
@@ -609,5 +650,64 @@ function formatDate(iso: string): string {
 
 .ws-error-state__link:hover {
   border-color: var(--accent-border);
+}
+
+
+.ws-space-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.ws-space-bar__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-space-bar__icon {
+  color: var(--secondary);
+}
+
+.ws-space-bar__icon--team {
+  color: var(--secondary);
+}
+
+.ws-space-bar__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ws-space-bar__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ws-space-bar__switch:hover {
+  border-color: var(--accent-border);
+  color: var(--secondary);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 600px) {
+  .ws-space-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

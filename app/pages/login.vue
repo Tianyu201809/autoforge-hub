@@ -1,7 +1,5 @@
 ﻿<script setup lang="ts">
 import type { AuthTab } from '~/types/auth'
-import { seedMockData } from '~/data/mock-data'
-
 definePageMeta({
   layout: 'auth'
 })
@@ -41,7 +39,6 @@ watch(activeTab, () => {
 })
 
 onMounted(() => {
-  seedMockData()
   const registered = route.query.registered as string | undefined
   if (registered) {
     email.value = registered
@@ -120,7 +117,7 @@ async function onSubmit() {
     <AuthTabs v-model="activeTab" />
 
     <!-- Demo account hint -->
-    <div class="auth-demo" v-if="activeTab === 'login'">
+    <div class="auth-demo" v-if="activeTab === 'login'" style="margin-top:16px;">
       <div class="auth-demo__content">
         <Icon name="lucide:sparkles" size="14" class="auth-demo__icon" />
         <span>

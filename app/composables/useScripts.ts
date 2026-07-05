@@ -1,39 +1,34 @@
-import type { Script, StoredScript, ScriptSort } from '~/types/workspace'
+﻿import type { Script, ScriptSort } from "~/types/workspace"
 
-const SCRIPTS_KEY = 'autoforge-scripts'
+const API_BASE = "/api"
 
-function generateId(): string {
-  return crypto.randomUUID()
-}
-
-function readScripts(): StoredScript[] {
-  if (!import.meta.client) return []
-  try {
-    const raw = localStorage.getItem(SCRIPTS_KEY)
-    return raw ? (JSON.parse(raw) as StoredScript[]) : []
-  } catch {
-    return []
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const token = import.meta.client ? localStorage.getItem("autoforge-token") : null
+  const headers: Record<string, string> = {}
+  if (options?.body && typeof options.body === "string") {
+    headers["Content-Type"] = "application/json"
   }
-}
-
-function writeScripts(scripts: StoredScript[]) {
-  if (!import.meta.client) return
-  localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts))
-}
-
-function toScript(s: StoredScript): Script {
-  return { ...s }
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  const res = await fetch(`${API_BASE}${url}`, { ...options, headers })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.message || "请求失败")
+  }
+  const data = await res.json()
+  return data
 }
 
 export function useScripts() {
-  const scripts = useState<Script[]>('workspace-scripts', () => [])
-  const hydrated = useState('scripts-hydrated', () => false)
+  const scripts = useState<Script[]>("workspace-scripts", () => [])
 
-  function loadScripts() {
-    if (!import.meta.client) return
-    const stored = readScripts()
-    scripts.value = stored.map(toScript)
-    hydrated.value = true
+  async function loadScripts(scope = "personal", teamId?: string) {
+    try {
+      const query = teamId ? `?teamId=${teamId}` : `?scope=${scope}`
+      const data = await apiFetch<any[]>(`/scripts${query}`)
+      scripts.value = data.map(toScript)
+    } catch {
+      scripts.value = []
+    }
   }
 
   function getPersonalScripts(userId: string): Script[] {
@@ -44,40 +39,50 @@ export function useScripts() {
     return scripts.value.filter(s => s.teamId === teamId)
   }
 
-  function addScript(
+  async function addScript(
     title: string,
     description: string,
-    zipName: string,
-    zipSize: number,
+    _zipName: string,
+    _zipSize: number,
     tags: string[],
     ownerId: string,
-    teamId?: string
-  ): Script {
-    const now = new Date().toISOString()
-    const stored: StoredScript = {
-      id: generateId(),
-      title,
-      description,
-      zipName,
-      zipSize,
-      tags,
-      createdAt: now,
-      updatedAt: now,
-      ownerId,
-      teamId
+    teamId?: string,
+    file?: File,
+  ): Promise<Script | null> {
+    try {
+      const formData = new FormData()
+      formData.append("title", title)
+      formData.append("description", description)
+      formData.append("tags", JSON.stringify(tags))
+      if (teamId) formData.append("teamId", teamId)
+      if (file) formData.append("file", file)
+
+      const token = localStorage.getItem("autoforge-token")
+      const res = await fetch("/api/scripts", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "上传失败")
+
+      if (data.script) {
+        scripts.value.unshift(data.script)
+        return data.script
+      }
+      return null
+    } catch (err: any) {
+      console.error("Upload error:", err)
+      return null
     }
-    const all = readScripts()
-    all.push(stored)
-    writeScripts(all)
-    const script = toScript(stored)
-    scripts.value.push(script)
-    return script
   }
 
   function deleteScript(id: string) {
-    const all = readScripts()
-    const filtered = all.filter(s => s.id !== id)
-    writeScripts(filtered)
+    const token = localStorage.getItem("autoforge-token")
+    fetch(`/api/scripts/${id}`, {
+      method: "DELETE",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).catch(() => {})
     scripts.value = scripts.value.filter(s => s.id !== id)
   }
 
@@ -86,8 +91,7 @@ export function useScripts() {
     if (!query.trim()) return personal
     const q = query.trim().toLowerCase()
     return personal.filter(
-      s =>
-        s.title.toLowerCase().includes(q) ||
+      s => s.title.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
         s.tags.some(t => t.toLowerCase().includes(q))
     )
@@ -96,24 +100,29 @@ export function useScripts() {
   function sortScripts(list: Script[], sort: ScriptSort): Script[] {
     const sorted = [...list]
     switch (sort) {
-      case 'newest':
-        return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      case 'oldest':
-        return sorted.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      case 'name':
-        return sorted.sort((a, b) => a.title.localeCompare(b.title))
+      case "newest": return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      case "oldest": return sorted.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      case "name": return sorted.sort((a, b) => a.title.localeCompare(b.title))
+    }
+  }
+
+  function toScript(data: any): Script {
+    return {
+      id: data.id,
+      title: data.title,
+      description: data.description || "",
+      zipName: data.zipName || data.file_name || "",
+      zipSize: data.zipSize || data.file_size || 0,
+      tags: data.tags || [],
+      createdAt: data.createdAt || data.created_at || "",
+      updatedAt: data.updatedAt || data.updated_at || "",
+      ownerId: data.ownerId || data.owner_id || "",
+      teamId: data.teamId || data.team_id || undefined,
     }
   }
 
   return {
-    scripts,
-    hydrated,
-    loadScripts,
-    getPersonalScripts,
-    getTeamScripts,
-    addScript,
-    deleteScript,
-    searchScripts,
-    sortScripts
+    scripts, loadScripts, getPersonalScripts, getTeamScripts,
+    addScript, deleteScript, searchScripts, sortScripts,
   }
 }

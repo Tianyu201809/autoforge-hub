@@ -8,6 +8,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [id: string]
+  edit: [script: Script]
 }>()
 
 const showConfirm = ref(false)
@@ -46,6 +47,15 @@ function handleDelete() {
     <div class="script-card__body">
       <div class="script-card__title-row">
         <h3 class="script-card__title">{{ script.title }}</h3>
+        <button
+          v-if="deletable"
+          type="button"
+          class="script-card__edit"
+          title="????"
+          @click="emit('edit', script)"
+        >
+          <Icon name="lucide:pencil" size="15" />
+        </button>
         <button
           v-if="deletable"
           type="button"
@@ -141,6 +151,25 @@ function handleDelete() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.script-card__edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+.script-card__edit:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .script-card__delete {

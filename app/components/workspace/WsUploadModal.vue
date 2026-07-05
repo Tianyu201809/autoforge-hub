@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const emit = defineEmits<{
   close: []
-  uploaded: [payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[] }]
+  uploaded: [payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }]
 }>()
 
 const title = ref('')

@@ -48,10 +48,6 @@ onMounted(() => {
         </NuxtLink>
 
         <nav class="ws-nav" aria-label="Workspace navigation">
-          <NuxtLink to="/workspace" class="ws-nav__link" active-class="ws-nav__link--active" :exact="true">
-            <Icon name="lucide:layout-dashboard" size="16" />
-            <span>概览</span>
-          </NuxtLink>
           <NuxtLink to="/workspace/personal" class="ws-nav__link" active-class="ws-nav__link--active">
             <Icon name="lucide:user" size="16" />
             <span>个人空间</span>
@@ -64,9 +60,9 @@ onMounted(() => {
       </div>
 
       <div class="ws-header__right">
-        <NuxtLink to="/" class="ws-hub-link" title="前往社区 Hub">
-          <Icon name="lucide:compass" size="16" />
-          <span>社区 Hub</span>
+        <NuxtLink to="/workspace" class="ws-back-link" title="返回空间选择">
+          <Icon name="lucide:arrow-left" size="16" />
+          <span>返回选择</span>
         </NuxtLink>
 
         <div v-if="user" ref="menuRef" class="ws-user-menu">
@@ -111,6 +107,34 @@ onMounted(() => {
             </div>
           </Transition>
         </div>
+      </div>
+    </div>
+      <!-- User card dropdown -->
+    <div v-if="showUserCard && user" class="ws-user-card">
+      <div class="ws-user-card__avatar">
+        <span class="ws-user-card__avatar-text">{{ getUserInitials(user) }}</span>
+      </div>
+      <div class="ws-user-card__info">
+        <p class="ws-user-card__name">{{ user.displayName }}</p>
+        <p class="ws-user-card__email">{{ user.email }}</p>
+      </div>
+      <div class="ws-user-card__stats">
+        <div class="ws-user-card__stat">
+          <span class="ws-user-card__stat-num">{{ userStats.scripts }}</span>
+          <span class="ws-user-card__stat-label">脚本</span>
+        </div>
+        <div class="ws-user-card__stat">
+          <span class="ws-user-card__stat-num">{{ userStats.teams }}</span>
+          <span class="ws-user-card__stat-label">团队</span>
+        </div>
+      </div>
+      <div class="ws-user-card__actions">
+        <NuxtLink to="/workspace/profile" class="ws-user-card__btn" @click="showUserCard = false">
+          <Icon name="lucide:settings" size="14" /> 编辑资料
+        </NuxtLink>
+        <button type="button" class="ws-user-card__btn ws-user-card__btn--danger" @click="handleLogout">
+          <Icon name="lucide:log-out" size="14" /> 退出登录
+        </button>
       </div>
     </div>
   </header>
@@ -203,7 +227,77 @@ onMounted(() => {
   gap: 12px;
 }
 
-.ws-hub-link {
+
+.ws-user-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: var(--text);
+}
+.ws-user-info:hover { background: var(--bg-muted); }
+.ws-user-info__avatar {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gradient-orange);
+  font-size: 11px; font-weight: 700; color: var(--btn-primary-text);
+  flex-shrink: 0;
+}
+.ws-user-info__name { font-size: var(--text-sm); font-weight: 600; }
+
+.ws-header__logout {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.ws-header__logout:hover { border-color: var(--danger-border); color: var(--danger); background: var(--danger-soft); }
+
+.ws-user-card {
+  position: fixed; top: 60px; left: 20px; z-index: 100;
+  width: 220px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-lg);
+  background: var(--bg-elevated); box-shadow: var(--shadow-md);
+  padding: 20px 16px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  animation: slideDown 0.15s ease;
+}
+.ws-user-card__avatar {
+  display: flex; align-items: center; justify-content: center;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--gradient-orange);
+  font-size: 22px; font-weight: 700; color: var(--btn-primary-text);
+}
+.ws-user-card__info { text-align: center; }
+.ws-user-card__name { margin: 0; font-size: var(--text-base); font-weight: 700; color: var(--text); }
+.ws-user-card__email { margin: 2px 0 0; font-size: var(--text-xs); color: var(--text-muted); word-break: break-all; }
+.ws-user-card__stats { display: flex; gap: 24px; padding: 8px 0; width: 100%; justify-content: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.ws-user-card__stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ws-user-card__stat-num { font-size: var(--text-lg); font-weight: 700; color: var(--accent); }
+.ws-user-card__stat-label { font-size: var(--text-xs); color: var(--text-muted); }
+.ws-user-card__actions { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 0 4px; }
+.ws-user-card__btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 7px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.ws-user-card__btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-soft); }
+.ws-user-card__btn--danger:hover { border-color: var(--danger-border); color: var(--danger); background: var(--danger-soft); }
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+.ws-back-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -216,7 +310,7 @@ onMounted(() => {
   transition: border-color 0.15s, color 0.15s;
 }
 
-.ws-hub-link:hover {
+.ws-back-link:hover {
   border-color: var(--secondary-border);
   color: var(--text);
   box-shadow: var(--shadow-glow-purple);
@@ -397,7 +491,7 @@ onMounted(() => {
     display: none;
   }
 
-  .ws-hub-link span {
+  .ws-back-link span {
     display: none;
   }
 

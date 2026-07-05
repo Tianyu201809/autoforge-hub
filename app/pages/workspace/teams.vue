@@ -43,11 +43,11 @@ function isOwnedTeam(teamId: string): boolean {
   return isTeamOwner(teamId, user.value.id)
 }
 
-function handleCreate(payload: { name: string; description: string }) {
+async function handleCreate(payload: { name: string; description: string }) {
   if (!user.value) return
   actionError.value = ''
   actionSuccess.value = ''
-  const result = createTeam(payload.name, payload.description, user.value.id)
+  const result = await createTeam(payload.name, payload.description)
   if (!result.ok) {
     actionError.value = result.error
     return
@@ -57,7 +57,7 @@ function handleCreate(payload: { name: string; description: string }) {
   setTimeout(() => { actionSuccess.value = '' }, 4000)
 }
 
-function handleJoin(code: string) {
+async function handleJoin(code: string) {
   if (!user.value) return
   actionError.value = ''
   actionSuccess.value = ''
@@ -74,7 +74,7 @@ function handleJoin(code: string) {
     return
   }
 
-  const result = joinTeam(teamId, user.value.id)
+  const result = await joinTeam(teamId)
   if (!result.ok) {
     actionError.value = result.error
     return

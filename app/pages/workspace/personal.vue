@@ -15,6 +15,8 @@ const { scripts, getPersonalScripts, deleteScript, searchScripts, sortScripts, a
 const searchQuery = ref('')
 const sortBy = ref<ScriptSort>('newest')
 const showUpload = ref(false)
+const showEdit = ref(false)
+const editingScript = ref<any>(null)
 
 onMounted(() => {
   loadScripts()
@@ -29,21 +31,42 @@ const personalScripts = computed(() => {
   return sortScripts(searchScripts(user.value.id, searchQuery.value), sortBy.value)
 })
 
+function handleEdit(script: any) {
+  editingScript.value = script
+  showEdit.value = true
+}
+
+async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[] }) {
+  const token = localStorage.getItem("autoforge-token")
+  try {
+    await fetch("/api/scripts/" + payload.id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags })
+    })
+  } catch (e) {}
+  showEdit.value = false
+  loadScripts()
+}
+
 function handleDelete(id: string) {
   deleteScript(id)
 }
 
-function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[] }) {
+async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }) {
   if (!user.value) return
-  addScript(
+  await addScript(
     payload.title,
     payload.description,
     payload.zipName,
     payload.zipSize,
     payload.tags,
-    user.value.id
+    user.value.id,
+    undefined,
+    payload.file
   )
   showUpload.value = false
+  loadScripts()
 }
 </script>
 
@@ -57,6 +80,16 @@ function handleUpload(payload: { title: string; description: string; zipName: st
         <p class="ws-page__desc">管理你个人上传的脚本包，只有你自己可以看到</p>
       </div>
 
+      <div class="ws-space-bar">
+        <div class="ws-space-bar__info">
+          <Icon name="lucide:user" size="16" class="ws-space-bar__icon" />
+          <span class="ws-space-bar__label">个人空间</span>
+        </div>
+        <NuxtLink to="/workspace/teams" class="ws-space-bar__switch">
+          <Icon name="lucide:users" size="14" />
+          切换到团队空间
+        </NuxtLink>
+      </div>
       <div class="ws-toolbar">
         <div class="ws-toolbar__search">
           <Icon name="lucide:search" size="16" class="ws-toolbar__search-icon" />
@@ -95,6 +128,7 @@ function handleUpload(payload: { title: string; description: string; zipName: st
 
       <div v-if="personalScripts.length > 0" class="ws-script-list">
         <WsScriptCard
+          @edit="handleEdit"
           v-for="script in personalScripts"
           :key="script.id"
           :script="script"
@@ -121,6 +155,14 @@ function handleUpload(payload: { title: string; description: string; zipName: st
         v-if="showUpload"
         @close="showUpload = false"
         @uploaded="handleUpload"
+      />
+    </Teleport>
+    <Teleport to="body">
+      <WsEditModal
+        v-if="showEdit && editingScript"
+        :script="editingScript"
+        @close="showEdit = false"
+        @saved="handleEditSave"
       />
     </Teleport>
   </div>
@@ -337,6 +379,65 @@ function handleUpload(payload: { title: string; description: string; zipName: st
 
   .ws-toolbar__actions {
     justify-content: space-between;
+  }
+}
+
+
+.ws-space-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.ws-space-bar__info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-space-bar__icon {
+  color: var(--accent);
+}
+
+.ws-space-bar__icon--team {
+  color: var(--secondary);
+}
+
+.ws-space-bar__label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ws-space-bar__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.ws-space-bar__switch:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+@media (max-width: 600px) {
+  .ws-space-bar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
