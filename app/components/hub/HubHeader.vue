@@ -3,6 +3,8 @@ const emit = defineEmits<{
   openSearch: []
 }>()
 
+const { user, isAuthenticated, getUserInitials } = useAuth()
+
 const navLinks = [
   { label: 'Hub', href: '/', active: true },
   { label: 'Docs', href: '#', external: false },
@@ -58,9 +60,20 @@ const navLinks = [
 
         <HubThemeToggle />
 
-        <button type="button" class="btn-login">
+        <template v-if="isAuthenticated && user">
+          <NuxtLink to="/workspace" class="btn-workspace">
+            <Icon name="lucide:layout-dashboard" size="15" />
+            <span>工作区</span>
+          </NuxtLink>
+          <NuxtLink to="/workspace" class="btn-user-avatar" :title="user.displayName">
+            <span class="btn-user-avatar__text">{{ getUserInitials(user) }}</span>
+          </NuxtLink>
+        </template>
+        <template v-else>
+        <NuxtLink to="/login" class="btn-login">
           登录
-        </button>
+        </NuxtLink>
+        </template>
       </div>
     </div>
   </header>
@@ -200,6 +213,8 @@ const navLinks = [
 }
 
 .btn-login {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 14px;
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
@@ -229,6 +244,56 @@ const navLinks = [
   .search-trigger__text,
   .search-trigger__kbd {
     display: none;
+  }
+}
+
+.btn-workspace {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-workspace:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.btn-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--gradient-orange);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.btn-user-avatar:hover {
+  transform: scale(1.05);
+}
+
+.btn-user-avatar__text {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--btn-primary-text);
+}
+
+@media (max-width: 600px) {
+  .btn-workspace span {
+    display: none;
+  }
+
+  .btn-workspace {
+    padding: 6px 8px;
   }
 }
 </style>
