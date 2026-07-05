@@ -107,7 +107,6 @@ const userTeams = computed(() => {
 <style scoped>
 .ws-dashboard {
   min-height: 100vh;
-  background: var(--bg);
 }
 
 .ws-dashboard__body {

@@ -95,7 +95,7 @@ async function changeAvatar(e: Event) {
 </template>
 
 <style scoped>
-.profile-page { min-height: 100vh; background: var(--bg); }
+.profile-page { min-height: 100vh; }
 .profile-page__body { max-width: 560px; margin: 0 auto; padding: 32px 24px 80px; }
 .profile-page__back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 20px; font-size: var(--text-sm); color: var(--text-muted); }
 .profile-page__back:hover { color: var(--accent); }

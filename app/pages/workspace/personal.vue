@@ -204,7 +204,6 @@ async function handleUpload(payload: { title: string; description: string; zipNa
 <style scoped>
 .ws-page {
   min-height: 100vh;
-  background: var(--bg);
 }
 
 .ws-page__body {
