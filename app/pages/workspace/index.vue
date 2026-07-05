@@ -156,13 +156,14 @@ const userTeams = computed(() => {
   border-radius: 50%;
   box-shadow: var(--logo-shadow);
   margin-bottom: 14px;
+  width: 156px;
+  height: 156px;
 }
 
 .ws-hero__title {
   position: relative;
   margin: 0 0 8px;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-size: 55px;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text);

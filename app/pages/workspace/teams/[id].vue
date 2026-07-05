@@ -21,7 +21,6 @@ const {
   getTeamDetail,
   updateTeamSettings,
   manageMember,
-  hydrated: teamsHydrated
 } = useTeams()
 
 const {
@@ -29,7 +28,6 @@ const {
   addScript,
   deleteScript,
   loadScripts,
-  hydrated: scriptsHydrated
 } = useScripts()
 
 const searchQuery = ref('')
@@ -413,8 +411,8 @@ function canSetRole(member: any): boolean {
               <button
                 type="button"
                 class="ws-permission__toggle"
-                :class="{ 'ws-permission__toggle--on': editingPermissions ? pendingPermissions[perm.key as keyof typeof pendingPermissions.value] : memberPermissions[perm.key as keyof typeof memberPermissions.value] }"
-                @click="startEditPermissions(); pendingPermissions[perm.key as keyof typeof pendingPermissions.value] = !pendingPermissions[perm.key as keyof typeof pendingPermissions.value]"
+                :class="{ 'ws-permission__toggle--on': editingPermissions ? pendingPermissions[perm.key] : memberPermissions[perm.key] }"
+                @click="startEditPermissions(); pendingPermissions[perm.key] = !pendingPermissions[perm.key]"
               >
                 <span class="ws-permission__toggle-knob" />
               </button>

@@ -44,7 +44,7 @@ function handleDelete() {
           {{ team.memberCount }} 名成员 · {{ formatDate(team.createdAt) }} 创建
         </p>
       </div>
-      <div class="team-card__actions" @click.prevent>
+      <div class="team-card__actions">
         <span v-if="isOwner" class="team-card__owner-badge">创建者</span>
         <button
           v-if="canDelete"
@@ -52,7 +52,7 @@ function handleDelete() {
           class="team-card__delete"
           :class="{ 'team-card__delete--confirm': showConfirm }"
           :title="showConfirm ? '确认删除' : '删除团队'"
-          @click="handleDelete"
+          @click.stop="handleDelete"
         >
           <Icon :name="showConfirm ? 'lucide:trash-2' : 'lucide:trash-2'" size="15" />
         </button>
