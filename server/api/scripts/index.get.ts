@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
       zipName: row.file_name,
       zipSize: row.file_size,
       filePath: row.file_path,
+      icon: row.icon || "file-archive",
       tags: JSON.parse(row.tags || "[]"),
       category: row.category || "",
       language: row.language || "",

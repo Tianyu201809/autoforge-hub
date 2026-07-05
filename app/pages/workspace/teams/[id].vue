@@ -128,7 +128,7 @@ async function handleUpload(payload: any) {
   if (!user.value || !teamId.value) return
   await addScript(
     payload.title, payload.description, payload.tags,
-    payload.category, payload.language, payload.file, teamId.value,
+    payload.category, payload.language, payload.icon || "file-archive", payload.file, teamId.value,
   )
   showUpload.value = false
   loadScripts()
@@ -139,13 +139,13 @@ function handleEditScript(script: any) {
   showEdit.value = true
 }
 
-async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[] }) {
+async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[]; icon: string; category: string; language: string }) {
   const token = localStorage.getItem("autoforge-token")
   try {
     await fetch("/api/scripts/" + payload.id, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags })
+      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags, icon: payload.icon, category: payload.category, language: payload.language })
     })
   } catch (e) {}
   showEdit.value = false

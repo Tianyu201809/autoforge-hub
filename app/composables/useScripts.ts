@@ -48,6 +48,7 @@ export function useScripts() {
     tags: string[],
     category: string,
     language: string,
+    icon: string,
     zipFile: File,
     teamId?: string,
   ): Promise<Script | null> {
@@ -58,6 +59,7 @@ export function useScripts() {
       formData.append("tags", JSON.stringify(tags))
       formData.append("category", category)
       formData.append("language", language)
+      formData.append("icon", icon)
       if (teamId) formData.append("teamId", teamId)
       formData.append("file", zipFile)
 
@@ -122,6 +124,7 @@ function toScript(data: any): Script {
     zipName: data.zipName ?? data.file_name ?? "",
     zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
     filePath: data.filePath ?? data.file_path ?? "",
+    icon: data.icon || 'file-archive',
     tags: (Array.isArray(data.tags) ? data.tags : []),
     createdAt: data.createdAt ?? data.created_at ?? "",
     updatedAt: data.updatedAt ?? data.updated_at ?? "",

@@ -62,12 +62,8 @@ function getLeafStyle(i: number) {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-
-[data-theme='dark'] .bg-nebula {
-  opacity: 1;
+  opacity: var(--bg-nebula-opacity, 0);
+  transition: opacity 0.8s ease;
 }
 
 .bg-nebula__orb {
@@ -165,12 +161,8 @@ function getLeafStyle(i: number) {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-
-[data-theme='light'] .bg-leaves {
-  opacity: 1;
+  opacity: var(--bg-leaves-opacity, 0);
+  transition: opacity 0.8s ease;
 }
 
 .bg-leaf {

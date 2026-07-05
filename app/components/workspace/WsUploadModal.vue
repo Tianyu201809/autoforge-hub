@@ -9,6 +9,7 @@ const title = ref('')
 const description = ref('')
 const category = ref('')
 const language = ref('')
+const icon = ref('file-archive')
 const tagsText = ref('')
 const zipFile = ref<File | null>(null)
 const error = ref('')
@@ -80,6 +81,7 @@ function onSubmit() {
       description: description.value.trim(),
       category: category.value,
       language: language.value,
+      icon: icon.value,
       zipName: zipFile.value!.name,
       zipSize: zipFile.value!.size,
       tags,
@@ -156,6 +158,9 @@ function formatSize(bytes: number): string {
             <option value="Ruby">Ruby</option>
             <option value="其他">其他</option>
           </select>
+        </div>
+        <div class="upload-form__field">
+          <WorkspaceWsIconPicker v-model="icon" />
         </div>
         <div class="upload-form__field">
           <input v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化"

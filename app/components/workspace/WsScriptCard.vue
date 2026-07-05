@@ -13,8 +13,11 @@ const emit = defineEmits<{
   edit: [script: Script]
 }>()
 
-const showConfirm = ref(false)
+const showDeleteModal = ref(false)
+const deleteConfirmText = ref('')
 const downloading = ref(false)
+
+const deleteInputMatch = computed(() => deleteConfirmText.value === props.script.title)
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -31,13 +34,14 @@ function formatDate(iso: string): string {
 }
 
 function handleDelete() {
-  if (showConfirm.value) {
-    emit('delete', props.script.id)
-    showConfirm.value = false
-  } else {
-    showConfirm.value = true
-    setTimeout(() => { showConfirm.value = false }, 3000)
-  }
+  deleteConfirmText.value = ''
+  showDeleteModal.value = true
+}
+
+function confirmDelete() {
+  if (!deleteInputMatch.value) return
+  emit('delete', props.script.id)
+  showDeleteModal.value = false
 }
 
 async function handleDownload() {
@@ -73,7 +77,7 @@ async function handleDownload() {
 <template>
   <div class="script-card">
     <div class="script-card__icon">
-      <Icon name="lucide:file-archive" size="24" class="script-card__archive-icon" />
+      <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" class="script-card__archive-icon" />
     </div>
 
     <div class="script-card__body">
@@ -93,12 +97,10 @@ async function handleDownload() {
             v-if="deletable"
             type="button"
             class="script-card__delete"
-            :class="{ 'script-card__delete--confirm': showConfirm }"
-            :title="showConfirm ? '再次点击确认删除' : '删除脚本'"
+            title="删除脚本"
             @click="handleDelete"
           >
-            <Icon :name="showConfirm ? 'lucide:alert-triangle' : 'lucide:trash-2'" size="15" />
-            <span v-if="showConfirm" class="script-card__delete-text">确认?</span>
+            <Icon name="lucide:trash-2" size="15" />
           </button>
         </div>
       </div>
@@ -147,6 +149,56 @@ async function handleDownload() {
       </div>
     </div>
   </div>
+
+  <!-- ═══ Delete Confirmation Modal ═══ -->
+  <Teleport to="body">
+    <Transition name="modal">
+      <div v-if="showDeleteModal" class="delete-overlay" @click.self="showDeleteModal = false">
+        <div class="delete-modal" role="dialog" aria-label="确认删除">
+          <div class="delete-modal__icon">
+            <div class="delete-modal__icon-ring">
+              <Icon name="lucide:trash-2" size="24" />
+            </div>
+          </div>
+          <h3 class="delete-modal__title">确认删除脚本</h3>
+          <p class="delete-modal__desc">
+            确定要删除「<strong>{{ script.title }}</strong>」吗？此操作不可撤销。
+          </p>
+          <div class="delete-modal__input-group">
+            <label class="delete-modal__label">
+              请输入 <strong>{{ script.title }}</strong> 确认删除
+            </label>
+            <input
+              v-model="deleteConfirmText"
+              type="text"
+              class="delete-modal__input"
+              :placeholder="script.title"
+              autocomplete="off"
+              @keydown.enter="confirmDelete"
+            />
+          </div>
+          <div class="delete-modal__actions">
+            <button
+              type="button"
+              class="delete-modal__cancel"
+              @click="showDeleteModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="delete-modal__confirm"
+              :disabled="!deleteInputMatch"
+              @click="confirmDelete"
+            >
+              <Icon name="lucide:trash-2" size="14" />
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -256,14 +308,173 @@ async function handleDownload() {
   color: var(--danger);
 }
 
-.script-card__delete--confirm {
-  background: var(--danger-soft);
-  color: var(--danger);
-  animation: pulse 0.8s ease infinite;
+/* ── Delete Confirmation Modal ── */
+.delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(8px);
 }
 
-.script-card__delete-text {
-  white-space: nowrap;
+.delete-modal {
+  width: min(380px, calc(100vw - 32px));
+  padding: 32px 28px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  animation: modalIn 0.25s ease;
+}
+
+.delete-modal__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.delete-modal__icon-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.delete-modal__title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.delete-modal__desc {
+  margin: 0 0 24px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+}
+
+.delete-modal__desc strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.delete-modal__input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.delete-modal__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.delete-modal__label strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.delete-modal__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.delete-modal__input:focus {
+  border-color: var(--danger-border);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.delete-modal__input::placeholder {
+  color: var(--text-muted);
+}
+
+.delete-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.delete-modal__cancel {
+  flex: 1;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.delete-modal__cancel:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+
+.delete-modal__confirm {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.12s, opacity 0.12s;
+  font-family: inherit;
+}
+
+.delete-modal__confirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.delete-modal__confirm:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Transition */
+.modal-enter-active { transition: opacity 0.2s ease; }
+.modal-leave-active { transition: opacity 0.15s ease; }
+.modal-enter-from,
+.modal-leave-to { opacity: 0; }
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .script-card__desc {
@@ -354,11 +565,6 @@ async function handleDownload() {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
 }
 
 @keyframes spin {

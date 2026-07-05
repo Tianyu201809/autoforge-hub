@@ -41,13 +41,13 @@ function handleEdit(script: any) {
   showEdit.value = true
 }
 
-async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[] }) {
+async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[]; icon: string; category: string; language: string }) {
   const token = localStorage.getItem("autoforge-token")
   try {
     await fetch("/api/scripts/" + payload.id, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags })
+      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags, icon: payload.icon, category: payload.category, language: payload.language })
     })
   } catch (e) {}
   showEdit.value = false
@@ -58,7 +58,7 @@ function handleDelete(id: string) {
   deleteScript(id)
 }
 
-async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string }) {
+async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string; icon: string }) {
   if (!user.value) return
   await addScript(
     payload.title,
@@ -66,6 +66,7 @@ async function handleUpload(payload: { title: string; description: string; zipNa
     payload.tags,
     payload.category,
     payload.language,
+    payload.icon,
     payload.file,
   )
   showUpload.value = false

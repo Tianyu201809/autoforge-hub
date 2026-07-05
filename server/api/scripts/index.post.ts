@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const tags: string[] = tagsRaw ? JSON.parse(tagsRaw) : []
+  const icon = getField("icon") || "file-archive"
   const folder = teamId ? `files/${teamId}` : `files/${userId}`
   const filePath = await saveFile(filename, fileField.data, folder)
 
@@ -62,8 +63,8 @@ export default defineEventHandler(async (event) => {
   const now = new Date().toISOString()
 
   db.run(
-    "INSERT INTO scripts (id, title, description, file_name, file_size, file_path, tags, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), category, language, userId, teamId, now, now]
+    "INSERT INTO scripts (id, title, description, file_name, file_size, file_path, tags, icon, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, category, language, userId, teamId, now, now]
   )
   saveDb()
 
@@ -71,7 +72,7 @@ export default defineEventHandler(async (event) => {
     ok: true,
     script: {
       id, title, description, zipName: filename, zipSize: fileField.data.length,
-      tags, category, language, ownerId: userId, teamId, createdAt: now, updatedAt: now
+      icon, tags, category, language, ownerId: userId, teamId, createdAt: now, updatedAt: now
     }
   }
 })

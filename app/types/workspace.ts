@@ -5,6 +5,7 @@ export interface Script {
   zipName: string
   zipSize: number
   filePath: string
+  icon: string
   tags: string[]
   category: string
   language: string
@@ -21,6 +22,7 @@ export interface StoredScript {
   zipName: string
   zipSize: number
   filePath: string
+  icon: string
   tags: string[]
   category: string
   language: string

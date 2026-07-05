@@ -56,6 +56,7 @@ export async function getDb(): Promise<SqlJsDbType> {
       file_size INTEGER NOT NULL DEFAULT 0,
       file_path TEXT NOT NULL DEFAULT '',
       tags TEXT NOT NULL DEFAULT '[]',
+      icon TEXT NOT NULL DEFAULT 'file-archive',
       owner_id TEXT NOT NULL REFERENCES users(id),
       team_id TEXT REFERENCES teams(id),
       created_at TEXT NOT NULL,
@@ -73,6 +74,9 @@ export async function getDb(): Promise<SqlJsDbType> {
 
   // Migration: add settings to teams
   try { _sqlDb.run("ALTER TABLE teams ADD COLUMN settings TEXT NOT NULL DEFAULT '{}'") } catch (e) {}
+
+  // Migration: add icon to scripts
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT 'file-archive'") } catch (e) {}
 
   return _sqlDb
 }
