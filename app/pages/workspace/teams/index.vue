@@ -68,12 +68,6 @@ async function handleJoin(code: string) {
     return
   }
 
-  const storedTeam = getStoredTeamById(teamId)
-  if (!storedTeam) {
-    actionError.value = '邀请码无效或团队已不存在'
-    return
-  }
-
   const result = await joinTeam(teamId)
   if (!result.ok) {
     actionError.value = result.error
@@ -81,17 +75,19 @@ async function handleJoin(code: string) {
   }
 
   showJoin.value = false
-  actionSuccess.value = `已成功加入团队「${storedTeam.name}」！`
+  actionSuccess.value = '已成功加入团队！'
   setTimeout(() => { actionSuccess.value = '' }, 4000)
 }
 
-function handleDeleteTeam(teamId: string) {
+async function handleDeleteTeam(teamId: string) {
   if (!user.value) return
   actionError.value = ''
-  const result = deleteTeam(teamId, user.value.id)
+  const result = await deleteTeam(teamId, user.value.id)
   if (!result.ok) {
     actionError.value = result.error
+    return
   }
+  await loadTeams()
 }
 
 function copyInviteCode(teamId: string) {
@@ -230,6 +226,8 @@ function copyInviteCode(teamId: string) {
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   margin-bottom: 16px;
+  position: relative;
+  z-index: 150;
 }
 
 .ws-alert--error {

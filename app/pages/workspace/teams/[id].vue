@@ -37,6 +37,24 @@ const showEdit = ref(false)
 const editingScript = ref<any>(null)
 const actionError = ref('')
 const actionSuccess = ref('')
+const sectionMembersOpen = ref(true)
+const sectionPermissionsOpen = ref(true)
+
+// ─── Pagination ───
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(teamScripts.value.length / PAGE_SIZE)))
+
+const pagedScripts = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return teamScripts.value.slice(start, start + PAGE_SIZE)
+})
+
+// Reset to page 1 when search/sort changes
+watch([searchQuery, sortBy], () => {
+  currentPage.value = 1
+})
 
 // Team detail (includes members, settings, currentUserRole)
 const teamDetail = ref<any>(null)
@@ -56,11 +74,18 @@ async function refreshDetail() {
 
 onMounted(() => {
   loadTeams()
-  loadScripts()
+  loadScripts("team", teamId.value)
   refreshDetail()
 })
 
-const team = computed(() => getTeamById(teamId.value))
+const team = computed(() => getTeamById(teamId.value) || (teamDetail.value ? {
+  id: teamDetail.value.id,
+  name: teamDetail.value.name,
+  description: teamDetail.value.description || '',
+  ownerId: teamDetail.value.ownerId,
+  memberCount: teamDetail.value.memberCount || 0,
+  createdAt: teamDetail.value.createdAt,
+} : undefined))
 const storedTeam = computed(() => getStoredTeamById(teamId.value))
 
 const isOwner = computed(() => {
@@ -131,7 +156,7 @@ async function handleUpload(payload: any) {
     payload.category, payload.language, payload.icon || "file-archive", payload.file, teamId.value,
   )
   showUpload.value = false
-  loadScripts()
+  loadScripts("team", teamId.value)
 }
 
 function handleEditScript(script: any) {
@@ -149,7 +174,7 @@ async function handleEditSave(payload: { id: string; title: string; description:
     })
   } catch (e) {}
   showEdit.value = false
-  loadScripts()
+  loadScripts("team", teamId.value)
 }
 
 function handleDeleteScript(id: string) {
@@ -169,10 +194,32 @@ async function handleLeave() {
 async function handleDeleteTeam() {
   if (!user.value) return
   actionError.value = ''
-  const result = await deleteTeam(teamId.value)
-  if (!result.ok) { actionError.value = result.error; return }
-  navigateTo('/workspace/teams')
+  // Check members before opening modal
+  if (teamDetail.value?.members) {
+    const others = teamDetail.value.members.filter((m: any) => m.id !== user.value?.id)
+    if (others.length > 0) {
+      actionError.value = `请先将 ${others.length} 名成员移出团队后再删除`
+      return
+    }
+  }
+  showDeleteTeamModal.value = true
 }
+
+const showDeleteTeamModal = ref(false)
+const deleteTeamConfirmText = ref('')
+
+function confirmDeleteTeam() {
+  if (deleteTeamConfirmText.value !== teamNameForDelete.value) return
+  deleteTeamConfirmText.value = ''
+  showDeleteTeamModal.value = false
+  // proceed with deletion
+  deleteTeam(teamId.value).then((result) => {
+    if (!result.ok) { actionError.value = result.error; return }
+    navigateTo('/workspace/teams')
+  })
+}
+
+const teamNameForDelete = computed(() => team.value?.name || '')
 
 function copyInviteCode() {
   const code = getTeamInviteCode(teamId.value)
@@ -183,24 +230,55 @@ function copyInviteCode() {
 }
 
 // ─── Member management ───
-async function handleKickMember(targetUserId: string) {
-  if (!user.value) return
-  actionError.value = ''
-  const result = await manageMember(teamId.value, "kick", targetUserId)
-  if (!result.ok) { actionError.value = result.error; return }
-  actionSuccess.value = result.message
-  setTimeout(() => { actionSuccess.value = '' }, 3000)
-  refreshDetail()
-  loadTeams()
+const showKickModal = ref(false)
+const kickTarget = ref<any>(null)
+const kickConfirmText = ref('')
+
+function handleKickMember(member: any) {
+  kickTarget.value = member
+  kickConfirmText.value = ''
+  showKickModal.value = true
 }
 
-async function handleSetRole(targetUserId: string, role: "admin" | "member") {
-  if (!user.value) return
+async function confirmKick() {
+  if (!kickTarget.value || kickConfirmText.value !== team.value?.name) return
   actionError.value = ''
-  const result = await manageMember(teamId.value, "setRole", targetUserId, role)
-  if (!result.ok) { actionError.value = result.error; return }
+  const result = await manageMember(teamId.value, "kick", kickTarget.value.id)
+  if (!result.ok) { actionError.value = result.error; showKickModal.value = false; return }
+  actionSuccess.value = `已将 ${kickTarget.value.displayName} 移出团队`
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+  showKickModal.value = false
+  const kickedSelf = kickTarget.value.id === user.value?.id
+  kickTarget.value = null
+  refreshDetail()
+  loadTeams()
+  if (kickedSelf) navigateTo('/workspace/teams')
+}
+
+// ─── Set role confirmation ───
+const showRoleModal = ref(false)
+const roleTarget = ref<any>(null)
+const roleAction = ref<'promote' | 'demote'>('promote')
+const roleConfirmText = ref('')
+
+function handleSetRole(member: any) {
+  const isAdmin = getMemberRole(member) === 'admin'
+  roleTarget.value = member
+  roleAction.value = isAdmin ? 'demote' : 'promote'
+  roleConfirmText.value = ''
+  showRoleModal.value = true
+}
+
+async function confirmSetRole() {
+  if (!roleTarget.value || roleConfirmText.value !== team.value?.name) return
+  const newRole = roleAction.value === 'promote' ? 'admin' : 'member'
+  actionError.value = ''
+  const result = await manageMember(teamId.value, "setRole", roleTarget.value.id, newRole)
+  if (!result.ok) { actionError.value = result.error; showRoleModal.value = false; return }
   actionSuccess.value = result.message
   setTimeout(() => { actionSuccess.value = '' }, 3000)
+  showRoleModal.value = false
+  roleTarget.value = null
   refreshDetail()
 }
 
@@ -321,108 +399,26 @@ function canSetRole(member: any): boolean {
             <Icon name="lucide:upload" size="16" />
             上传到团队
           </button>
-          <button v-if="isOwner" type="button" class="ws-team-btn ws-team-btn--ghost" @click="copyInviteCode">
-            <Icon name="lucide:copy" size="16" />
-            复制邀请码
-          </button>
+          <div v-if="isOwner" class="ws-invite-code">
+            <span class="ws-invite-code__label">邀请码：</span>
+            <code class="ws-invite-code__value">{{ getTeamInviteCode(teamId) }}</code>
+            <button
+              type="button"
+              class="ws-invite-code__copy"
+              title="复制邀请码"
+              @click="copyInviteCode"
+            >
+              <Icon name="lucide:copy" size="13" />
+            </button>
+          </div>
           <button v-if="!isOwner && isMember" type="button" class="ws-team-btn ws-team-btn--ghost ws-team-btn--danger" @click="handleLeave">
             <Icon name="lucide:log-out" size="16" />
             退出团队
           </button>
-          <button v-if="isOwner" type="button" class="ws-team-btn ws-team-btn--ghost ws-team-btn--danger" @click="handleDeleteTeam">
-            <Icon name="lucide:trash-2" size="16" />
-            删除团队
-          </button>
         </div>
 
-        <!-- ═══ Member Management Panel ═══ (owner/admin only) -->
-        <div v-if="isAdminOrOwner && teamDetail?.members" class="ws-section">
-          <div class="ws-section__head">
-            <h2 class="ws-section__title">
-              <Icon name="lucide:users" size="16" />
-              团队成员管理
-            </h2>
-            <span class="ws-section__count">{{ teamDetail.members.length }} 人</span>
-          </div>
-          <div class="ws-member-list">
-            <div
-              v-for="member in teamDetail.members"
-              :key="member.id"
-              class="ws-member"
-            >
-              <div class="ws-member__avatar">
-                <span class="ws-member__avatar-text">{{ (member.displayName || member.email).slice(0, 2).toUpperCase() }}</span>
-              </div>
-              <div class="ws-member__info">
-                <span class="ws-member__name">
-                  {{ member.displayName }}
-                  <span v-if="member.id === user?.id" class="ws-member__self">(你)</span>
-                </span>
-                <span class="ws-member__email">{{ member.email }}</span>
-              </div>
-              <span
-                class="ws-member__badge"
-                :class="roleBadgeClass(getMemberRole(member))"
-              >{{ roleLabel(getMemberRole(member)) }}</span>
-              <div class="ws-member__actions">
-                <button
-                  v-if="canSetRole(member)"
-                  type="button"
-                  class="ws-member__btn"
-                  :title="getMemberRole(member) === 'admin' ? '撤销管理员' : '提升为管理员'"
-                  @click="handleSetRole(member.id, getMemberRole(member) === 'admin' ? 'member' : 'admin')"
-                >
-                  <Icon :name="getMemberRole(member) === 'admin' ? 'lucide:shield-off' : 'lucide:shield'" size="14" />
-                </button>
-                <button
-                  v-if="canKick(member)"
-                  type="button"
-                  class="ws-member__btn ws-member__btn--danger"
-                  title="踢出团队"
-                  @click="handleKickMember(member.id)"
-                >
-                  <Icon name="lucide:log-out" size="14" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ═══ Permission Settings Panel ═══ (owner only) -->
-        <div v-if="isOnlyOwner" class="ws-section">
-          <div class="ws-section__head">
-            <h2 class="ws-section__title">
-              <Icon name="lucide:shield" size="16" />
-              成员权限设置
-            </h2>
-            <span class="ws-section__hint">对所有普通成员统一生效</span>
-          </div>
-          <div class="ws-permissions">
-            <label class="ws-permission" v-for="perm in ([
-              { key: 'upload', label: '允许上传脚本', icon: 'lucide:upload' },
-              { key: 'edit', label: '允许编辑自己脚本', icon: 'lucide:pencil' },
-              { key: 'delete', label: '允许删除自己脚本', icon: 'lucide:trash-2' },
-              { key: 'download', label: '允许下载脚本', icon: 'lucide:download' },
-            ])" :key="perm.key">
-              <div class="ws-permission__info">
-                <Icon :name="perm.icon" size="15" />
-                <span>{{ perm.label }}</span>
-              </div>
-              <button
-                type="button"
-                class="ws-permission__toggle"
-                :class="{ 'ws-permission__toggle--on': editingPermissions ? pendingPermissions[perm.key] : memberPermissions[perm.key] }"
-                @click="startEditPermissions(); pendingPermissions[perm.key] = !pendingPermissions[perm.key]"
-              >
-                <span class="ws-permission__toggle-knob" />
-              </button>
-            </label>
-            <div v-if="editingPermissions" class="ws-permissions__actions">
-              <button type="button" class="ws-permissions__cancel" @click="cancelEditPermissions">取消</button>
-              <button type="button" class="ws-permissions__save" @click="savePermissions">保存设置</button>
-            </div>
-          </div>
-        </div>
+        <div class="ws-layout">
+          <div class="ws-layout__main">
 
         <!-- Search & sort -->
         <div class="ws-toolbar">
@@ -460,7 +456,7 @@ function canSetRole(member: any): boolean {
         <div v-if="teamScripts.length > 0" class="ws-script-list">
           <WorkspaceWsScriptCard
             @edit="handleEditScript"
-            v-for="script in teamScripts"
+            v-for="script in pagedScripts"
             :key="script.id"
             :script="script"
             :deletable="canDeleteScript(script)"
@@ -481,6 +477,145 @@ function canSetRole(member: any): boolean {
             上传第一个脚本
           </button>
         </div>
+
+        <WorkspaceWsPagination
+          v-if="teamScripts.length > PAGE_SIZE"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          @page-change="currentPage = $event"
+        />
+
+          </div>
+          <div class="ws-layout__sidebar">
+        <div v-if="teamDetail?.members" class="ws-section">
+          <div class="ws-section__head ws-section__head--clickable" @click="sectionMembersOpen = !sectionMembersOpen">
+            <h2 class="ws-section__title">
+              <Icon name="lucide:users" size="16" />
+              团队成员
+            </h2>
+            <div class="ws-section__right">
+              <span class="ws-section__count">{{ teamDetail.members.length }} 人</span>
+              <Icon
+                name="lucide:chevron-down"
+                size="14"
+                class="ws-section__chevron"
+                :class="{ 'ws-section__chevron--open': sectionMembersOpen }"
+              />
+            </div>
+          </div>
+          <div v-if="sectionMembersOpen" class="ws-member-list">
+            <div
+              v-for="member in teamDetail.members"
+              :key="member.id"
+              class="ws-member"
+            >
+              <div class="ws-member__avatar">
+                <span class="ws-member__avatar-text">{{ (member.displayName || member.email).slice(0, 2).toUpperCase() }}</span>
+              </div>
+              <div class="ws-member__info">
+                <span class="ws-member__name">
+                  {{ member.displayName }}
+                  <span v-if="member.id === user?.id" class="ws-member__self">(你)</span>
+                </span>
+                <span class="ws-member__email">{{ member.email }}</span>
+              </div>
+              <span
+                class="ws-member__badge"
+                :class="roleBadgeClass(getMemberRole(member))"
+              >{{ roleLabel(getMemberRole(member)) }}</span>
+              <div class="ws-member__actions">
+                <button
+                  v-if="canSetRole(member)"
+                  type="button"
+                  class="ws-member__btn"
+                  :title="getMemberRole(member) === 'admin' ? '撤销管理员' : '提升为管理员'"
+                  @click="handleSetRole(member)"
+                >
+                  <Icon :name="getMemberRole(member) === 'admin' ? 'lucide:shield-off' : 'lucide:shield'" size="14" />
+                </button>
+                <button
+                  v-if="canKick(member)"
+                  type="button"
+                  class="ws-member__btn ws-member__btn--danger"
+                  title="踢出团队"
+                  @click="handleKickMember(member)"
+                >
+                  <Icon name="lucide:log-out" size="14" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Permission Settings Panel ═══ (owner only) -->
+        <div v-if="isOnlyOwner" class="ws-section">
+          <div class="ws-section__head ws-section__head--clickable" @click="sectionPermissionsOpen = !sectionPermissionsOpen">
+            <h2 class="ws-section__title">
+              <Icon name="lucide:shield" size="16" />
+              成员权限设置
+            </h2>
+            <div class="ws-section__right">
+              <span class="ws-section__hint">对所有普通成员统一生效</span>
+              <Icon
+                name="lucide:chevron-down"
+                size="14"
+                class="ws-section__chevron"
+                :class="{ 'ws-section__chevron--open': sectionPermissionsOpen }"
+              />
+            </div>
+          </div>
+          <div v-if="sectionPermissionsOpen" class="ws-permissions">
+            <label class="ws-permission" v-for="perm in ([
+              { key: 'upload', label: '允许上传脚本', icon: 'lucide:upload' },
+              { key: 'edit', label: '允许编辑自己脚本', icon: 'lucide:pencil' },
+              { key: 'delete', label: '允许删除自己脚本', icon: 'lucide:trash-2' },
+              { key: 'download', label: '允许下载脚本', icon: 'lucide:download' },
+            ])" :key="perm.key">
+              <div class="ws-permission__info">
+                <Icon :name="perm.icon" size="15" />
+                <span>{{ perm.label }}</span>
+              </div>
+              <button
+                type="button"
+                class="ws-permission__toggle"
+                :class="{ 'ws-permission__toggle--on': editingPermissions ? pendingPermissions[perm.key] : memberPermissions[perm.key] }"
+                @click="
+                  if (!editingPermissions) startEditPermissions();
+                  pendingPermissions[perm.key] = !pendingPermissions[perm.key]
+                "
+              >
+                <span class="ws-permission__toggle-knob" />
+              </button>
+            </label>
+            <div v-if="editingPermissions" class="ws-permissions__actions">
+              <button type="button" class="ws-permissions__cancel" @click="cancelEditPermissions">取消</button>
+              <button type="button" class="ws-permissions__save" @click="savePermissions">保存设置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ Danger Zone ═══ (owner only) -->
+        <div v-if="isOwner" class="ws-danger-zone">
+          <div class="ws-danger-zone__head">
+            <Icon name="lucide:alert-triangle" size="14" class="ws-danger-zone__icon" />
+            <span class="ws-danger-zone__title">危险区域</span>
+          </div>
+          <p class="ws-danger-zone__desc">
+            删除团队将移除所有脚本数据，此操作不可撤销。
+          </p>
+          <button
+            type="button"
+            class="ws-danger-zone__btn"
+            @click="handleDeleteTeam"
+          >
+            <Icon name="lucide:trash-2" size="14" />
+            删除这个团队
+          </button>
+        </div>
+
+        </div> <!-- /.ws-layout__sidebar -->
+        </div> <!-- /.ws-layout -->
+
       </template>
 
       <!-- Team not found -->
@@ -518,7 +653,7 @@ function canSetRole(member: any): boolean {
 }
 
 .ws-page__body {
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 28px 24px 80px;
 }
@@ -608,6 +743,8 @@ function canSetRole(member: any): boolean {
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   margin-bottom: 16px;
+  position: relative;
+  z-index: 150;
 }
 
 .ws-alert--error {
@@ -624,6 +761,37 @@ function canSetRole(member: any): boolean {
 
 .ws-team-actions--detail {
   margin-bottom: 24px;
+}
+
+.ws-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.ws-layout__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ws-layout__sidebar {
+  width: 320px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .ws-layout__sidebar {
+    width: 260px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ws-layout {
+    flex-direction: column;
+  }
+  .ws-layout__sidebar {
+    width: 100%;
+  }
 }
 
 .ws-team-btn {
@@ -668,6 +836,108 @@ function canSetRole(member: any): boolean {
 .ws-team-btn--danger:hover {
   border-color: var(--danger-border);
   background: var(--danger-soft);
+}
+
+.ws-invite-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  font-size: var(--text-xs);
+}
+
+.ws-invite-code__label {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ws-invite-code__value {
+  font-family: 'Courier New', monospace;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  letter-spacing: 0.02em;
+  user-select: all;
+}
+
+.ws-invite-code__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.ws-invite-code__copy:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+/* ── Danger Zone ── */
+.ws-danger-zone {
+  margin-top: 32px;
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+}
+
+.ws-danger-zone__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.ws-danger-zone__icon {
+  color: var(--danger);
+}
+
+.ws-danger-zone__title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ws-danger-zone__desc {
+  margin: 0 0 12px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.ws-danger-zone__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  font-family: inherit;
+}
+
+.ws-danger-zone__btn:hover {
+  opacity: 0.9;
 }
 
 .ws-toolbar {
@@ -808,6 +1078,10 @@ function canSetRole(member: any): boolean {
   transform: translateY(-1px);
 }
 
+.ws-pagination {
+  margin-top: 28px;
+}
+
 .ws-error-state {
   display: flex;
   flex-direction: column;
@@ -908,6 +1182,7 @@ function canSetRole(member: any): boolean {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
+  overflow: hidden;
 }
 
 .ws-section__head {
@@ -915,6 +1190,30 @@ function canSetRole(member: any): boolean {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 14px;
+}
+
+.ws-section__head--clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ws-section__head--clickable:hover {
+  opacity: 0.8;
+}
+
+.ws-section__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ws-section__chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.ws-section__chevron--open {
+  transform: rotate(180deg);
 }
 
 .ws-section__title {
@@ -951,6 +1250,7 @@ function canSetRole(member: any): boolean {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   transition: background 0.1s;
+  overflow: hidden;
 }
 
 .ws-member:hover {
@@ -1077,10 +1377,7 @@ function canSetRole(member: any): boolean {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.1s;
-}
-
-.ws-permission:hover {
-  background: var(--bg-muted);
+  overflow: hidden;
 }
 
 .ws-permission__info {
@@ -1089,6 +1386,10 @@ function canSetRole(member: any): boolean {
   gap: 8px;
   font-size: var(--text-sm);
   color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ws-permission__toggle {
@@ -1159,6 +1460,175 @@ function canSetRole(member: any): boolean {
   .ws-space-bar {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* ── Delete Confirmation Modal ── */
+.delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(8px);
+}
+
+.delete-modal {
+  width: min(380px, calc(100vw - 32px));
+  padding: 32px 28px 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  animation: modalIn 0.25s ease;
+}
+
+.delete-modal__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.delete-modal__icon-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.delete-modal__title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.delete-modal__desc {
+  margin: 0 0 20px;
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+}
+
+.delete-modal__desc strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.delete-modal__input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.delete-modal__label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.delete-modal__label strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.delete-modal__input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.delete-modal__input:focus {
+  border-color: var(--danger-border);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.delete-modal__input::placeholder {
+  color: var(--text-muted);
+}
+
+.delete-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.delete-modal__cancel {
+  flex: 1;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.delete-modal__cancel:hover {
+  background: var(--bg-muted);
+  border-color: var(--border-strong);
+}
+
+.delete-modal__confirm {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #fff;
+  transition: background 0.12s, opacity 0.12s;
+  font-family: inherit;
+}
+
+.delete-modal__confirm:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.delete-modal__confirm:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Transition */
+.modal-enter-active { transition: opacity 0.2s ease; }
+.modal-leave-active { transition: opacity 0.15s ease; }
+.modal-enter-from,
+.modal-leave-to { opacity: 0; }
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 </style>

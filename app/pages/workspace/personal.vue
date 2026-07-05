@@ -20,6 +20,22 @@ const showUpload = ref(false)
 const showEdit = ref(false)
 const editingScript = ref<any>(null)
 
+// ─── Pagination ───
+const PAGE_SIZE = 10
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(personalScripts.value.length / PAGE_SIZE)))
+
+const pagedScripts = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return personalScripts.value.slice(start, start + PAGE_SIZE)
+})
+
+// Reset to page 1 when search/sort/filter changes
+watch([searchQuery, sortBy, filterCategory, filterLanguage], () => {
+  currentPage.value = 1
+})
+
 onMounted(() => {
   loadScripts()
   console.log('[DIAG] scripts loaded:', scripts.value.length)
@@ -158,10 +174,10 @@ async function handleUpload(payload: { title: string; description: string; zipNa
         </div>
       </div>
 
-      <div v-if="personalScripts.length > 0" class="ws-script-list">
+      <div v-if="pagedScripts.length > 0" class="ws-script-list">
         <WorkspaceWsScriptCard
           @edit="handleEdit"
-          v-for="script in personalScripts"
+          v-for="script in pagedScripts"
           :key="script.id"
           :script="script"
           :deletable="true"
@@ -182,6 +198,13 @@ async function handleUpload(payload: { title: string; description: string; zipNa
           上传第一个脚本
         </button>
       </div>
+
+      <WorkspaceWsPagination
+        v-if="personalScripts.length > PAGE_SIZE"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        @page-change="currentPage = $event"
+      />
     </div>
 
     <Teleport to="body">
@@ -413,6 +436,10 @@ async function handleUpload(payload: { title: string; description: string; zipNa
   .ws-toolbar__actions {
     justify-content: space-between;
   }
+}
+
+.ws-pagination {
+  margin-top: 28px;
 }
 
 

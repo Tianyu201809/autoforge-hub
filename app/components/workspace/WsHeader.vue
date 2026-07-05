@@ -2,9 +2,25 @@
 import type { User } from '~/types/auth'
 
 const { user, logout } = useAuth()
+const { teams, loadTeams } = useTeams()
 
 const showMenu = ref(false)
 const menuRef = ref<HTMLElement>()
+const subMenuLeft = ref(false)
+const subTriggerRef = ref<HTMLElement>()
+
+const userTeams = computed(() => teams.value)
+
+function onSubEnter() {
+  nextTick(() => {
+    if (!subTriggerRef.value) return
+    const rect = subTriggerRef.value.getBoundingClientRect()
+    const subMenu = subTriggerRef.value.querySelector('.ws-user-dropdown__sub-menu') as HTMLElement
+    if (!subMenu) return
+    const menuWidth = subMenu.offsetWidth
+    subMenuLeft.value = rect.right + menuWidth > window.innerWidth
+  })
+}
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
@@ -21,11 +37,8 @@ function getUserInitials(u: User): string {
   return name.slice(0, 2).toUpperCase()
 }
 
-function getDomain(email: string): string {
-  return email.split('@')[1] || ''
-}
-
 onMounted(() => {
+  loadTeams()
   function handleClickOutside(e: MouseEvent) {
     if (menuRef.value && !menuRef.value.contains(e.target as Node)) {
       showMenu.value = false
@@ -100,6 +113,40 @@ onMounted(() => {
                 <Icon name="lucide:user" size="16" />
                 个人空间
               </NuxtLink>
+              <div class="ws-user-dropdown__divider" />
+              <div
+                class="ws-user-dropdown__sub"
+                :class="{ 'ws-user-dropdown__sub--left': subMenuLeft }"
+              >
+                <div
+                  ref="subTriggerRef"
+                  class="ws-user-dropdown__sub-trigger"
+                  @mouseenter="onSubEnter"
+                >
+                  <Icon name="lucide:users" size="16" />
+                  <span>团队空间</span>
+                  <Icon name="lucide:chevron-right" size="14" class="ws-user-dropdown__sub-arrow" />
+                </div>
+                <div class="ws-user-dropdown__sub-menu">
+                  <NuxtLink
+                    v-for="t in userTeams"
+                    :key="t.id"
+                    :to="`/workspace/teams/${t.id}`"
+                    class="ws-user-dropdown__sub-item"
+                    @click="showMenu = false"
+                  >
+                    <Icon name="lucide:users" size="14" />
+                    <div class="ws-user-dropdown__item-info">
+                      <span class="ws-user-dropdown__item-name">{{ t.name }}</span>
+                      <span class="ws-user-dropdown__item-meta">{{ t.memberCount }} 名成员</span>
+                    </div>
+                  </NuxtLink>
+                  <div v-if="userTeams.length === 0" class="ws-user-dropdown__sub-empty">
+                    暂无团队
+                  </div>
+                </div>
+              </div>
+              <div class="ws-user-dropdown__divider" />
               <NuxtLink to="/workspace/profile" class="ws-user-dropdown__item" @click="showMenu = false">
                 <Icon name="lucide:settings" size="16" />
                 编辑资料
@@ -413,6 +460,146 @@ onMounted(() => {
 .ws-user-dropdown__item--danger:hover {
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+/* ── User dropdown sub-menu ── */
+.ws-user-dropdown__sub {
+  position: relative;
+  padding: 0 6px;
+}
+
+.ws-user-dropdown__sub::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 14px;
+  z-index: 71;
+  pointer-events: auto;
+}
+
+.ws-user-dropdown__sub::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 14px;
+  z-index: 71;
+  pointer-events: auto;
+  display: none;
+}
+
+.ws-user-dropdown__sub--left::after {
+  display: block;
+}
+
+.ws-user-dropdown__sub-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: default;
+  transition: background 0.1s;
+}
+
+.ws-user-dropdown__sub:hover .ws-user-dropdown__sub-trigger {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.ws-user-dropdown__sub-arrow {
+  margin-left: auto;
+  transition: transform 0.15s;
+  color: var(--text-muted);
+}
+
+.ws-user-dropdown__sub:hover .ws-user-dropdown__sub-arrow {
+  transform: translateX(3px);
+}
+
+.ws-user-dropdown__sub-menu {
+  display: none;
+  position: absolute;
+  top: -6px;
+  left: calc(100% + 4px);
+  min-width: 190px;
+  max-width: 260px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+  z-index: 70;
+  animation: subMenuIn 0.12s ease;
+}
+
+.ws-user-dropdown__sub:hover .ws-user-dropdown__sub-menu {
+  display: block;
+}
+
+.ws-user-dropdown__sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: background 0.1s, color 0.1s;
+}
+
+.ws-user-dropdown__sub-item:hover {
+  background: var(--bg-muted);
+  color: var(--text);
+}
+
+.ws-user-dropdown__sub-empty {
+  padding: 12px 10px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@keyframes subMenuIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ws-user-dropdown__sub--left .ws-user-dropdown__sub-menu {
+  left: auto;
+  right: calc(100% + 4px);
+  animation-name: subMenuInLeft;
+}
+
+@keyframes subMenuInLeft {
+  from { opacity: 0; transform: translateX(4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.ws-user-dropdown__item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.ws-user-dropdown__item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.ws-user-dropdown__item-meta {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .menu-enter-active,

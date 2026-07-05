@@ -18,6 +18,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: "只有创建者可以删除团队" })
   }
 
+  const memberIds: string[] = JSON.parse(row.member_ids || "[]")
+  // Only owner should remain; all other members must be removed first
+  const otherMembers = memberIds.filter((id: string) => id !== row.owner_id)
+  if (otherMembers.length > 0) {
+    throw createError({
+      statusCode: 400,
+      message: `请先将 ${otherMembers.length} 名成员移出团队后再删除`,
+    })
+  }
+
   // Delete team scripts
   db.run("DELETE FROM scripts WHERE team_id = ?", [teamId])
   // Delete team

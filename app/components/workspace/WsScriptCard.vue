@@ -494,6 +494,7 @@ async function handleDownload() {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 4px;
+  min-width: 0;
 }
 
 .script-card__meta-item {
@@ -503,6 +504,13 @@ async function handleDownload() {
   font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.script-card__meta-item:first-child {
+  max-width: 240px;
 }
 
 .script-card__download {
