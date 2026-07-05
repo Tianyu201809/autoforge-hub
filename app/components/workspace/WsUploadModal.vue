@@ -2,10 +2,13 @@
 const emit = defineEmits<{
   close: []
   uploaded: [payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }]
+    category: string; language: string;
 }>()
 
 const title = ref('')
 const description = ref('')
+const category = ref('')
+const language = ref('')
 const tagsText = ref('')
 const zipFile = ref<File | null>(null)
 const error = ref('')
@@ -75,9 +78,12 @@ function onSubmit() {
     emit('uploaded', {
       title: title.value.trim(),
       description: description.value.trim(),
+      category: category.value,
+      language: language.value,
       zipName: zipFile.value!.name,
       zipSize: zipFile.value!.size,
-      tags
+      tags,
+      file: zipFile.value! as File
     })
   }, 600)
 }

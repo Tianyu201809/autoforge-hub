@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const allowed = ["png", "jpg", "jpeg", "gif", "webp"]
   const ext = (fileField.filename.split(".").pop() || "").toLowerCase()
   if (!allowed.includes(ext)) throw createError({ statusCode: 400 })
-  const storedName = saveFile("avatar-" + fileField.filename, fileField.data)
+  const storedName = await saveFile("avatar-" + fileField.filename, fileField.data, "avatars")
   const db = await getDb()
   const now = new Date().toISOString()
   db.run("UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ?", [storedName, now, auth.user.userId])

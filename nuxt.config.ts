@@ -20,5 +20,14 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#08080c' }
       ]
     }
-  }
+  },
+  runtimeConfig: {
+    oss: {
+      accessKeyId: "",
+      accessKeySecret: "",
+      bucket: "",
+      region: "oss-cn-hangzhou",
+      endpoint: "",
+    },
+  },
 })

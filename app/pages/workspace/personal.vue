@@ -58,17 +58,15 @@ function handleDelete(id: string) {
   deleteScript(id)
 }
 
-async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }) {
+async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string }) {
   if (!user.value) return
   await addScript(
     payload.title,
     payload.description,
-    payload.zipName,
-    payload.zipSize,
     payload.tags,
-    user.value.id,
-    undefined,
-    payload.file
+    payload.category,
+    payload.language,
+    payload.file,
   )
   showUpload.value = false
   loadScripts()

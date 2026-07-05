@@ -25,8 +25,11 @@ export function useScripts() {
     try {
       const query = teamId ? `?teamId=${teamId}` : `?scope=${scope}`
       const data = await apiFetch<any[]>(`/scripts${query}`)
+      console.log('[useScripts] loadScripts raw data:', data)
       scripts.value = data.map(toScript)
-    } catch {
+      console.log('[useScripts] scripts after map:', scripts.value)
+    } catch (err: any) {
+      console.error('[useScripts] loadScripts error:', err)
       scripts.value = []
     }
   }
@@ -42,20 +45,21 @@ export function useScripts() {
   async function addScript(
     title: string,
     description: string,
-    _zipName: string,
-    _zipSize: number,
     tags: string[],
-    ownerId: string,
+    category: string,
+    language: string,
+    zipFile: File,
     teamId?: string,
-    file?: File,
   ): Promise<Script | null> {
     try {
       const formData = new FormData()
       formData.append("title", title)
       formData.append("description", description)
       formData.append("tags", JSON.stringify(tags))
+      formData.append("category", category)
+      formData.append("language", language)
       if (teamId) formData.append("teamId", teamId)
-      if (file) formData.append("file", file)
+      formData.append("file", zipFile)
 
       const token = localStorage.getItem("autoforge-token")
       const res = await fetch("/api/scripts", {
@@ -108,18 +112,20 @@ export function useScripts() {
     }
   }
 
-  function toScript(data: any): Script {
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description || "",
-      zipName: data.zipName || data.file_name || "",
-      zipSize: data.zipSize || data.file_size || 0,
-      tags: data.tags || [],
-      createdAt: data.createdAt || data.created_at || "",
-      updatedAt: data.updatedAt || data.updated_at || "",
-      ownerId: data.ownerId || data.owner_id || "",
-      teamId: data.teamId || data.team_id || undefined,
+function toScript(data: any): Script {
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description || "",
+    category: data.category || "",
+    language: data.language || "",
+    zipName: data.zipName ?? data.file_name ?? "",
+    zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
+      tags: (Array.isArray(data.tags) ? data.tags : []),
+      createdAt: data.createdAt ?? data.created_at ?? "",
+      updatedAt: data.updatedAt ?? data.updated_at ?? "",
+      ownerId: data.ownerId ?? data.owner_id ?? "",
+      teamId: data.teamId ?? data.team_id ?? undefined,
     }
   }
 
