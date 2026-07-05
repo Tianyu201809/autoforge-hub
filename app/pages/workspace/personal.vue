@@ -21,7 +21,7 @@ const showEdit = ref(false)
 const editingScript = ref<any>(null)
 
 // ─── Pagination ───
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 const currentPage = ref(1)
 
 const totalPages = computed(() => Math.max(1, Math.ceil(personalScripts.value.length / PAGE_SIZE)))
