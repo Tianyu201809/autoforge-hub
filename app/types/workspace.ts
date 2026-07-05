@@ -50,6 +50,18 @@ export interface StoredTeam {
   memberIds: string[]
 }
 
+export interface AuditLog {
+  id: string
+  teamId: string
+  userId: string
+  userName: string
+  actionType: 'upload' | 'edit' | 'delete'
+  scriptId?: string
+  scriptName: string
+  details: Record<string, any>
+  createdAt: string
+}
+
 export type WorkspaceTab = 'personal' | 'teams'
 export type ScriptSort = 'newest' | 'oldest' | 'name'
 

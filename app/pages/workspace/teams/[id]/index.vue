@@ -415,6 +415,10 @@ function canSetRole(member: any): boolean {
             <Icon name="lucide:log-out" size="16" />
             退出团队
           </button>
+          <NuxtLink :to="`/workspace/teams/${teamId}/logs`" class="ws-team-btn ws-team-btn--ghost">
+            <Icon name="lucide:history" size="16" />
+            操作日志
+          </NuxtLink>
         </div>
 
         <div class="ws-layout">
@@ -760,6 +764,10 @@ function canSetRole(member: any): boolean {
 }
 
 .ws-team-actions--detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 24px;
 }
 
@@ -803,8 +811,6 @@ function canSetRole(member: any): boolean {
   font-size: var(--text-sm);
   font-weight: 600;
   transition: all 0.15s;
-  margin-right: 8px;
-  margin-bottom: 8px;
 }
 
 .ws-team-btn--primary {
@@ -842,7 +848,6 @@ function canSetRole(member: any): boolean {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
   padding: 6px 12px;
   border: 1px dashed var(--border);
   border-radius: var(--radius-sm);
@@ -861,6 +866,10 @@ function canSetRole(member: any): boolean {
   color: var(--accent);
   letter-spacing: 0.02em;
   user-select: all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
 }
 
 .ws-invite-code__copy {

@@ -1,6 +1,7 @@
 import { getDb, saveDb } from "../../db/index"
 import { saveFile } from "../../utils/storage"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../utils/team-permissions"
+import { createAuditLog } from "../../utils/audit-log"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -67,6 +68,25 @@ export default defineEventHandler(async (event) => {
     [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, category, language, userId, teamId, now, now]
   )
   saveDb()
+
+  // Write audit log for team upload
+  if (teamId) {
+    const userStmt = db.prepare("SELECT display_name FROM users WHERE id = ?")
+    userStmt.bind([userId])
+    if (userStmt.step()) {
+      const userRow = userStmt.getAsObject() as any
+      createAuditLog(db, {
+        teamId,
+        userId,
+        userName: userRow.display_name || auth.user.email,
+        actionType: "upload",
+        scriptId: id,
+        scriptName: title,
+      })
+      saveDb()
+    }
+    userStmt.free()
+  }
 
   return {
     ok: true,

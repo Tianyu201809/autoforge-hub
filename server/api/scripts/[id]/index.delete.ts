@@ -1,6 +1,7 @@
 import { getDb, saveDb } from "../../../db/index"
 import { deleteFile } from "../../../utils/storage"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
+import { createAuditLog } from "../../../utils/audit-log"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -50,6 +51,25 @@ export default defineEventHandler(async (event) => {
 
   db.run("DELETE FROM scripts WHERE id = ?", [scriptId])
   saveDb()
+
+  // Write audit log for team script delete
+  if (row.team_id) {
+    const userStmt = db.prepare("SELECT display_name FROM users WHERE id = ?")
+    userStmt.bind([userId])
+    if (userStmt.step()) {
+      const userRow = userStmt.getAsObject() as any
+      createAuditLog(db, {
+        teamId: row.team_id,
+        userId,
+        userName: userRow.display_name || auth.user.email,
+        actionType: "delete",
+        scriptId,
+        scriptName: row.title,
+      })
+      saveDb()
+    }
+    userStmt.free()
+  }
 
   return { ok: true, message: "Script deleted" }
 })

@@ -1,5 +1,6 @@
 import { getDb, saveDb } from "../../../db/index"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
+import { createAuditLog } from "../../../utils/audit-log"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -60,6 +61,37 @@ export default defineEventHandler(async (event) => {
     title, description, JSON.stringify(tags), icon, category, language, now, scriptId
   ])
   saveDb()
+
+  // Write audit log for team script edit
+  if (row.team_id) {
+    const userStmt = db.prepare("SELECT display_name FROM users WHERE id = ?")
+    userStmt.bind([userId])
+    if (userStmt.step()) {
+      const userRow = userStmt.getAsObject() as any
+      createAuditLog(db, {
+        teamId: row.team_id,
+        userId,
+        userName: userRow.display_name || auth.user.email,
+        actionType: "edit",
+        scriptId,
+        scriptName: title,
+        details: {
+          title_old: row.title,
+          title_new: title,
+          changes: (() => {
+            const c: string[] = []
+            if (row.title !== title) c.push("title")
+            if ((row.description || "") !== description) c.push("description")
+            if (JSON.stringify(JSON.parse(row.tags || "[]")) !== JSON.stringify(tags)) c.push("tags")
+            if ((row.icon || "") !== icon) c.push("icon")
+            return c
+          })(),
+        },
+      })
+      saveDb()
+    }
+    userStmt.free()
+  }
 
   return { ok: true, message: "脚本已更新" }
 })

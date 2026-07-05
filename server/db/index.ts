@@ -78,6 +78,22 @@ export async function getDb(): Promise<SqlJsDbType> {
   // Migration: add icon to scripts
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN icon TEXT NOT NULL DEFAULT 'file-archive'") } catch (e) {}
 
+  // audit_logs table
+  _sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL DEFAULT '',
+      action_type TEXT NOT NULL,
+      script_id TEXT,
+      script_name TEXT NOT NULL DEFAULT '',
+      details TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL
+    )
+  `)
+  saveDb()
+
   return _sqlDb
 }
 
