@@ -26,12 +26,14 @@ export default defineEventHandler(async (event) => {
   const title = body?.title?.trim()
   const description = body?.description?.trim() || ""
   const tags = body?.tags || []
+  const category = body?.category || ""
+  const language = body?.language || ""
 
   if (!title) throw createError({ statusCode: 400, message: "请输入脚本名称" })
 
   const now = new Date().toISOString()
-  db.run("UPDATE scripts SET title = ?, description = ?, tags = ?, updated_at = ? WHERE id = ?", [
-    title, description, JSON.stringify(tags), now, scriptId
+  db.run("UPDATE scripts SET title = ?, description = ?, tags = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
+    title, description, JSON.stringify(tags), category, language, now, scriptId
   ])
   saveDb()
 

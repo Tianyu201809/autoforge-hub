@@ -86,6 +86,12 @@ function removeFile() {
   zipFile.value = null
   if (fileInputRef.value) fileInputRef.value.value = ''
 }
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
 </script>
 
 <template>
@@ -104,47 +110,57 @@ function removeFile() {
       <form class="upload-form" @submit.prevent="onSubmit">
         <div class="upload-form__field">
           <label class="upload-form__label">脚本名称 *</label>
-          <input
-            v-model="title"
-            type="text"
-            class="upload-form__input"
-            placeholder="例如：数据清洗脚本"
-            :disabled="uploading"
-          >
+          <input v-model="title" type="text" class="upload-form__input" placeholder="例如：数据清洗脚本" :disabled="uploading">
         </div>
 
         <div class="upload-form__field">
           <label class="upload-form__label">描述</label>
-          <textarea
-            v-model="description"
-            class="upload-form__textarea"
-            placeholder="简要描述脚本的功能..."
-            rows="3"
-            :disabled="uploading"
-          />
+          <textarea v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3"
+            :disabled="uploading" />
         </div>
 
         <div class="upload-form__field">
-          <label class="upload-form__label">标签</label>
-          <input
-            v-model="tagsText"
-            type="text"
-            class="upload-form__input"
-            placeholder="以逗号分隔，例如：数据, 分析, 自动化"
-            :disabled="uploading"
-          >
+          <label class="upload-form__label">分类</label>
+          <select v-model="category" class="upload-form__select">
+            <option value="">选择分类</option>
+            <option value="数据处理">数据处理</option>
+            <option value="自动化">自动化</option>
+            <option value="DevOps">DevOps</option>
+            <option value="Web 开发">Web 开发</option>
+            <option value="AI/ML">AI/ML</option>
+            <option value="数据库">数据库</option>
+            <option value="监控">监控</option>
+            <option value="安全">安全</option>
+            <option value="测试">测试</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="upload-form__field">
+          <label class="upload-form__label">编程语言</label>
+          <select v-model="language" class="upload-form__select">
+            <option value="">选择语言</option>
+            <option value="Python">Python</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+            <option value="Bash">Bash</option>
+            <option value="PowerShell">PowerShell</option>
+            <option value="Java">Java</option>
+            <option value="Ruby">Ruby</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="upload-form__field">
+          <input v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化"
+            :disabled="uploading">
         </div>
 
         <div class="upload-form__field">
           <label class="upload-form__label">上传 .zip 包 *</label>
-          <div
-            class="upload-dropzone"
+          <div class="upload-dropzone"
             :class="{ 'upload-dropzone--active': dragOver, 'upload-dropzone--has-file': zipFile }"
-            @drop.prevent="onDrop"
-            @dragover="onDragOver"
-            @dragleave="onDragLeave"
-            @click="fileInputRef?.click()"
-          >
+            @drop.prevent="onDrop" @dragover="onDragOver" @dragleave="onDragLeave" @click="fileInputRef?.click()">
             <template v-if="!zipFile">
               <Icon name="lucide:file-archive" size="32" class="upload-dropzone__icon" />
               <p class="upload-dropzone__text">
@@ -162,13 +178,7 @@ function removeFile() {
                 <Icon name="lucide:x" size="16" />
               </button>
             </template>
-            <input
-              ref="fileInputRef"
-              type="file"
-              accept=".zip"
-              class="upload-dropzone__input"
-              @change="onFileChange"
-            >
+            <input ref="fileInputRef" type="file" accept=".zip" class="upload-dropzone__input" @change="onFileChange">
           </div>
         </div>
 
@@ -291,6 +301,29 @@ function removeFile() {
   box-shadow: var(--shadow-glow-orange);
 }
 
+.upload-form__select {
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.upload-form__select:focus {
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-glow-orange);
+}
+
+.upload-form__select option {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
 .upload-form__textarea {
   padding: 9px 12px;
   border: 1px solid var(--border-strong);
@@ -303,6 +336,29 @@ function removeFile() {
   resize: vertical;
   min-height: 72px;
   transition: border-color 0.15s;
+}
+
+.upload-form__select {
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-muted);
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  cursor: pointer;
+}
+
+.upload-form__select:focus {
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-glow-orange);
+}
+
+.upload-form__select option {
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 
 .upload-form__textarea:focus {
@@ -483,8 +539,13 @@ function removeFile() {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -492,6 +553,7 @@ function removeFile() {
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -499,6 +561,8 @@ function removeFile() {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

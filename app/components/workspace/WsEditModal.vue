@@ -7,6 +7,8 @@ const emit = defineEmits<{ close: []; saved: [payload: { id: string; title: stri
 const title = ref(props.script.title)
 const description = ref(props.script.description)
 const tagsText = ref(props.script.tags.join(", "))
+const category = ref(props.script.category || "")
+const language = ref(props.script.language || "")
 const error = ref("")
 const saving = ref(false)
 
@@ -42,6 +44,38 @@ function onSubmit() {
         <div class="modal-form__field">
           <label class="modal-form__label">描述</label>
           <textarea v-model="description" class="modal-form__textarea" placeholder="简要描述脚本的功能" rows="3" maxlength="200" :disabled="saving" />
+        </div>
+        <div class="modal-form__field">
+          <label class="modal-form__label">分类</label>
+          <select v-model="category" class="modal-form__input">
+            <option value="">选择分类</option>
+            <option value="数据处理">数据处理</option>
+            <option value="自动化">自动化</option>
+            <option value="DevOps">DevOps</option>
+            <option value="Web 开发">Web 开发</option>
+            <option value="AI/ML">AI/ML</option>
+            <option value="数据库">数据库</option>
+            <option value="监控">监控</option>
+            <option value="安全">安全</option>
+            <option value="测试">测试</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="modal-form__field">
+          <label class="modal-form__label">编程语言</label>
+          <select v-model="language" class="modal-form__input">
+            <option value="">选择语言</option>
+            <option value="Python">Python</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+            <option value="Bash">Bash</option>
+            <option value="PowerShell">PowerShell</option>
+            <option value="Java">Java</option>
+            <option value="Ruby">Ruby</option>
+            <option value="其他">其他</option>
+          </select>
         </div>
         <div class="modal-form__field">
           <label class="modal-form__label">标签</label>

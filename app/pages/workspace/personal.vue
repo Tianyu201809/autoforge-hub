@@ -14,6 +14,8 @@ const { scripts, getPersonalScripts, deleteScript, searchScripts, sortScripts, a
 
 const searchQuery = ref('')
 const sortBy = ref<ScriptSort>('newest')
+const filterCategory = ref('')
+const filterLanguage = ref('')
 const showUpload = ref(false)
 const showEdit = ref(false)
 const editingScript = ref<any>(null)
@@ -28,7 +30,10 @@ const personalScripts = computed(() => {
   if (!user.value) return []
   // Explicitly track scripts ref for reactivity
   void scripts.value
-  return sortScripts(searchScripts(user.value.id, searchQuery.value), sortBy.value)
+  let result = searchScripts(user.value.id, searchQuery.value)
+  if (filterCategory.value) { result = result.filter(s => s.category === filterCategory.value) }
+  if (filterLanguage.value) { result = result.filter(s => s.language === filterLanguage.value) }
+  return sortScripts(result, sortBy.value)
 })
 
 function handleEdit(script: any) {
@@ -101,7 +106,35 @@ async function handleUpload(payload: { title: string; description: string; zipNa
           >
         </div>
 
-        <div class="ws-toolbar__actions">
+        <div class="ws-filter-bar">
+        <select v-model="filterCategory" class="ws-filter-select">
+          <option value="">全部分类</option>
+          <option value="数据处理">数据处理</option>
+          <option value="自动化">自动化</option>
+          <option value="DevOps">DevOps</option>
+          <option value="Web 开发">Web 开发</option>
+          <option value="AI/ML">AI/ML</option>
+          <option value="数据库">数据库</option>
+          <option value="监控">监控</option>
+          <option value="安全">安全</option>
+          <option value="测试">测试</option>
+          <option value="其他">其他</option>
+        </select>
+        <select v-model="filterLanguage" class="ws-filter-select">
+          <option value="">全部语言</option>
+          <option value="Python">Python</option>
+          <option value="JavaScript">JavaScript</option>
+          <option value="TypeScript">TypeScript</option>
+          <option value="Go">Go</option>
+          <option value="Rust">Rust</option>
+          <option value="Bash">Bash</option>
+          <option value="PowerShell">PowerShell</option>
+          <option value="Java">Java</option>
+          <option value="Ruby">Ruby</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="ws-toolbar__actions">
           <div class="ws-sort">
             <button
               v-for="opt in ([
@@ -151,14 +184,14 @@ async function handleUpload(payload: { title: string; description: string; zipNa
     </div>
 
     <Teleport to="body">
-      <WsUploadModal
+      <WorkspaceWsUploadModal
         v-if="showUpload"
         @close="showUpload = false"
         @uploaded="handleUpload"
       />
     </Teleport>
     <Teleport to="body">
-      <WsEditModal
+      <WorkspaceWsEditModal
         v-if="showEdit && editingScript"
         :script="editingScript"
         @close="showEdit = false"
@@ -440,4 +473,8 @@ async function handleUpload(payload: { title: string; description: string; zipNa
     align-items: flex-start;
   }
 }
+.ws-filter-bar { display: flex; gap: 8px; }
+.ws-filter-select { padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-muted); font-family: inherit; font-size: var(--text-sm); color: var(--text); outline: none; cursor: pointer; transition: border-color 0.15s; }
+.ws-filter-select:focus { border-color: var(--accent-border); }
+.ws-filter-select option { background: var(--bg-elevated); }
 </style>

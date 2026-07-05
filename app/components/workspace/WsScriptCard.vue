@@ -70,6 +70,11 @@ function handleDelete() {
 
       <p v-if="script.description" class="script-card__desc">{{ script.description }}</p>
 
+      <div v-if="script.category || script.language" class="script-card__meta-tags">
+        <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
+        <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
+      </div>
+
       <div class="script-card__meta">
         <span class="script-card__meta-item">
           <Icon name="lucide:file" size="13" />
@@ -223,6 +228,10 @@ function handleDelete() {
   color: var(--text-muted);
   white-space: nowrap;
 }
+
+.script-card__meta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.script-card__cat-badge { padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); border: 1px solid var(--accent-border); font-size: 0.6875rem; font-weight: 600; color: var(--accent); white-space: nowrap; }
+.script-card__lang-badge { padding: 2px 8px; border-radius: 999px; background: var(--secondary-soft); border: 1px solid var(--secondary-border); font-size: 0.6875rem; font-weight: 600; color: var(--secondary); white-space: nowrap; }
 
 .script-card__tags {
   display: flex;

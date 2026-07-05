@@ -17,6 +17,8 @@ export default defineEventHandler(async (event) => {
   const title = getField("title").trim()
   const description = getField("description").trim()
   const tagsRaw = getField("tags")
+  const category = getField("category") || ""
+  const language = getField("language") || ""
   const teamId = getField("teamId") || null
   const fileField = formData.find(f => f.name === "file")
 
@@ -40,7 +42,8 @@ export default defineEventHandler(async (event) => {
 
   db.run(
     "INSERT INTO scripts (id, title, description, file_name, file_size, file_path, tags, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), userId, teamId, now, now]
+    "INSERT INTO scripts (id, title, description, file_name, file_size, file_path, tags, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), category, language, userId, teamId, now, now]
   )
   saveDb()
 
@@ -48,7 +51,7 @@ export default defineEventHandler(async (event) => {
     ok: true,
     script: {
       id, title, description, zipName: filename, zipSize: fileField.data.length,
-      tags, ownerId: userId, teamId, createdAt: now, updatedAt: now
+      tags, category, language, ownerId: userId, teamId, createdAt: now, updatedAt: now
     }
   }
 })

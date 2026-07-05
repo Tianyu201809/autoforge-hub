@@ -7,6 +7,8 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const scope = query.scope as string || "personal"
   const teamId = query.teamId as string || ""
+  const category = query.category as string || ""
+  const language = query.language as string || ""
   const userId = auth.user.userId
   const db = await getDb()
 
@@ -23,6 +25,9 @@ export default defineEventHandler(async (event) => {
     sql += " 1=1"
   }
 
+  if (category) { sql += " AND category = ?"; params.push(category) }
+  if (language) { sql += " AND language = ?"; params.push(language) }
+
   sql += " ORDER BY created_at DESC"
 
   const stmt = db.prepare(sql)
@@ -38,6 +43,8 @@ export default defineEventHandler(async (event) => {
       zipSize: row.file_size,
       filePath: row.file_path,
       tags: JSON.parse(row.tags || "[]"),
+      category: row.category || "",
+      language: row.language || "",
       ownerId: row.owner_id,
       teamId: row.team_id,
       createdAt: row.created_at,

@@ -93,7 +93,9 @@ export function useScripts() {
     return personal.filter(
       s => s.title.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q))
+        s.tags.some(t => t.toLowerCase().includes(q)) ||
+        s.category.toLowerCase().includes(q) ||
+        s.language.toLowerCase().includes(q)
     )
   }
 

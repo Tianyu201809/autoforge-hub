@@ -297,14 +297,14 @@ function formatDate(iso: string): string {
     </div>
 
     <Teleport to="body">
-      <WsUploadModal
+      <WorkspaceWsUploadModal
         v-if="showUpload"
         @close="showUpload = false"
         @uploaded="handleUpload"
       />
     </Teleport>
     <Teleport to="body">
-      <WsEditModal
+      <WorkspaceWsEditModal
         v-if="showEdit && editingScript"
         :script="editingScript"
         @close="showEdit = false"

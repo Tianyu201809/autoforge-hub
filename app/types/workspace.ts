@@ -5,6 +5,8 @@ export interface Script {
   zipName: string
   zipSize: number
   tags: string[]
+  category: string
+  language: string
   createdAt: string
   updatedAt: string
   ownerId: string
@@ -18,6 +20,8 @@ export interface StoredScript {
   zipName: string
   zipSize: number
   tags: string[]
+  category: string
+  language: string
   createdAt: string
   updatedAt: string
   ownerId: string
@@ -44,3 +48,16 @@ export interface StoredTeam {
 
 export type WorkspaceTab = 'personal' | 'teams'
 export type ScriptSort = 'newest' | 'oldest' | 'name'
+
+export const SCRIPT_CATEGORIES = [
+  '数据处理', '自动化', 'DevOps', 'Web 开发', 'AI/ML',
+  '数据库', '监控', '安全', '测试', '其他'
+] as const
+
+export const SCRIPT_LANGUAGES = [
+  'Python', 'JavaScript', 'TypeScript', 'Go', 'Rust',
+  'Bash', 'PowerShell', 'Java', 'Ruby', '其他'
+] as const
+
+export type ScriptCategory = (typeof SCRIPT_CATEGORIES)[number]
+export type ScriptLanguage = (typeof SCRIPT_LANGUAGES)[number]

@@ -66,6 +66,10 @@ export async function getDb(): Promise<SqlJsDbType> {
   // Migration: add avatar_url if not exists
   try { _sqlDb.run("ALTER TABLE users ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''") } catch (e) {}
 
+  // Migration: add category and language to scripts
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN category TEXT NOT NULL DEFAULT ''") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN language TEXT NOT NULL DEFAULT ''") } catch (e) {}
+
   return _sqlDb
 }
 
