@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <!-- Nebula effect (dark) -->
-    <div class="bg-nebula" aria-hidden="true">
+    <div class="bg-nebula" :style="{ opacity: isDark ? 1 : 0 }" aria-hidden="true">
       <div class="bg-nebula__orb bg-nebula__orb--1" />
       <div class="bg-nebula__orb bg-nebula__orb--2" />
       <div class="bg-nebula__orb bg-nebula__orb--3" />
@@ -10,7 +10,7 @@
     </div>
 
     <!-- Leaves effect (light) -->
-    <div class="bg-leaves" aria-hidden="true">
+    <div class="bg-leaves" :style="{ opacity: isDark ? 0 : 1 }" aria-hidden="true">
       <span class="bg-leaf" v-for="i in 15" :key="i" :style="getLeafStyle(i)" />
     </div>
 
@@ -21,6 +21,8 @@
 </template>
 
 <script setup lang="ts">
+const { isDark } = useTheme()
+
 function hash(n: number): number {
   // Simple deterministic hash from index
   return ((n * 9301 + 49297) % 233280) / 233280
@@ -62,7 +64,7 @@ function getLeafStyle(i: number) {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: var(--bg-nebula-opacity, 0);
+  opacity: 0;
   transition: opacity 0.8s ease;
 }
 
@@ -161,7 +163,7 @@ function getLeafStyle(i: number) {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  opacity: var(--bg-leaves-opacity, 0);
+  opacity: 0;
   transition: opacity 0.8s ease;
 }
 

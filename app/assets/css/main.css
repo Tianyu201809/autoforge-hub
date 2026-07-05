@@ -76,10 +76,6 @@
   --card-preview-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(107, 76, 230, 0.08) 100%);
   --card-hero-icon: var(--accent);
 
-  /* Background effects */
-  --bg-nebula-opacity: 1;
-  --bg-leaves-opacity: 0;
-
   /* Layout */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -142,10 +138,6 @@
   --danger: #dc2626;
   --danger-soft: rgba(220, 38, 38, 0.08);
   --danger-border: rgba(220, 38, 38, 0.25);
-
-  /* Background effects */
-  --bg-nebula-opacity: 0;
-  --bg-leaves-opacity: 1;
 
   /* Effects — soft, no neon */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
