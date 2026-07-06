@@ -74,11 +74,6 @@ onMounted(() => {
 
       <div class="ws-header__right">
         <HubThemeToggle />
-        <NuxtLink to="/workspace" class="ws-back-link" title="返回空间选择">
-          <Icon name="lucide:arrow-left" size="16" />
-          <span>返回选择</span>
-        </NuxtLink>
-
         <div v-if="user" ref="menuRef" class="ws-user-menu">
           <button
             type="button"
@@ -284,24 +279,7 @@ onMounted(() => {
 }
 .ws-header__logout:hover { border-color: var(--danger-border); color: var(--danger); background: var(--danger-soft); }
 
-.ws-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  color: var(--text-secondary);
-  transition: border-color 0.15s, color 0.15s;
-}
 
-.ws-back-link:hover {
-  border-color: var(--secondary-border);
-  color: var(--text);
-  box-shadow: var(--shadow-glow-purple);
-}
 
 .ws-user-menu {
   position: relative;
@@ -615,10 +593,6 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .ws-nav {
-    display: none;
-  }
-
-  .ws-back-link span {
     display: none;
   }
 

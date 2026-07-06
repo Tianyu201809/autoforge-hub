@@ -46,7 +46,7 @@ export function getDatabasePath(overrideUrl?: string): string {
   if (explicitUrl) return explicitUrl
 
   const env = getEnv()
-  const dbDir = "./server/db"
+  const dbDir = "./data"
   switch (env) {
     case "staging":
       return `${dbDir}/autoforge-staging.db`

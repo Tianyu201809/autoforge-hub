@@ -24,3 +24,5 @@ logs
 .env.*
 !.env.example
 .pnpm-store
+# Runtime data (database files, uploads, etc.)
+data/*
