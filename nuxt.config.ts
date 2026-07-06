@@ -25,6 +25,22 @@ export default defineNuxtConfig({
       ]
     }
   },
+  nitro: {
+    rollupConfig: {
+      plugins: [
+        {
+          name: 'resolve-ali-oss-js',
+          resolveId(id: string, importer: string | undefined) {
+            if (importer?.includes('ali-oss') && id.startsWith('.')) {
+              // Force .js resolution for ali-oss internal imports
+              return this.resolve(id + '.js', importer, { skipSelf: true })
+            }
+            return null
+          },
+        },
+      ],
+    },
+  },
   runtimeConfig: {
     env: NUXT_ENV,
     oss: {

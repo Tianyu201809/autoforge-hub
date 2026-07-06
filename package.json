@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build:dev": "cross-env NUXT_ENV=development nuxi build",
     "build:staging": "cross-env NUXT_ENV=staging nuxi build",
     "build:prod": "cross-env NUXT_ENV=production nuxi build",
     "preview": "nuxt preview",
