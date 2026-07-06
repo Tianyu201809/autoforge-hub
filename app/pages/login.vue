@@ -53,13 +53,6 @@ function focusFirstField() {
   input?.focus()
 }
 
-function fillDemo() {
-  email.value = 'demo@autoforge.dev'
-  password.value = 'demo123456'
-  formError.value = ''
-  fieldErrors.value = {}
-}
-
 function validateLogin(): boolean {
   const errors: Record<string, string> = {}
   if (!email.value.trim()) errors.email = '请输入邮箱'
@@ -115,21 +108,6 @@ async function onSubmit() {
 <template>
   <AuthCard :subtitle="subtitle">
     <AuthTabs v-model="activeTab" />
-
-    <!-- Demo account hint -->
-    <div class="auth-demo" v-if="activeTab === 'login'" style="margin-top:16px;">
-      <div class="auth-demo__content">
-        <Icon name="lucide:sparkles" size="14" class="auth-demo__icon" />
-        <span>
-          Demo: <code class="auth-demo__code">demo@autoforge.dev</code>
-          <span class="auth-demo__sep">/</span>
-          <code class="auth-demo__code">demo123456</code>
-        </span>
-      </div>
-      <button type="button" class="auth-demo__fill" @click="fillDemo">
-        Autofill
-      </button>
-    </div>
 
     <div
       v-if="formError"
@@ -304,66 +282,6 @@ async function onSubmit() {
 
 .auth-form__link:hover {
   color: var(--accent);
-}
-
-.auth-demo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--secondary-soft);
-  border: 1px solid var(--secondary-border);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-.auth-demo__content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.auth-demo__icon {
-  flex-shrink: 0;
-  color: var(--secondary);
-}
-
-.auth-demo__code {
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  font-family: 'SF Mono', 'Cascadia Code', monospace;
-  font-size: 0.65rem;
-  color: var(--text);
-}
-
-.auth-demo__sep {
-  margin: 0 2px;
-  color: var(--text-muted);
-}
-
-.auth-demo__fill {
-  flex-shrink: 0;
-  padding: 4px 10px;
-  border: 1px solid var(--secondary-border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--secondary);
-  white-space: nowrap;
-  transition: background 0.12s;
-}
-
-.auth-demo__fill:hover {
-  background: var(--secondary);
-  color: #fff;
 }
 
 @keyframes fieldReveal {
