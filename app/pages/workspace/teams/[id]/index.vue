@@ -190,6 +190,27 @@ function handleDeleteScript(id: string) {
   deleteScript(id)
 }
 
+async function handleCopyScript(script: any) {
+  actionError.value = ''
+  actionSuccess.value = ''
+  try {
+    const token = localStorage.getItem('autoforge-token')
+    const res = await fetch(`/api/scripts/${script.id}/copy`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      actionError.value = data.message || '复制失败'
+      return
+    }
+    actionSuccess.value = `已复制「${script.title}」到个人空间`
+    setTimeout(() => { actionSuccess.value = '' }, 4000)
+  } catch (err: any) {
+    actionError.value = err.message || '复制失败，请重试'
+  }
+}
+
 async function handleLeave() {
   if (!user.value) return
   actionError.value = ''
@@ -490,7 +511,9 @@ function canSetRole(member: any): boolean {
             :deletable="canDeleteScript(script)"
             :editable="canEditScript(script)"
             :downloadable="canDownload"
+            :copyable="true"
             @delete="handleDeleteScript"
+            @copy="handleCopyScript"
           />
         </div>
 

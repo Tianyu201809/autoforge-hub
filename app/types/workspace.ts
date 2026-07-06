@@ -55,7 +55,7 @@ export interface AuditLog {
   teamId: string
   userId: string
   userName: string
-  actionType: 'upload' | 'edit' | 'delete'
+  actionType: 'upload' | 'edit' | 'delete' | 'copy'
   scriptId?: string
   scriptName: string
   details: Record<string, any>

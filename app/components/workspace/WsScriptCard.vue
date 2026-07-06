@@ -6,11 +6,13 @@ const props = defineProps<{
   deletable?: boolean
   editable?: boolean
   downloadable?: boolean
+  copyable?: boolean
 }>()
 
 const emit = defineEmits<{
   delete: [id: string]
   edit: [script: Script]
+  copy: [script: Script]
 }>()
 
 const showDeleteModal = ref(false)
@@ -83,7 +85,16 @@ async function handleDownload() {
     <div class="script-card__body">
       <div class="script-card__title-row">
         <h3 class="script-card__title">{{ script.title }}</h3>
-        <div v-if="deletable || editable" class="script-card__actions">
+        <div v-if="deletable || editable || copyable" class="script-card__actions">
+          <button
+            v-if="copyable"
+            type="button"
+            class="script-card__copy"
+            title="复制到我的空间"
+            @click="emit('copy', script)"
+          >
+            <Icon name="lucide:copy-plus" size="15" />
+          </button>
           <button
             v-if="editable"
             type="button"
@@ -282,6 +293,26 @@ async function handleDownload() {
 .script-card__edit:hover {
   background: var(--accent-soft);
   color: var(--accent);
+}
+
+.script-card__copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.script-card__copy:hover {
+  background: var(--secondary-soft);
+  color: var(--secondary);
 }
 
 .script-card__delete {
