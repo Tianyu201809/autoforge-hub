@@ -3,10 +3,14 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build",
     "dev": "nuxt dev",
-    "generate": "nuxt generate",
+    "build": "nuxt build",
+    "build:staging": "cross-env NUXT_ENV=staging nuxi build",
+    "build:prod": "cross-env NUXT_ENV=production nuxi build",
     "preview": "nuxt preview",
+    "preview:staging": "cross-env NUXT_ENV=staging node .output/server/index.mjs",
+    "preview:prod": "cross-env NUXT_ENV=production node .output/server/index.mjs",
+    "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
@@ -27,6 +31,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
+    "cross-env": "^10.1.0",
     "eslint": "^10.6.0",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.6"

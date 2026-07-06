@@ -1,6 +1,30 @@
 ﻿import jwt from 'jsonwebtoken'
+import { isProduction, getEnv } from './env'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'autoforge-hub-dev-secret-key'
+const ENV = getEnv()
+
+function resolveSecret(): string {
+  const explicit = process.env.JWT_SECRET
+  if (explicit) return explicit
+
+  // Environment-specific defaults
+  switch (ENV) {
+    case "production":
+      // In production, JWT_SECRET MUST be explicitly set
+      console.error(
+        "[jwt] FATAL: JWT_SECRET is not configured in production! " +
+        "Set the JWT_SECRET environment variable to a strong, unique value."
+      )
+      process.exit(1)
+    case "staging":
+      return "autoforge-hub-staging-secret-key"
+    case "development":
+    default:
+      return "autoforge-hub-dev-secret-key"
+  }
+}
+
+const JWT_SECRET = resolveSecret()
 const JWT_EXPIRES_IN = '7d'
 
 export interface JwtPayload {

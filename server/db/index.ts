@@ -1,10 +1,11 @@
 ﻿import initSqlJs from "sql.js"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
 import { dirname } from "path"
+import { getDatabasePath, getEnv } from "../utils/env"
 
 export type SqlJsDbType = Awaited<ReturnType<typeof initSqlJs>> extends { Database: infer D } ? InstanceType<D & { new(...args: any[]): any }> : never
 
-const DB_PATH = process.env.DATABASE_URL || "./server/db/autoforge.db"
+const DB_PATH = getDatabasePath()
 
 let _sqlDb: SqlJsDbType | null = null
 

@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, unlinkSync } from "fs"
 import { join } from "path"
 import { isOssConfigured, ossUpload, ossDelete, ossGetUrl, ossRead } from "./oss"
+import { getStorageEnvDir } from "./env"
 
-const STORAGE_DIR = join(process.cwd(), "server", "storage")
+const ENV_DIR = getStorageEnvDir()
+const STORAGE_DIR = join(process.cwd(), "server", "storage", ENV_DIR)
 let warned = false
 
 function ensureDir(dir: string) {

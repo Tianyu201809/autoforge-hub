@@ -1,4 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const NUXT_ENV = process.env.NUXT_ENV?.trim().toLowerCase() || "development"
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -6,7 +8,9 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   app: {
     head: {
-      title: 'Autoforge Hub',
+      title: NUXT_ENV === 'production'
+        ? 'Autoforge Hub'
+        : `Autoforge Hub (${NUXT_ENV})`,
       link: [
         { rel: 'icon', type: 'image/png', href: '/logo.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -22,6 +26,7 @@ export default defineNuxtConfig({
     }
   },
   runtimeConfig: {
+    env: NUXT_ENV,
     oss: {
       accessKeyId: "",
       accessKeySecret: "",
