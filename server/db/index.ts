@@ -1,6 +1,6 @@
 ﻿import initSqlJs from "sql.js"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
-import { dirname } from "path"
+import { resolve, dirname } from "path"
 import { getDatabasePath, getEnv } from "../utils/env"
 
 export type SqlJsDbType = Awaited<ReturnType<typeof initSqlJs>> extends { Database: infer D } ? InstanceType<D & { new(...args: any[]): any }> : never
@@ -12,7 +12,25 @@ let _sqlDb: SqlJsDbType | null = null
 export async function getDb(): Promise<SqlJsDbType> {
   if (_sqlDb) return _sqlDb
 
-  const SQL = await initSqlJs()
+  // Provide locateFile to help sql.js find its WASM binary in both dev and production builds
+  const SQL = await initSqlJs({
+    locateFile: (file: string) => {
+      // Try multiple possible locations for the WASM file
+      const candidates = [
+        // Production build: .output/server/node_modules/sql.js/dist/
+        resolve(process.cwd(), '.output/server/node_modules/sql.js/dist', file),
+        // Development: root node_modules
+        resolve(process.cwd(), 'node_modules/sql.js/dist', file),
+        // Relative to this source file (dev mode via nuxi dev)
+        resolve(process.cwd(), 'node_modules/sql.js/dist', file),
+      ]
+      for (const candidate of candidates) {
+        if (existsSync(candidate)) return candidate
+      }
+      // Fallback: return the first candidate (will error with a clear message)
+      return candidates[0]
+    },
+  })
   const dir = dirname(DB_PATH)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 

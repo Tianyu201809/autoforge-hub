@@ -40,6 +40,24 @@ export default defineNuxtConfig({
         },
       ],
     },
+    hooks: {
+      'compiled': async (nitro) => {
+        // Copy sql.js WASM binary to output, as Nitro doesn't bundle .wasm files from node_modules
+        const { copyFileSync, existsSync, mkdirSync } = await import('fs')
+        const { resolve, dirname } = await import('path')
+        const { fileURLToPath } = await import('url')
+
+        const srcWasm = resolve(process.cwd(), 'node_modules/sql.js/dist/sql-wasm.wasm')
+        const destDir = resolve(nitro.options.output.dir, 'server/node_modules/sql.js/dist')
+        const destWasm = resolve(destDir, 'sql-wasm.wasm')
+
+        if (!existsSync(destDir)) {
+          mkdirSync(destDir, { recursive: true })
+        }
+        copyFileSync(srcWasm, destWasm)
+        console.log(`[nitro] Copied sql-wasm.wasm to ${destWasm}`)
+      }
+    },
   },
   runtimeConfig: {
     env: NUXT_ENV,
