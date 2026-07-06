@@ -21,6 +21,12 @@ const formError = ref('')
 const successMessage = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 
+// ── Captcha state ───────────────────────────────────────
+const captchaToken = ref('')
+const captchaTargetPosition = ref(0)
+const captchaFinalPosition = ref(0)
+const captchaVerified = ref(false)
+
 const emailRef = ref<{ $el?: HTMLElement }>()
 
 const subtitle = computed(() =>
@@ -35,6 +41,10 @@ watch(activeTab, () => {
   successMessage.value = ''
   password.value = ''
   confirmPassword.value = ''
+  captchaVerified.value = false
+  if (activeTab.value === 'register') {
+    nextTick(() => loadCaptcha())
+  }
   nextTick(() => focusFirstField())
 })
 
@@ -53,6 +63,32 @@ function focusFirstField() {
   input?.focus()
 }
 
+// ── Captcha ──────────────────────────────────────────────
+async function loadCaptcha() {
+  try {
+    const res = await fetch('/api/auth/captcha/generate', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      captchaToken.value = data.token
+      captchaTargetPosition.value = data.position
+      captchaFinalPosition.value = 0
+      captchaVerified.value = false
+    }
+  } catch {
+    // Silently handle — captcha will be retried
+  }
+}
+
+function onCaptchaVerified(position: number) {
+  captchaFinalPosition.value = position
+  captchaVerified.value = true
+}
+
+function onCaptchaRefresh() {
+  loadCaptcha()
+}
+
+// ── Validation ───────────────────────────────────────────
 function validateLogin(): boolean {
   const errors: Record<string, string> = {}
   if (!email.value.trim()) errors.email = '请输入邮箱'
@@ -68,6 +104,7 @@ function validateRegister(): boolean {
   else if (password.value.length < 8) errors.password = '密码至少需要 8 位'
   if (!confirmPassword.value) errors.confirmPassword = '请确认密码'
   else if (confirmPassword.value !== password.value) errors.confirmPassword = '两次输入的密码不一致'
+  if (!captchaVerified.value) errors.captcha = '请完成安全验证'
   fieldErrors.value = errors
   return Object.keys(errors).length === 0
 }
@@ -92,10 +129,14 @@ async function onSubmit() {
 
   if (!validateRegister()) return
   loading.value = true
-  const result = await register(email.value, password.value)
+  const result = await register(email.value, password.value, captchaToken.value, captchaFinalPosition.value)
   loading.value = false
   if (!result.ok) {
     formError.value = result.error
+    // If captcha expired or invalid, reload it
+    if (result.captchaError) {
+      loadCaptcha()
+    }
     return
   }
   activeTab.value = 'login'
@@ -166,6 +207,23 @@ async function onSubmit() {
         style="animation-delay: 120ms"
       />
 
+      <!-- Slider Captcha (register only) -->
+      <div
+        v-if="activeTab === 'register'"
+        class="auth-form__captcha"
+        style="animation-delay: 150ms"
+      >
+        <AuthSliderCaptcha
+          v-if="captchaToken"
+          :key="captchaToken"
+          :token="captchaToken"
+          :target-position="captchaTargetPosition"
+          :disabled="loading"
+          @verified="onCaptchaVerified"
+          @refresh="onCaptchaRefresh"
+        />
+      </div>
+
       <label v-if="activeTab === 'login'" class="auth-form__remember">
         <input v-model="rememberMe" type="checkbox" :disabled="loading">
         <span>记住我</span>
@@ -174,7 +232,7 @@ async function onSubmit() {
       <button
         type="submit"
         class="auth-form__submit"
-        :disabled="loading"
+        :disabled="loading || (activeTab === 'register' && !captchaVerified)"
         style="animation-delay: 160ms"
       >
         <Icon v-if="loading" name="lucide:loader-circle" size="18" class="auth-form__spinner" />
@@ -217,6 +275,10 @@ async function onSubmit() {
 }
 
 .auth-form__field {
+  animation: fieldReveal 0.35s ease both;
+}
+
+.auth-form__captcha {
   animation: fieldReveal 0.35s ease both;
 }
 

@@ -1,15 +1,35 @@
 ﻿import { getDb, saveDb } from "../../db/index"
 import { signToken } from "../../utils/jwt"
+import { verifyCaptchaToken } from "./captcha/generate.post"
 import bcrypt from "bcryptjs"
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const email = body?.email?.trim().toLowerCase()
   const password = body?.password
+  const captchaToken = body?.captchaToken
 
   if (!email || !password) throw createError({ statusCode: 400, message: "请填写邮箱和密码" })
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw createError({ statusCode: 400, message: "邮箱格式不正确" })
   if (password.length < 8) throw createError({ statusCode: 400, message: "密码至少需要 8 位" })
+
+  // Verify captcha
+  if (!captchaToken) {
+    throw createError({ statusCode: 400, message: "请完成安全验证" })
+  }
+  const captchaPosition = body?.captchaPosition
+  if (typeof captchaPosition !== "number") {
+    throw createError({ statusCode: 400, message: "验证参数不完整" })
+  }
+  const captchaResult = verifyCaptchaToken(captchaToken, captchaPosition)
+  if (!captchaResult.ok) {
+    const messages: Record<string, string> = {
+      invalid_or_expired: "验证码已失效，请重新验证",
+      expired: "验证码已过期，请重新验证",
+      position_mismatch: "安全验证未通过，请重新拖动滑块",
+    }
+    throw createError({ statusCode: 400, message: messages[captchaResult.reason ?? ""] ?? "安全验证失败" })
+  }
 
   const db = await getDb()
   const existingStmt = db.prepare("SELECT id FROM users WHERE email = ?")

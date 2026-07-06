@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
   // Skip auth for non-API routes and auth endpoints
   const url = event.path
   if (!url.startsWith('/api/')) return
-  if (url === '/api/auth/login' || url === '/api/auth/register') return
+  if (
+    url === '/api/auth/login' ||
+    url === '/api/auth/register' ||
+    url === '/api/auth/captcha/generate' ||
+    url === '/api/auth/captcha/verify'
+  ) return
 
   const authHeader = getHeader(event, 'authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

@@ -62,11 +62,19 @@ export function useAuth() {
     hydrated.value = true
   }
 
-  async function register(email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  async function register(
+    email: string,
+    password: string,
+    captchaToken?: string,
+    captchaPosition?: number
+  ): Promise<{ ok: true } | { ok: false; error: string; captchaError?: boolean }> {
     try {
+      const body: Record<string, any> = { email, password }
+      if (captchaToken) body.captchaToken = captchaToken
+      if (captchaPosition !== undefined) body.captchaPosition = captchaPosition
       const data = await apiFetch<{ ok: boolean; user: any; token: string }>('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(body)
       })
       const expiresAt = Date.now() + SESSION_TTL_MS
       const newSession: AuthSession = { token: data.token, user: toUser(data.user), expiresAt }
@@ -74,7 +82,8 @@ export function useAuth() {
       writeSession(newSession)
       return { ok: true }
     } catch (err: any) {
-      return { ok: false, error: err.message || '注册失败' }
+      const isCaptchaError = err.message?.includes('验证码')
+      return { ok: false, error: err.message || '注册失败', captchaError: isCaptchaError }
     }
   }
 
