@@ -1,8 +1,19 @@
 <script setup lang="ts">
+import { SCRIPT_CATEGORIES, SCRIPT_LANGUAGES } from "~/types/workspace"
+
 const emit = defineEmits<{
   close: []
-  uploaded: [payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File }]
-    category: string; language: string;
+  uploaded: [payload: {
+    title: string
+    description: string
+    zipName: string
+    zipSize: number
+    tags: string[]
+    file: File
+    category: string
+    language: string
+    icon: string
+  }]
 }>()
 
 const title = ref('')
@@ -131,32 +142,18 @@ function formatSize(bytes: number): string {
           <label class="upload-form__label">分类</label>
           <select v-model="category" class="upload-form__select">
             <option value="">选择分类</option>
-            <option value="数据处理">数据处理</option>
-            <option value="自动化">自动化</option>
-            <option value="DevOps">DevOps</option>
-            <option value="Web 开发">Web 开发</option>
-            <option value="AI/ML">AI/ML</option>
-            <option value="数据库">数据库</option>
-            <option value="监控">监控</option>
-            <option value="安全">安全</option>
-            <option value="测试">测试</option>
-            <option value="其他">其他</option>
+            <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
+              {{ cat }}
+            </option>
           </select>
         </div>
         <div class="upload-form__field">
           <label class="upload-form__label">编程语言</label>
           <select v-model="language" class="upload-form__select">
             <option value="">选择语言</option>
-            <option value="Python">Python</option>
-            <option value="JavaScript">JavaScript</option>
-            <option value="TypeScript">TypeScript</option>
-            <option value="Go">Go</option>
-            <option value="Rust">Rust</option>
-            <option value="Bash">Bash</option>
-            <option value="PowerShell">PowerShell</option>
-            <option value="Java">Java</option>
-            <option value="Ruby">Ruby</option>
-            <option value="其他">其他</option>
+            <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
+              {{ lang }}
+            </option>
           </select>
         </div>
         <div class="upload-form__field">

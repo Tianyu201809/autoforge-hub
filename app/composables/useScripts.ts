@@ -73,8 +73,9 @@ export function useScripts() {
       if (!res.ok) throw new Error(data.message || "上传失败")
 
       if (data.script) {
-        scripts.value.unshift(data.script)
-        return data.script
+        const mapped = toScript(data.script)
+        scripts.value.unshift(mapped)
+        return mapped
       }
       return null
     } catch (err: any) {

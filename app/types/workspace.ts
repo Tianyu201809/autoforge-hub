@@ -71,8 +71,7 @@ export const SCRIPT_CATEGORIES = [
 ] as const
 
 export const SCRIPT_LANGUAGES = [
-  'Python', 'JavaScript', 'TypeScript', 'Go', 'Rust',
-  'Bash', 'PowerShell', 'Java', 'Ruby', '其他'
+  'Python', 'JavaScript'
 ] as const
 
 export type ScriptCategory = (typeof SCRIPT_CATEGORIES)[number]

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ScriptSort } from '~/types/workspace'
+import { SCRIPT_CATEGORIES, SCRIPT_LANGUAGES } from '~/types/workspace'
 
 definePageMeta({
   layout: 'default'
@@ -32,6 +33,8 @@ const {
 
 const searchQuery = ref('')
 const sortBy = ref<ScriptSort>('newest')
+const filterCategory = ref('')
+const filterLanguage = ref('')
 const showUpload = ref(false)
 const showEdit = ref(false)
 const editingScript = ref<any>(null)
@@ -51,8 +54,8 @@ const pagedScripts = computed(() => {
   return teamScripts.value.slice(start, start + PAGE_SIZE)
 })
 
-// Reset to page 1 when search/sort changes
-watch([searchQuery, sortBy], () => {
+// Reset to page 1 when search/sort/filter changes
+watch([searchQuery, sortBy, filterCategory, filterLanguage], () => {
   currentPage.value = 1
 })
 
@@ -114,6 +117,12 @@ const teamScripts = computed(() => {
         s.description.toLowerCase().includes(q) ||
         s.tags.some(t => t.toLowerCase().includes(q))
     )
+  }
+  if (filterCategory.value) {
+    scripts = scripts.filter(s => s.category === filterCategory.value)
+  }
+  if (filterLanguage.value) {
+    scripts = scripts.filter(s => s.language === filterLanguage.value)
   }
   const sorted = [...scripts]
   switch (sortBy.value) {
@@ -434,6 +443,21 @@ function canSetRole(member: any): boolean {
               class="ws-toolbar__search-input"
               placeholder="搜索团队脚本..."
             >
+          </div>
+
+          <div class="ws-filter-bar">
+            <select v-model="filterCategory" class="ws-filter-select">
+              <option value="">全部分类</option>
+              <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
+                {{ cat }}
+              </option>
+            </select>
+            <select v-model="filterLanguage" class="ws-filter-select">
+              <option value="">全部语言</option>
+              <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
+                {{ lang }}
+              </option>
+            </select>
           </div>
 
           <div class="ws-toolbar__actions">

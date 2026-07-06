@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ScriptSort } from '~/types/workspace'
+import { SCRIPT_CATEGORIES, SCRIPT_LANGUAGES } from '~/types/workspace'
 
 definePageMeta({
   layout: 'default'
@@ -124,29 +125,15 @@ async function handleUpload(payload: { title: string; description: string; zipNa
         <div class="ws-filter-bar">
         <select v-model="filterCategory" class="ws-filter-select">
           <option value="">全部分类</option>
-          <option value="数据处理">数据处理</option>
-          <option value="自动化">自动化</option>
-          <option value="DevOps">DevOps</option>
-          <option value="Web 开发">Web 开发</option>
-          <option value="AI/ML">AI/ML</option>
-          <option value="数据库">数据库</option>
-          <option value="监控">监控</option>
-          <option value="安全">安全</option>
-          <option value="测试">测试</option>
-          <option value="其他">其他</option>
+          <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
+            {{ cat }}
+          </option>
         </select>
         <select v-model="filterLanguage" class="ws-filter-select">
           <option value="">全部语言</option>
-          <option value="Python">Python</option>
-          <option value="JavaScript">JavaScript</option>
-          <option value="TypeScript">TypeScript</option>
-          <option value="Go">Go</option>
-          <option value="Rust">Rust</option>
-          <option value="Bash">Bash</option>
-          <option value="PowerShell">PowerShell</option>
-          <option value="Java">Java</option>
-          <option value="Ruby">Ruby</option>
-          <option value="其他">其他</option>
+          <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
+            {{ lang }}
+          </option>
         </select>
       </div>
       <div class="ws-toolbar__actions">
