@@ -6,7 +6,7 @@ export interface AuthenticatedEvent {
 
 export default defineEventHandler(async (event) => {
   // Skip auth for non-API routes and auth endpoints
-  const url = getRequestURL(event).pathname
+  const url = event.path
   if (!url.startsWith('/api/')) return
   if (url === '/api/auth/login' || url === '/api/auth/register') return
 
