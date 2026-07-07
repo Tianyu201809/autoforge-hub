@@ -181,7 +181,10 @@ async function handleEditSave(payload: { id: string; title: string; description:
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
       body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags, icon: payload.icon, category: payload.category, language: payload.language })
     })
-  } catch (e) {}
+  } catch (e) {
+    console.error("Failed to save script:", e)
+  }
+
   showEdit.value = false
   loadScripts("team", teamId.value)
 }
@@ -1077,6 +1080,32 @@ function canSetRole(member: any): boolean {
   background: var(--bg-elevated);
   color: var(--accent);
   box-shadow: var(--shadow-sm);
+}
+
+.ws-filter-bar {
+  display: flex;
+  gap: 8px;
+}
+
+.ws-filter-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ws-filter-select:focus {
+  border-color: var(--accent-border);
+}
+
+.ws-filter-select option {
+  background: var(--bg-elevated);
 }
 
 .ws-script-list {
