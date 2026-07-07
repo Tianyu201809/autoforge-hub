@@ -698,6 +698,51 @@ function canSetRole(member: any): boolean {
         @saved="handleEditSave"
       />
     </Teleport>
+    <Teleport to="body">
+      <div v-if="showDeleteTeamModal" class="delete-overlay" @click.self="showDeleteTeamModal = false">
+        <div class="delete-modal">
+          <div class="delete-modal__icon">
+            <div class="delete-modal__icon-ring">
+              <Icon name="lucide:alert-triangle" size="26" />
+            </div>
+          </div>
+          <h2 class="delete-modal__title">删除团队</h2>
+          <p class="delete-modal__desc">
+            此操作不可撤销。请输入 <strong>{{ teamNameForDelete }}</strong> 确认删除。
+          </p>
+          <div class="delete-modal__input-group">
+            <label class="delete-modal__label">
+              请输入团队名称 <strong>{{ teamNameForDelete }}</strong> 以确认
+            </label>
+            <input
+              v-model="deleteTeamConfirmText"
+              type="text"
+              class="delete-modal__input"
+              :placeholder="teamNameForDelete"
+              @keyup.enter="confirmDeleteTeam"
+            >
+          </div>
+          <div class="delete-modal__actions">
+            <button
+              type="button"
+              class="delete-modal__cancel"
+              @click="showDeleteTeamModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="delete-modal__confirm"
+              :disabled="deleteTeamConfirmText !== teamNameForDelete"
+              @click="confirmDeleteTeam"
+            >
+              <Icon name="lucide:trash-2" size="14" />
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
