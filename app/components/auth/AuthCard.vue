@@ -27,6 +27,7 @@ defineProps<{
 .auth-card {
   position: relative;
   width: min(420px, calc(100vw - 32px));
+  margin: 0 auto;
   animation: slideDown 0.25s ease;
 }
 
