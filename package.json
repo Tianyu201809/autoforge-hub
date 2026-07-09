@@ -2,6 +2,9 @@
   "name": "AutoforgeHub",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "nuxt dev",
     "build:dev": "cross-env NUXT_ENV=development nuxi build",

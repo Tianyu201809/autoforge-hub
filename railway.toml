@@ -1,0 +1,29 @@
+[build]
+  # Railway 自动检测 Node.js 项目，这里显式指定
+  builder = "nixpacks"
+
+  # 构建命令（使用生产环境构建）
+  buildCommand = "npm run build:prod"
+
+[deploy]
+  # 启动命令（直接运行 Nitro 产出的服务器入口）
+  startCommand = "node .output/server/index.mjs"
+
+  # Health check 路径
+  healthcheckPath = "/"
+
+  # 健康检查间隔（秒）
+  healthcheckInterval = 30
+
+  # SQLite 不支持多实例，固定单副本
+  numReplicas = 1
+
+  # 休眠策略（never 防止数据库连接丢失）
+  sleepStrategy = "never"
+
+  # 停止等待时间（秒）
+  stopWaitTime = 10
+
+  # 重启策略
+  restartPolicyType = "always"
+  restartPolicyMaxRetries = 10
