@@ -2,6 +2,9 @@
 const NUXT_ENV = process.env.NUXT_ENV?.trim().toLowerCase() || "development"
 
 export default defineNuxtConfig({
+  devServer: {
+    port: 9876,
+  },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/eslint', '@nuxt/icon'],
