@@ -29,10 +29,19 @@ const dragOver = ref(false)
 
 const fileInputRef = ref<HTMLInputElement>()
 
+const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   if (input.files?.length) {
-    zipFile.value = input.files[0]
+    const file = input.files[0]
+    if (file.size > MAX_FILE_SIZE) {
+      error.value = '文件大小不能超过 20MB'
+      zipFile.value = null
+      if (fileInputRef.value) fileInputRef.value.value = ''
+      return
+    }
+    zipFile.value = file
     error.value = ''
   }
 }
@@ -43,6 +52,10 @@ function onDrop(e: DragEvent) {
   if (file) {
     if (!file.name.endsWith('.zip')) {
       error.value = '仅支持 .zip 格式的脚本包'
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      error.value = '文件大小不能超过 20MB'
       return
     }
     zipFile.value = file
@@ -71,6 +84,10 @@ function validate(): boolean {
   }
   if (!zipFile.value.name.endsWith('.zip')) {
     error.value = '仅支持 .zip 格式的脚本包'
+    return false
+  }
+  if (zipFile.value.size > MAX_FILE_SIZE) {
+    error.value = '文件大小不能超过 20MB'
     return false
   }
   return true
@@ -114,7 +131,7 @@ function formatSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="upload-overlay" @click.self="emit('close')">
+  <div class="upload-overlay">
     <div class="upload-modal" role="dialog" aria-label="上传脚本">
       <div class="upload-modal__head">
         <h2 class="upload-modal__title">
