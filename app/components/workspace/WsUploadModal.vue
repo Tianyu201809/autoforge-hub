@@ -134,7 +134,8 @@ function formatSize(bytes: number): string {
 
         <div class="upload-form__field">
           <label class="upload-form__label">描述</label>
-          <textarea v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3"
+          <textarea
+v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3"
             :disabled="uploading" />
         </div>
 
@@ -160,13 +161,15 @@ function formatSize(bytes: number): string {
           <WorkspaceWsIconPicker v-model="icon" />
         </div>
         <div class="upload-form__field">
-          <input v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化"
+          <input
+v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化"
             :disabled="uploading">
         </div>
 
         <div class="upload-form__field">
           <label class="upload-form__label">上传 .zip 包 *</label>
-          <div class="upload-dropzone"
+          <div
+class="upload-dropzone"
             :class="{ 'upload-dropzone--active': dragOver, 'upload-dropzone--has-file': zipFile }"
             @drop.prevent="onDrop" @dragover="onDragOver" @dragleave="onDragLeave" @click="fileInputRef?.click()">
             <template v-if="!zipFile">
@@ -196,7 +199,7 @@ function formatSize(bytes: number): string {
         </div>
 
         <div class="upload-form__actions">
-          <button type="button" class="upload-form__cancel" @click="emit('close')" :disabled="uploading">
+          <button type="button" class="upload-form__cancel" :disabled="uploading" @click="emit('close')">
             取消
           </button>
           <button type="submit" class="upload-form__submit" :disabled="uploading">

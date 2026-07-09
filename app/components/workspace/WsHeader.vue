@@ -79,8 +79,8 @@ onMounted(() => {
             type="button"
             class="ws-user-btn"
             :class="{ 'ws-user-btn--open': showMenu }"
-            @click="toggleMenu"
             :aria-label="user.displayName"
+            @click="toggleMenu"
           >
             <span class="ws-user-btn__avatar">{{ getUserInitials(user) }}</span>
             <div class="ws-user-btn__info">

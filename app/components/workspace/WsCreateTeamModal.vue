@@ -85,7 +85,7 @@ function onSubmit() {
         </div>
 
         <div class="modal-form__actions">
-          <button type="button" class="modal-form__cancel" @click="emit('close')" :disabled="creating">
+          <button type="button" class="modal-form__cancel" :disabled="creating" @click="emit('close')">
             取消
           </button>
           <button type="submit" class="modal-form__submit" :disabled="creating">

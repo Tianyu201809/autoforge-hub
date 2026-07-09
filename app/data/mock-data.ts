@@ -1,5 +1,5 @@
-import type { StoredScript } from '~/types/workspace'
-import type { StoredTeam } from '~/types/workspace'
+import type { StoredScript, StoredTeam  } from '~/types/workspace'
+
 import type { StoredUserRecord } from '~/types/auth'
 
 function generateId(): string {

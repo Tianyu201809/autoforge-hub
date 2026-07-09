@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const db = await getDb()
 
   let sql = "SELECT * FROM scripts WHERE"
-  let params: any[] = []
+  const params: any[] = []
 
   if (teamId) {
     sql += " team_id = ?"

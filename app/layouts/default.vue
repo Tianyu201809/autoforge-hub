@@ -11,7 +11,7 @@
 
     <!-- Leaves effect (light) -->
     <div class="bg-leaves" :style="{ opacity: isDark ? 0 : 1 }" aria-hidden="true">
-      <span class="bg-leaf" v-for="i in 15" :key="i" :style="getLeafStyle(i)" />
+      <span v-for="i in 15" :key="i" class="bg-leaf" :style="getLeafStyle(i)" />
     </div>
 
     <div class="layout__content">

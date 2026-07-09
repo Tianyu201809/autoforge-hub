@@ -18,7 +18,7 @@ function goNext() {
 </script>
 
 <template>
-  <div class="ws-pagination" v-if="totalPages > 1">
+  <div v-if="totalPages > 1" class="ws-pagination">
     <div class="ws-pagination__info">
       第 {{ currentPage }} 页 / 共 {{ totalPages }} 页（{{ totalPages }} 页）
     </div>
@@ -79,7 +79,7 @@ function goNext() {
             if (val >= 1 && val <= totalPages) $emit('page-change', val)
           }
         "
-      />
+      >
       <span>页</span>
     </div>
   </div>

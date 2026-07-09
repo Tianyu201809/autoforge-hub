@@ -74,7 +74,7 @@ function onSubmit() {
         </div>
         <div v-if="error" class="modal-form__error" role="alert"><Icon name="lucide:alert-circle" size="15" /> {{ error }}</div>
         <div class="modal-form__actions">
-          <button type="button" class="modal-form__cancel" @click="emit('close')" :disabled="saving">取消</button>
+          <button type="button" class="modal-form__cancel" :disabled="saving" @click="emit('close')">取消</button>
           <button type="submit" class="modal-form__submit" :disabled="saving">
             <Icon v-if="saving" name="lucide:loader-circle" size="16" class="modal-form__spinner" />
             {{ saving ? "保存中..." : "保存" }}

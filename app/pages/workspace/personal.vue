@@ -92,7 +92,7 @@ async function handleUpload(payload: { title: string; description: string; zipNa
 </script>
 
 <template>
-  <div class="ws-page" v-if="user">
+  <div v-if="user" class="ws-page">
     <WorkspaceWsHeader />
         <div class="ws-page__body">
       <div class="ws-page__hero">
@@ -163,13 +163,13 @@ async function handleUpload(payload: { title: string; description: string; zipNa
 
       <div v-if="pagedScripts.length > 0" class="ws-script-list">
         <WorkspaceWsScriptCard
-          @edit="handleEdit"
           v-for="script in pagedScripts"
           :key="script.id"
           :script="script"
           :deletable="true"
           :editable="true"
           :downloadable="true"
+          @edit="handleEdit"
           @delete="handleDelete"
         />
       </div>

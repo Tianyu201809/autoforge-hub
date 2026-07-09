@@ -88,7 +88,7 @@ function getInitials(name: string): string {
 </script>
 
 <template>
-  <div class="al-page" v-if="team">
+  <div v-if="team" class="al-page">
     <WorkspaceWsHeader />
 
     <div class="al-page__body">

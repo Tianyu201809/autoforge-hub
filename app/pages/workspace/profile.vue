@@ -61,11 +61,11 @@ async function changeAvatar(e: Event) {
       <div class="profile-card">
         <div class="profile-avatar">
           <div class="profile-avatar__wrap">
-            <img v-if="avatarUrl" :src="'/api/files/avatars/' + avatarUrl" alt="" class="profile-avatar__img" />
+            <img v-if="avatarUrl" :src="'/api/files/avatars/' + avatarUrl" alt="" class="profile-avatar__img" >
             <span v-else class="profile-avatar__initials">{{ user?.displayName?.slice(0, 2)?.toUpperCase() || 'U' }}</span>
             <label class="profile-avatar__change">
               <Icon name="lucide:camera" size="16" />
-              <input type="file" accept="image/png,image/jpg,image/jpeg,image/webp" hidden @change="changeAvatar" />
+              <input type="file" accept="image/png,image/jpg,image/jpeg,image/webp" hidden @change="changeAvatar" >
             </label>
           </div>
           <p class="profile-avatar__hint">点击相机图标更换头像</p>
@@ -74,11 +74,11 @@ async function changeAvatar(e: Event) {
         <div class="profile-form">
           <div class="profile-form__field">
             <label class="profile-form__label">显示名称</label>
-            <input v-model="displayName" type="text" class="profile-form__input" placeholder="输入显示名称" maxlength="30" :disabled="saving" />
+            <input v-model="displayName" type="text" class="profile-form__input" placeholder="输入显示名称" maxlength="30" :disabled="saving" >
           </div>
           <div class="profile-form__field">
             <label class="profile-form__label">邮箱</label>
-            <input :value="user?.email" type="email" class="profile-form__input profile-form__input--readonly" disabled />
+            <input :value="user?.email" type="email" class="profile-form__input profile-form__input--readonly" disabled >
           </div>
 
           <div v-if="message" class="profile-form__msg profile-form__msg--success">{{ message }}</div>

@@ -127,8 +127,8 @@ const trackPattern = computed(() => {
         type="button"
         class="slider-captcha__refresh"
         :disabled="disabled || isVerified"
-        @click="handleRefresh"
         :title="'刷新验证码'"
+        @click="handleRefresh"
       >
         <Icon name="lucide:refresh-cw" size="14" />
       </button>

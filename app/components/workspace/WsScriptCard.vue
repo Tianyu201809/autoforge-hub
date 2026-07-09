@@ -186,7 +186,7 @@ async function handleDownload() {
               :placeholder="script.title"
               autocomplete="off"
               @keydown.enter="confirmDelete"
-            />
+            >
           </div>
           <div class="delete-modal__actions">
             <button

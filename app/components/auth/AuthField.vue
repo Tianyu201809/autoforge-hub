@@ -55,8 +55,8 @@ const toggleIcon = computed(() =>
         class="auth-field__toggle"
         :aria-label="showPassword ? '隐藏密码' : '显示密码'"
         :disabled="disabled"
-        @click="showPassword = !showPassword"
         tabindex="-1"
+        @click="showPassword = !showPassword"
       >
         <Icon :name="toggleIcon" size="16" />
       </button>

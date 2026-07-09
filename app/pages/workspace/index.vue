@@ -23,7 +23,7 @@ const userTeams = computed(() => {
 </script>
 
 <template>
-  <div class="ws-dashboard" v-if="user">
+  <div v-if="user" class="ws-dashboard">
     <WorkspaceWsHeader />
 
     <div class="ws-dashboard__body">

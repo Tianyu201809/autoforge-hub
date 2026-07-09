@@ -100,7 +100,7 @@ function copyInviteCode(teamId: string) {
 </script>
 
 <template>
-  <div class="ws-page" v-if="user">
+  <div v-if="user" class="ws-page">
     <WorkspaceWsHeader />
 
     <div class="ws-page__body">

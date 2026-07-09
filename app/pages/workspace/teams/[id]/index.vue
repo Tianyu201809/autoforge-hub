@@ -380,7 +380,7 @@ function canSetRole(member: any): boolean {
 </script>
 
 <template>
-  <div class="ws-page" v-if="user">
+  <div v-if="user" class="ws-page">
     <WorkspaceWsHeader />
 
     <div class="ws-page__body">
@@ -507,7 +507,6 @@ function canSetRole(member: any): boolean {
         <!-- Scripts list -->
         <div v-if="teamScripts.length > 0" class="ws-script-list">
           <WorkspaceWsScriptCard
-            @edit="handleEditScript"
             v-for="script in pagedScripts"
             :key="script.id"
             :script="script"
@@ -515,6 +514,7 @@ function canSetRole(member: any): boolean {
             :editable="canEditScript(script)"
             :downloadable="canDownload"
             :copyable="true"
+            @edit="handleEditScript"
             @delete="handleDeleteScript"
             @copy="handleCopyScript"
           />
@@ -619,12 +619,13 @@ function canSetRole(member: any): boolean {
             </div>
           </div>
           <div v-if="sectionPermissionsOpen" class="ws-permissions">
-            <label class="ws-permission" v-for="perm in ([
+            <label
+v-for="perm in ([
               { key: 'upload', label: '允许上传脚本', icon: 'lucide:upload' },
               { key: 'edit', label: '允许编辑自己脚本', icon: 'lucide:pencil' },
               { key: 'delete', label: '允许删除自己脚本', icon: 'lucide:trash-2' },
               { key: 'download', label: '允许下载脚本', icon: 'lucide:download' },
-            ])" :key="perm.key">
+            ])" :key="perm.key" class="ws-permission">
               <div class="ws-permission__info">
                 <Icon :name="perm.icon" size="15" />
                 <span>{{ perm.label }}</span>
