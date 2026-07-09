@@ -5,7 +5,10 @@ defineProps<{
 </script>
 
 <template>
-  <div class="auth-card">
+  <div
+    class="auth-card"
+    style="width: min(420px, calc(100vw - 32px)); margin: 0 auto;"
+  >
     <div class="auth-card__glow auth-card__glow--purple" aria-hidden="true" />
     <div class="auth-card__glow auth-card__glow--orange" aria-hidden="true" />
 
@@ -28,7 +31,7 @@ defineProps<{
   position: relative;
   width: min(420px, calc(100vw - 32px));
   margin: 0 auto;
-  animation: slideDown 0.25s ease;
+  animation: slideDown 0.25s ease both;
 }
 
 .auth-card__glow {

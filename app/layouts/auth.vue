@@ -1,7 +1,7 @@
 <template>
   <div
     class="auth-layout"
-    style="display:flex;align-items:center;justify-content:center;min-height:100vh"
+    style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px"
   >
     <div class="auth-layout__bg-grid" aria-hidden="true" />
     <div class="auth-layout__bg-glow auth-layout__bg-glow--1" aria-hidden="true" />
