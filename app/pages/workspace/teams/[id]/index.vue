@@ -756,6 +756,106 @@ v-for="perm in ([
         </div>
       </div>
     </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showRoleModal && roleTarget" class="delete-overlay" @click.self="showRoleModal = false">
+        <div class="delete-modal">
+          <div class="delete-modal__icon">
+            <div class="delete-modal__icon-ring" :class="{ 'delete-modal__icon-ring--accent': roleAction === 'promote' }">
+              <Icon :name="roleAction === 'promote' ? 'lucide:shield' : 'lucide:shield-off'" size="26" />
+            </div>
+          </div>
+          <h2 class="delete-modal__title">
+            {{ roleAction === 'promote' ? '提升为管理员' : '撤销管理员' }}
+          </h2>
+          <p class="delete-modal__desc">
+            <template v-if="roleAction === 'promote'">
+              确认将 <strong>{{ roleTarget.displayName }}</strong> 提升为管理员？管理员可管理普通成员与脚本。
+            </template>
+            <template v-else>
+              确认撤销 <strong>{{ roleTarget.displayName }}</strong> 的管理员权限？
+            </template>
+          </p>
+          <div class="delete-modal__input-group">
+            <label class="delete-modal__label">
+              请输入团队名称 <strong>{{ team?.name }}</strong> 以确认
+            </label>
+            <input
+              v-model="roleConfirmText"
+              type="text"
+              class="delete-modal__input"
+              :placeholder="team?.name"
+              @keyup.enter="confirmSetRole"
+            >
+          </div>
+          <div class="delete-modal__actions">
+            <button
+              type="button"
+              class="delete-modal__cancel"
+              @click="showRoleModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="delete-modal__confirm"
+              :class="{ 'delete-modal__confirm--accent': roleAction === 'promote' }"
+              :disabled="roleConfirmText !== team?.name"
+              @click="confirmSetRole"
+            >
+              <Icon :name="roleAction === 'promote' ? 'lucide:shield' : 'lucide:shield-off'" size="14" />
+              {{ roleAction === 'promote' ? '确认提升' : '确认撤销' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showKickModal && kickTarget" class="delete-overlay" @click.self="showKickModal = false">
+        <div class="delete-modal">
+          <div class="delete-modal__icon">
+            <div class="delete-modal__icon-ring">
+              <Icon name="lucide:user-x" size="26" />
+            </div>
+          </div>
+          <h2 class="delete-modal__title">移出成员</h2>
+          <p class="delete-modal__desc">
+            确认将 <strong>{{ kickTarget.displayName }}</strong> 移出团队？
+          </p>
+          <div class="delete-modal__input-group">
+            <label class="delete-modal__label">
+              请输入团队名称 <strong>{{ team?.name }}</strong> 以确认
+            </label>
+            <input
+              v-model="kickConfirmText"
+              type="text"
+              class="delete-modal__input"
+              :placeholder="team?.name"
+              @keyup.enter="confirmKick"
+            >
+          </div>
+          <div class="delete-modal__actions">
+            <button
+              type="button"
+              class="delete-modal__cancel"
+              @click="showKickModal = false"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              class="delete-modal__confirm"
+              :disabled="kickConfirmText !== team?.name"
+              @click="confirmKick"
+            >
+              <Icon name="lucide:user-x" size="14" />
+              确认移出
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1654,6 +1754,11 @@ v-for="perm in ([
   color: var(--danger);
 }
 
+.delete-modal__icon-ring--accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .delete-modal__title {
   margin: 0 0 8px;
   font-family: var(--font-display);
@@ -1763,6 +1868,12 @@ v-for="perm in ([
 .delete-modal__confirm:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.delete-modal__confirm--accent {
+  border-color: var(--accent-border);
+  background: var(--gradient-orange);
+  color: var(--btn-primary-text);
 }
 
 /* Transition */
