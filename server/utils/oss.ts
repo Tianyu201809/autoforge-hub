@@ -48,10 +48,12 @@ export async function ossDelete(objectKey: string): Promise<void> {
 
 export function ossGetUrl(objectKey: string): string {
   const config = getOssConfig()
+  // Encode each path segment to handle non-ASCII characters (e.g. Chinese filenames)
+  const encodedKey = objectKey.split("/").map(encodeURIComponent).join("/")
   if (config.endpoint) {
-    return `https://${config.bucket}.${config.endpoint}/${objectKey}`
+    return `https://${config.bucket}.${config.endpoint}/${encodedKey}`
   }
-  return `https://${config.bucket}.${config.region}.aliyuncs.com/${objectKey}`
+  return `https://${config.bucket}.${config.region}.aliyuncs.com/${encodedKey}`
 }
 
 export async function ossRead(objectKey: string): Promise<Buffer | null> {

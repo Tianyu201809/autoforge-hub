@@ -25,7 +25,10 @@ export function initStorage() {
 }
 
 export async function saveFile(filename: string, buffer: Uint8Array, folder?: string): Promise<string> {
-  const unique = `${Date.now()}-${Math.random().toString(36).slice(2)}-${filename}`
+  // Sanitize filename to ASCII-safe chars only (replace non-ASCII, spaces, special chars)
+  const safeBase = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const ext = filename.includes(".") ? filename.split(".").pop() || "bin" : "bin"
+  const unique = `${safeBase}.${ext.replace(/[^a-zA-Z0-9]/g, "")}`
   const key = folder ? `${folder}/${unique}` : unique
   if (isOssConfigured()) {
     await ossUpload(key, Buffer.from(buffer))
