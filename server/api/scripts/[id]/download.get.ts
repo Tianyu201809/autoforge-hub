@@ -6,6 +6,17 @@ import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
 import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
 
 export default defineEventHandler(async (event) => {
+  try {
+    return await handleDownload(event)
+  } catch (err: any) {
+    console.error('[download-server]', err)
+    // Re-throw known H3 errors as-is
+    if (err.statusCode) throw err
+    throw createError({ statusCode: 500, message: err.message || '下载失败' })
+  }
+})
+
+async function handleDownload(event: any) {
   const auth = event.context.auth
   if (!auth) throw createError({ statusCode: 401, message: "未登录" })
 
@@ -98,4 +109,5 @@ export default defineEventHandler(async (event) => {
   setHeader(event, "Cache-Control", "public, max-age=31536000")
   setHeader(event, "X-Remaining-Downloads", String(remaining))
   return new Uint8Array(data)
-})
+}
+
