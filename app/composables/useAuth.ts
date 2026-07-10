@@ -1,6 +1,7 @@
 ﻿import type { AuthSession, User } from '~/types/auth'
 
 const AUTH_KEY = 'autoforge-auth'
+const AUTH_HINT_COOKIE = 'autoforge-auth'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
@@ -13,6 +14,17 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   return data
 }
 
+/** Lightweight cookie so SSR can avoid rendering protected layouts for guests. */
+function writeAuthHintCookie(expiresAt: number | null) {
+  if (!import.meta.client) return
+  if (expiresAt && expiresAt > Date.now()) {
+    const maxAge = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+    document.cookie = `${AUTH_HINT_COOKIE}=1; Path=/; Max-Age=${maxAge}; SameSite=Lax`
+  } else {
+    document.cookie = `${AUTH_HINT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`
+  }
+}
+
 function readSession(): AuthSession | null {
   if (!import.meta.client) return null
   try {
@@ -22,6 +34,7 @@ function readSession(): AuthSession | null {
     if (session.expiresAt < Date.now()) {
       localStorage.removeItem(AUTH_KEY)
       localStorage.removeItem('autoforge-token')
+      writeAuthHintCookie(null)
       return null
     }
     return session
@@ -33,9 +46,11 @@ function writeSession(session: AuthSession | null) {
   if (session) {
     localStorage.setItem(AUTH_KEY, JSON.stringify(session))
     localStorage.setItem('autoforge-token', session.token)
+    writeAuthHintCookie(session.expiresAt)
   } else {
     localStorage.removeItem(AUTH_KEY)
     localStorage.removeItem('autoforge-token')
+    writeAuthHintCookie(null)
   }
 }
 
@@ -44,6 +59,7 @@ function toUser(data: any): User {
     id: data.id,
     email: data.email,
     displayName: data.displayName || data.email?.split('@')[0] || 'User',
+    avatarUrl: data.avatarUrl || data.avatar_url || '',
     teamCount: data.teamCount ?? 0,
     joinedTeamIds: data.joinedTeamIds ?? []
   }
@@ -59,6 +75,7 @@ export function useAuth() {
   function loadSession() {
     if (!import.meta.client) return
     session.value = readSession()
+    writeAuthHintCookie(session.value?.expiresAt ?? null)
     hydrated.value = true
   }
 
@@ -108,10 +125,20 @@ export function useAuth() {
     writeSession(null)
   }
 
+  function updateUser(partial: Partial<User>) {
+    if (!session.value) return
+    const next: AuthSession = {
+      ...session.value,
+      user: { ...session.value.user, ...partial },
+    }
+    session.value = next
+    writeSession(next)
+  }
+
   function getUserInitials(u: User): string {
     const name = u.displayName || u.email
     return name.slice(0, 2).toUpperCase()
   }
 
-  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, getUserInitials }
+  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, updateUser, getUserInitials }
 }

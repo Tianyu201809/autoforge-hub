@@ -49,6 +49,7 @@ watch(activeTab, () => {
 })
 
 onMounted(() => {
+  window.scrollTo(0, 0)
   const registered = route.query.registered as string | undefined
   if (registered) {
     email.value = registered
@@ -60,7 +61,7 @@ onMounted(() => {
 
 function focusFirstField() {
   const input = document.querySelector<HTMLInputElement>('.auth-form .auth-field__input')
-  input?.focus()
+  input?.focus({ preventScroll: true })
 }
 
 // ── Captcha ──────────────────────────────────────────────

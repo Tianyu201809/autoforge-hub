@@ -3,11 +3,20 @@
     class="auth-layout"
     style="display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px"
   >
-    <div class="auth-layout__bg-grid" aria-hidden="true" />
-    <div class="auth-layout__bg-glow auth-layout__bg-glow--1" aria-hidden="true" />
-    <div class="auth-layout__bg-glow auth-layout__bg-glow--2" aria-hidden="true" />
-    <div class="auth-layout__bg-glow auth-layout__bg-glow--3" aria-hidden="true" />
-    <div class="auth-layout__theme">
+    <div
+      class="auth-layout__decor"
+      style="position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0"
+      aria-hidden="true"
+    >
+      <div class="auth-layout__bg-grid" />
+      <div class="auth-layout__bg-glow auth-layout__bg-glow--1" />
+      <div class="auth-layout__bg-glow auth-layout__bg-glow--2" />
+      <div class="auth-layout__bg-glow auth-layout__bg-glow--3" />
+    </div>
+    <div
+      class="auth-layout__theme"
+      style="position:fixed;top:16px;right:16px;z-index:10"
+    >
       <HubThemeToggle />
     </div>
     <slot />
@@ -26,23 +35,29 @@
   overflow-y: auto;
 }
 
-.auth-layout__bg-grid {
+.auth-layout__decor {
   position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.auth-layout__bg-grid {
+  position: absolute;
   inset: 0;
   background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);
   background-size: 64px 64px;
   opacity: 0.3;
-  z-index: 0;
   animation: gridDrift 20s linear infinite;
 }
 
 .auth-layout__bg-glow {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   border-radius: 50%;
-  z-index: 0;
   filter: blur(80px);
 }
 
