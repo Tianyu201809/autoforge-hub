@@ -20,6 +20,10 @@ const filterLanguage = ref('')
 const showUpload = ref(false)
 const showEdit = ref(false)
 const editingScript = ref<any>(null)
+const showShare = ref(false)
+const shareScript = ref<any>(null)
+const actionMsg = ref('')
+const actionError = ref('')
 
 // ─── Pagination ───
 const PAGE_SIZE = 5
@@ -56,6 +60,23 @@ const personalScripts = computed(() => {
 function handleEdit(script: any) {
   editingScript.value = script
   showEdit.value = true
+}
+
+function handleShare(script: any) {
+  shareScript.value = script
+  showShare.value = true
+}
+
+function onShared(_teamId: string) {
+  showShare.value = false
+  shareScript.value = null
+  actionMsg.value = '已成功分享到团队！'
+  setTimeout(() => { actionMsg.value = '' }, 3000)
+}
+
+function onShareCancel() {
+  showShare.value = false
+  shareScript.value = null
 }
 
 async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[]; icon: string; category: string; language: string }) {
@@ -169,8 +190,10 @@ async function handleUpload(payload: { title: string; description: string; zipNa
           :deletable="true"
           :editable="true"
           :downloadable="true"
+          :shareable="true"
           @edit="handleEdit"
           @delete="handleDelete"
+          @share="handleShare"
         />
       </div>
 
@@ -184,6 +207,16 @@ async function handleUpload(payload: { title: string; description: string; zipNa
           <Icon name="lucide:upload" size="16" />
           上传第一个脚本
         </button>
+      </div>
+
+      <!-- Feedback message -->
+      <div v-if="actionMsg" class="ws-alert ws-alert--success" role="status">
+        <Icon name="lucide:check-circle" size="14" />
+        {{ actionMsg }}
+      </div>
+      <div v-if="actionError" class="ws-alert ws-alert--error" role="alert">
+        <Icon name="lucide:alert-circle" size="14" />
+        {{ actionError }}
       </div>
 
       <WorkspaceWsPagination
@@ -209,6 +242,14 @@ async function handleUpload(payload: { title: string; description: string; zipNa
         @saved="handleEditSave"
       />
     </Teleport>
+
+    <WorkspaceShareToTeamModal
+      v-if="showShare && shareScript"
+      :script-id="shareScript.id"
+      :script-title="shareScript.title"
+      @shared="onShared"
+      @cancel="onShareCancel"
+    />
   </div>
 </template>
 
@@ -412,6 +453,29 @@ async function handleUpload(payload: { title: string; description: string; zipNa
 
 .ws-empty__btn:hover {
   transform: translateY(-1px);
+}
+
+/* Alerts */
+.ws-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  margin-bottom: 16px;
+}
+
+.ws-alert--success {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+.ws-alert--error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
 }
 
 @media (max-width: 640px) {

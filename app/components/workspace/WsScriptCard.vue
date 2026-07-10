@@ -7,12 +7,14 @@ const props = defineProps<{
   editable?: boolean
   downloadable?: boolean
   copyable?: boolean
+  shareable?: boolean
 }>()
 
 const emit = defineEmits<{
   delete: [id: string]
   edit: [script: Script]
   copy: [script: Script]
+  share: [script: Script]
 }>()
 
 const showDeleteModal = ref(false)
@@ -121,7 +123,16 @@ function cancelCaptcha() {
     <div class="script-card__body">
       <div class="script-card__title-row">
         <h3 class="script-card__title">{{ script.title }}</h3>
-        <div v-if="deletable || editable || copyable" class="script-card__actions">
+        <div v-if="deletable || editable || copyable || shareable" class="script-card__actions">
+          <button
+            v-if="shareable"
+            type="button"
+            class="script-card__share"
+            title="分享到团队"
+            @click="emit('share', script)"
+          >
+            <Icon name="lucide:share-2" size="15" />
+          </button>
           <button
             v-if="copyable"
             type="button"
@@ -359,6 +370,26 @@ function cancelCaptcha() {
 .script-card__copy:hover {
   background: var(--secondary-soft);
   color: var(--secondary);
+}
+
+.script-card__share {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.script-card__share:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .script-card__delete {
