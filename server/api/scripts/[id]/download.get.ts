@@ -2,6 +2,8 @@ import { getDb } from "../../../db/index"
 import { getFilePath } from "../../../utils/storage"
 import { readFileSync, existsSync } from "fs"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
+import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
+import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -48,6 +50,41 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // ── Captcha verification ──
+  const query = getQuery(event)
+  const captchaToken = query.captchaToken as string | undefined
+  const captchaPosition = query.captchaPosition as string | undefined
+
+  if (!captchaToken || captchaPosition === undefined) {
+    throw createError({ statusCode: 400, message: "请完成安全验证" })
+  }
+
+  const captchaResult = verifyCaptchaToken(captchaToken, Number(captchaPosition))
+  if (!captchaResult.ok) {
+    const messages: Record<string, string> = {
+      invalid_or_expired: "验证已失效，请重新验证",
+      expired: "验证已过期，请重新验证",
+      position_mismatch: "验证失败，请重试",
+    }
+    throw createError({
+      statusCode: 400,
+      message: messages[captchaResult.reason ?? ""] ?? "安全验证失败",
+    })
+  }
+
+  // ── Download quota check ──
+  const quota = await checkDownloadQuota(userId)
+  if (!quota.ok) {
+    throw createError({
+      statusCode: 429,
+      message: `今日下载次数已达上限（${quota.used}/${quota.limit}）`,
+      data: { used: quota.used, limit: quota.limit },
+    })
+  }
+
+  // ── Record download & serve file ──
+  const remaining = await incrementDownloadQuota(userId, scriptId)
+
   const filePath = getFilePath(row.file_path)
   if (filePath.startsWith("http")) {
     return sendRedirect(event, filePath, 302)
@@ -59,5 +96,6 @@ export default defineEventHandler(async (event) => {
   setHeader(event, "Content-Type", "application/zip")
   setHeader(event, "Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
   setHeader(event, "Cache-Control", "public, max-age=31536000")
+  setHeader(event, "X-Remaining-Downloads", String(remaining))
   return new Uint8Array(data)
 })

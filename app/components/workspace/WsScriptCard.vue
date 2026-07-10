@@ -18,6 +18,8 @@ const emit = defineEmits<{
 const showDeleteModal = ref(false)
 const deleteConfirmText = ref('')
 const downloading = ref(false)
+const showCaptchaModal = ref(false)
+const quotaError = ref('')
 
 const deleteInputMatch = computed(() => deleteConfirmText.value === props.script.title)
 
@@ -46,19 +48,39 @@ function confirmDelete() {
   showDeleteModal.value = false
 }
 
-async function handleDownload() {
+function handleDownload() {
   if (downloading.value) return
+  // Reset previous errors
+  quotaError.value = ''
+  // Open captcha modal
+  showCaptchaModal.value = true
+}
+
+async function onCaptchaVerified(captchaToken: string, captchaPosition: number) {
+  showCaptchaModal.value = false
   downloading.value = true
+  quotaError.value = ''
   try {
     const token = localStorage.getItem('autoforge-token')
-    const res = await fetch(`/api/scripts/${props.script.id}/download`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
+    const res = await fetch(
+      `/api/scripts/${props.script.id}/download?captchaToken=${encodeURIComponent(captchaToken)}&captchaPosition=${captchaPosition}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    )
+
+    if (res.status === 429) {
+      const data = await res.json().catch(() => ({}))
+      quotaError.value = data.message || '今日下载次数已达上限'
+      return
+    }
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({ message: '下载失败' }))
       console.error('[download]', err.message)
       return
     }
+
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -73,6 +95,10 @@ async function handleDownload() {
   } finally {
     downloading.value = false
   }
+}
+
+function cancelCaptcha() {
+  showCaptchaModal.value = false
 }
 </script>
 
@@ -144,9 +170,10 @@ async function handleDownload() {
           title="下载脚本"
           @click="handleDownload"
         >
-          <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__download--spin': downloading }" />
+              <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__spin': downloading }" />
           {{ downloading ? '下载中...' : '下载' }}
         </button>
+        <p v-if="quotaError" class="script-card__quota-error">{{ quotaError }}</p>
       </div>
 
       <div v-if="script.tags.length" class="script-card__tags">
@@ -210,6 +237,14 @@ async function handleDownload() {
       </div>
     </Transition>
   </Teleport>
+
+  <!-- ═══ Captcha Modal (self-teleported) ═══ -->
+  <WorkspaceDownloadCaptchaModal
+    v-if="showCaptchaModal"
+    :script-id="script.id"
+    @verified="onCaptchaVerified"
+    @cancel="cancelCaptcha"
+  />
 </template>
 
 <style scoped>
@@ -569,8 +604,15 @@ async function handleDownload() {
   cursor: not-allowed;
 }
 
-.script-card__download--spin {
+.script-card__spin {
   animation: spin 0.8s linear infinite;
+}
+
+.script-card__quota-error {
+  margin: 0 0 0 8px;
+  font-size: var(--text-xs);
+  color: var(--danger);
+  white-space: nowrap;
 }
 
 .script-card__meta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }

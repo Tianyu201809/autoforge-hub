@@ -113,6 +113,17 @@ export async function getDb(): Promise<SqlJsDbType> {
   `)
   saveDb()
 
+  // download_logs table
+  _sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS download_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      script_id TEXT NOT NULL,
+      downloaded_at TEXT NOT NULL
+    )
+  `)
+  saveDb()
+
   return _sqlDb
 }
 
