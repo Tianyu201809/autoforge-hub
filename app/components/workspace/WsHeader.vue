@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import type { User } from '~/types/auth'
-
-const { user, logout } = useAuth()
+const { user, logout, getUserInitials, getAvatarSrc } = useAuth()
 const { teams, loadTeams } = useTeams()
 
 const showMenu = ref(false)
@@ -10,6 +8,7 @@ const subMenuLeft = ref(false)
 const subTriggerRef = ref<HTMLElement>()
 
 const userTeams = computed(() => teams.value)
+const avatarSrc = computed(() => getAvatarSrc(user.value?.avatarUrl))
 
 function onSubEnter() {
   nextTick(() => {
@@ -30,11 +29,6 @@ function handleLogout() {
   showMenu.value = false
   logout()
   navigateTo('/login')
-}
-
-function getUserInitials(u: User): string {
-  const name = u.displayName || u.email
-  return name.slice(0, 2).toUpperCase()
 }
 
 onMounted(() => {
@@ -82,7 +76,8 @@ onMounted(() => {
             :aria-label="user.displayName"
             @click="toggleMenu"
           >
-            <span class="ws-user-btn__avatar">{{ getUserInitials(user) }}</span>
+            <img v-if="avatarSrc" :src="avatarSrc" alt="" class="ws-user-btn__avatar ws-user-btn__avatar--img">
+            <span v-else class="ws-user-btn__avatar">{{ getUserInitials(user) }}</span>
             <div class="ws-user-btn__info">
               <span class="ws-user-btn__name">{{ user.displayName }}</span>
               <span class="ws-user-btn__email">{{ user.email }}</span>
@@ -93,7 +88,8 @@ onMounted(() => {
           <Transition name="menu">
             <div v-if="showMenu" class="ws-user-dropdown">
               <div class="ws-user-dropdown__head">
-                <span class="ws-user-dropdown__avatar">{{ getUserInitials(user) }}</span>
+                <img v-if="avatarSrc" :src="avatarSrc" alt="" class="ws-user-dropdown__avatar ws-user-dropdown__avatar--img">
+                <span v-else class="ws-user-dropdown__avatar">{{ getUserInitials(user) }}</span>
                 <div>
                   <p class="ws-user-dropdown__name">{{ user.displayName }}</p>
                   <p class="ws-user-dropdown__email">{{ user.email }}</p>
@@ -316,6 +312,11 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.ws-user-btn__avatar--img {
+  object-fit: cover;
+  background: var(--bg-muted);
+}
+
 .ws-user-btn__info {
   display: flex;
   flex-direction: column;
@@ -387,6 +388,11 @@ onMounted(() => {
   font-weight: 700;
   color: var(--btn-primary-text);
   flex-shrink: 0;
+}
+
+.ws-user-dropdown__avatar--img {
+  object-fit: cover;
+  background: var(--bg-muted);
 }
 
 .ws-user-dropdown__name {

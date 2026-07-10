@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const currentUserRole = getTeamRole(row.owner_id, settings.adminIds, userId)
 
   // Get member details
-  const users = db.exec("SELECT id, email, display_name FROM users")[0]
+  const users = db.exec("SELECT id, email, display_name, avatar_url FROM users")[0]
   const members = users ? users.values
     .filter((r: any[]) => memberIds.includes(r[users.columns.indexOf("id")] as string))
     .map((r: any[]) => {
@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
         id,
         email: r[users.columns.indexOf("email")],
         displayName: r[users.columns.indexOf("display_name")],
+        avatarUrl: (r[users.columns.indexOf("avatar_url")] as string) || "",
         role: getTeamRole(row.owner_id, settings.adminIds, id),
       }
     }) : []

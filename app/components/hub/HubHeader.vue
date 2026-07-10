@@ -3,7 +3,9 @@ const emit = defineEmits<{
   openSearch: []
 }>()
 
-const { user, isAuthenticated, getUserInitials } = useAuth()
+const { user, isAuthenticated, getUserInitials, getAvatarSrc } = useAuth()
+
+const avatarSrc = computed(() => getAvatarSrc(user.value?.avatarUrl))
 
 const navLinks = [
   { label: 'Hub', href: '/', active: true },
@@ -66,7 +68,8 @@ const navLinks = [
             <span>工作区</span>
           </NuxtLink>
           <NuxtLink to="/workspace" class="btn-user-avatar" :title="user.displayName">
-            <span class="btn-user-avatar__text">{{ getUserInitials(user) }}</span>
+            <img v-if="avatarSrc" :src="avatarSrc" alt="" class="btn-user-avatar__img">
+            <span v-else class="btn-user-avatar__text">{{ getUserInitials(user) }}</span>
           </NuxtLink>
         </template>
         <template v-else>
@@ -275,10 +278,17 @@ const navLinks = [
   background: var(--gradient-orange);
   cursor: pointer;
   transition: transform 0.15s;
+  overflow: hidden;
 }
 
 .btn-user-avatar:hover {
   transform: scale(1.05);
+}
+
+.btn-user-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .btn-user-avatar__text {

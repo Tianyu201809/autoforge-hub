@@ -140,5 +140,13 @@ export function useAuth() {
     return name.slice(0, 2).toUpperCase()
   }
 
-  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, updateUser, getUserInitials }
+  /** Resolve stored avatar key (e.g. avatars/xxx.webp) to a serveable URL. */
+  function getAvatarSrc(url?: string | null): string {
+    if (!url) return ''
+    const name = url.replace(/^avatars\//, '')
+    if (!name) return ''
+    return '/api/files/avatars/' + encodeURIComponent(name)
+  }
+
+  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, updateUser, getUserInitials, getAvatarSrc }
 }

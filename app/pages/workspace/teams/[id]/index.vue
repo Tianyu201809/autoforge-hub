@@ -9,7 +9,7 @@ definePageMeta({
 const route = useRoute()
 const teamId = computed(() => route.params.id as string)
 
-const { user } = useAuth()
+const { user, getAvatarSrc } = useAuth()
 const {
   getTeamById,
   getStoredTeamById,
@@ -570,7 +570,13 @@ function canSetRole(member: any): boolean {
               class="ws-member"
             >
               <div class="ws-member__avatar">
-                <span class="ws-member__avatar-text">{{ (member.displayName || member.email).slice(0, 2).toUpperCase() }}</span>
+                <img
+                  v-if="member.avatarUrl"
+                  :src="getAvatarSrc(member.avatarUrl)"
+                  alt=""
+                  class="ws-member__avatar-img"
+                >
+                <span v-else class="ws-member__avatar-text">{{ (member.displayName || member.email).slice(0, 2).toUpperCase() }}</span>
               </div>
               <div class="ws-member__info">
                 <span class="ws-member__name">
@@ -1403,6 +1409,13 @@ v-for="perm in ([
   border-radius: 50%;
   background: var(--secondary-soft);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.ws-member__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .ws-member__avatar-text {

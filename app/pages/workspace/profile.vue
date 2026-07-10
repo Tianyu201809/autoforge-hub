@@ -3,19 +3,14 @@ definePageMeta({ layout: 'default' })
 
 useHead({ title: '编辑资料 - Autoforge Hub' })
 
-const { user, updateUser } = useAuth()
+const { user, updateUser, getAvatarSrc } = useAuth()
 const displayName = ref(user.value?.displayName || '')
 const avatarUrl = ref(user.value?.avatarUrl || '')
 const saving = ref(false)
 const message = ref('')
 const errorMsg = ref('')
 
-// saveFile returns "avatars/<name>"; serve URL is /api/files/avatars/<name>
-const avatarSrc = computed(() => {
-  if (!avatarUrl.value) return ''
-  const name = avatarUrl.value.replace(/^avatars\//, '')
-  return '/api/files/avatars/' + encodeURIComponent(name)
-})
+const avatarSrc = computed(() => getAvatarSrc(avatarUrl.value))
 
 // ─── Crop modal state ───
 const cropFile = ref<File | null>(null)
