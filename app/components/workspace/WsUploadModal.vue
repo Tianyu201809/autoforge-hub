@@ -149,7 +149,7 @@ function formatSize(bytes: number): string {
       <form class="upload-form" @submit.prevent="onSubmit">
         <div class="upload-form__field">
           <label class="upload-form__label">脚本名称 *</label>
-          <input v-model="title" type="text" class="upload-form__input" placeholder="例如：数据清洗脚本" :disabled="uploading">
+          <input v-model="title" type="text" class="upload-form__input" placeholder="例如：数据清洗脚本" maxlength="30" :disabled="uploading">
         </div>
 
         <div class="upload-form__field">

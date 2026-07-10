@@ -42,7 +42,7 @@ function onSubmit() {
       <form class="modal-form" @submit.prevent="onSubmit">
         <div class="modal-form__field">
           <label class="modal-form__label">脚本名称 *</label>
-          <input v-model="title" type="text" class="modal-form__input" placeholder="输入脚本名称" maxlength="50" :disabled="saving">
+          <input v-model="title" type="text" class="modal-form__input" placeholder="输入脚本名称" maxlength="30" :disabled="saving">
         </div>
         <div class="modal-form__field">
           <label class="modal-form__label">描述</label>
