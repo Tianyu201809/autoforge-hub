@@ -13,6 +13,19 @@ const emit = defineEmits<{
 // ─── Image loading ───
 const objectUrl = URL.createObjectURL(props.file)
 const imgElement = new Image()
+
+const imgLoaded = ref(false)
+
+// Image natural dimensions (set after load)
+const imgNatural = ref({ w: 0, h: 0 })
+
+// MUST set onload before src to avoid race condition with cached images
+imgElement.onload = () => {
+  imgNatural.value = { w: imgElement.naturalWidth, h: imgElement.naturalHeight }
+  imgLoaded.value = true
+  // Auto-center
+  resetPan()
+}
 imgElement.src = objectUrl
 
 // ─── Crop state ───
@@ -29,17 +42,6 @@ const panStart = ref({ x: 0, y: 0 })
 
 const containerRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
-
-// Image natural dimensions (set after load)
-const imgNatural = ref({ w: 0, h: 0 })
-
-let imgLoaded = false
-imgElement.onload = () => {
-  imgNatural.value = { w: imgElement.naturalWidth, h: imgElement.naturalHeight }
-  imgLoaded = true
-  // Auto-center
-  resetPan()
-}
 
 function resetPan() {
   panX.value = 0
@@ -79,7 +81,7 @@ function onWheel(e: WheelEvent) {
 async function confirmCrop() {
   const container = containerRef.value
   const canvas = canvasRef.value
-  if (!container || !canvas || !imgLoaded) return
+  if (!container || !canvas || !imgLoaded.value) return
 
   const rect = container.getBoundingClientRect()
   const centerX = rect.width / 2
