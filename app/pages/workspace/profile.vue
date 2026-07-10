@@ -10,6 +10,11 @@ const saving = ref(false)
 const message = ref('')
 const errorMsg = ref('')
 
+// ─── Crop modal state ───
+const cropFile = ref<File | null>(null)
+const showCrop = ref(false)
+const fileInputKey = ref(0)
+
 async function saveProfile() {
   saving.value = true; message.value = ''; errorMsg.value = ''
   const token = localStorage.getItem('autoforge-token')
@@ -27,13 +32,23 @@ async function saveProfile() {
   saving.value = false
 }
 
-async function changeAvatar(e: Event) {
+function selectAvatarFile(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  cropFile.value = file
+  showCrop.value = true
+}
+
+async function uploadCroppedAvatar(blob: Blob) {
+  showCrop.value = false
+  cropFile.value = null
+  message.value = ''
+  errorMsg.value = ''
+
   const token = localStorage.getItem('autoforge-token')
   const formData = new FormData()
-  formData.append('file', file)
+  formData.append('file', blob, 'avatar.webp')
   try {
     const res = await fetch('/api/auth/avatar', {
       method: 'POST',
@@ -44,7 +59,17 @@ async function changeAvatar(e: Event) {
     if (!res.ok) throw new Error(data.message)
     avatarUrl.value = data.avatarUrl
     message.value = '头像已更新'
-  } catch (e: any) { errorMsg.value = e.message || '上传失败' }
+  } catch (e: any) {
+    errorMsg.value = e.message || '上传失败'
+  }
+  // Reset file input so re-selecting the same file triggers change
+  fileInputKey.value++
+}
+
+function cancelCrop() {
+  showCrop.value = false
+  cropFile.value = null
+  fileInputKey.value++
 }
 </script>
 
@@ -65,7 +90,7 @@ async function changeAvatar(e: Event) {
             <span v-else class="profile-avatar__initials">{{ user?.displayName?.slice(0, 2)?.toUpperCase() || 'U' }}</span>
             <label class="profile-avatar__change">
               <Icon name="lucide:camera" size="16" />
-              <input type="file" accept="image/png,image/jpg,image/jpeg,image/webp" hidden @change="changeAvatar" >
+              <input :key="fileInputKey" type="file" accept="image/png,image/jpg,image/jpeg,image/webp" hidden @change="selectAvatarFile" >
             </label>
           </div>
           <p class="profile-avatar__hint">点击相机图标更换头像</p>
@@ -91,6 +116,15 @@ async function changeAvatar(e: Event) {
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <WorkspaceAvatarCropModal
+        v-if="showCrop && cropFile"
+        :file="cropFile"
+        @crop="uploadCroppedAvatar"
+        @cancel="cancelCrop"
+      />
+    </Teleport>
   </div>
 </template>
 
