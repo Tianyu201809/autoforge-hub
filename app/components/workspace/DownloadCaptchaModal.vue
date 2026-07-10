@@ -22,6 +22,7 @@ async function refreshCaptcha() {
   try {
     const token = localStorage.getItem('autoforge-token')
     const res = await fetch('/api/auth/captcha/generate', {
+      method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     if (!res.ok) throw new Error('获取验证码失败')

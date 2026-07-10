@@ -69,15 +69,10 @@ async function onCaptchaVerified(captchaToken: string, captchaPosition: number) 
       }
     )
 
-    if (res.status === 429) {
-      const data = await res.json().catch(() => ({}))
-      quotaError.value = data.message || '今日下载次数已达上限'
-      return
-    }
-
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ message: '下载失败' }))
-      console.error('[download]', err.message)
+      const data = await res.json().catch(() => ({ message: '下载失败' }))
+      quotaError.value = data.message || '下载失败'
+      console.error('[download]', quotaError.value)
       return
     }
 
