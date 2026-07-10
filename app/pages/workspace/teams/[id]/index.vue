@@ -24,6 +24,8 @@ const {
   manageMember,
 } = useTeams()
 
+const { copyToClipboard } = useClipboard()
+
 const {
   getTeamScripts,
   addScript,
@@ -254,12 +256,16 @@ function confirmDeleteTeam() {
 
 const teamNameForDelete = computed(() => team.value?.name || '')
 
-function copyInviteCode() {
+async function copyInviteCode() {
   const code = getTeamInviteCode(teamId.value)
-  navigator.clipboard.writeText(code).then(() => {
+  const ok = await copyToClipboard(code)
+  if (ok) {
     actionSuccess.value = '邀请码已复制到剪贴板！'
     setTimeout(() => { actionSuccess.value = '' }, 3000)
-  })
+  } else {
+    actionError.value = '复制失败，请手动复制邀请码'
+    setTimeout(() => { actionError.value = '' }, 3000)
+  }
 }
 
 // ─── Member management ───

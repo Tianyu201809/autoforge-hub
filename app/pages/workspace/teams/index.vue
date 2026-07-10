@@ -22,6 +22,8 @@ const {
   hydrated
 } = useTeams()
 
+const { copyToClipboard } = useClipboard()
+
 const showCreate = ref(false)
 const showJoin = ref(false)
 const actionError = ref('')
@@ -90,12 +92,16 @@ async function handleDeleteTeam(teamId: string) {
   await loadTeams()
 }
 
-function copyInviteCode(teamId: string) {
+async function copyInviteCode(teamId: string) {
   const code = getTeamInviteCode(teamId)
-  navigator.clipboard.writeText(code).then(() => {
+  const ok = await copyToClipboard(code)
+  if (ok) {
     actionSuccess.value = '邀请码已复制到剪贴板！'
     setTimeout(() => { actionSuccess.value = '' }, 3000)
-  })
+  } else {
+    actionError.value = '复制失败，请手动复制邀请码'
+    setTimeout(() => { actionError.value = '' }, 3000)
+  }
 }
 </script>
 
