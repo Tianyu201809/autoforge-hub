@@ -67,6 +67,7 @@ onMounted(() => {
       </div>
 
       <div class="ws-header__right">
+        <AfDownloadLink />
         <HubThemeToggle />
         <div v-if="user" ref="menuRef" class="ws-user-menu">
           <button

@@ -13,6 +13,9 @@
       <div class="auth-layout__bg-glow auth-layout__bg-glow--2" />
       <div class="auth-layout__bg-glow auth-layout__bg-glow--3" />
     </div>
+    <div class="auth-layout__download">
+      <AfDownloadLink />
+    </div>
     <div
       class="auth-layout__theme"
       style="position:fixed;top:16px;right:16px;z-index:10"
@@ -87,6 +90,13 @@
   background: rgba(107, 76, 230, 0.06);
   animation: glowFloat 18s ease-in-out infinite alternate;
   transform: translate(-50%, -50%);
+}
+
+.auth-layout__download {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
 }
 
 .auth-layout__theme {
