@@ -3,12 +3,19 @@ definePageMeta({ layout: 'default' })
 
 useHead({ title: '编辑资料 - Autoforge Hub' })
 
-const { user } = useAuth()
+const { user, updateUser } = useAuth()
 const displayName = ref(user.value?.displayName || '')
 const avatarUrl = ref(user.value?.avatarUrl || '')
 const saving = ref(false)
 const message = ref('')
 const errorMsg = ref('')
+
+// saveFile returns "avatars/<name>"; serve URL is /api/files/avatars/<name>
+const avatarSrc = computed(() => {
+  if (!avatarUrl.value) return ''
+  const name = avatarUrl.value.replace(/^avatars\//, '')
+  return '/api/files/avatars/' + encodeURIComponent(name)
+})
 
 // ─── Crop modal state ───
 const cropFile = ref<File | null>(null)
@@ -48,7 +55,8 @@ async function uploadCroppedAvatar(blob: Blob) {
 
   const token = localStorage.getItem('autoforge-token')
   const formData = new FormData()
-  formData.append('file', blob, 'avatar.webp')
+  const ext = blob.type === 'image/png' ? 'png' : 'webp'
+  formData.append('file', blob, `avatar.${ext}`)
   try {
     const res = await fetch('/api/auth/avatar', {
       method: 'POST',
@@ -58,6 +66,7 @@ async function uploadCroppedAvatar(blob: Blob) {
     const data = await res.json()
     if (!res.ok) throw new Error(data.message)
     avatarUrl.value = data.avatarUrl
+    updateUser({ avatarUrl: data.avatarUrl })
     message.value = '头像已更新'
   } catch (e: any) {
     errorMsg.value = e.message || '上传失败'
@@ -71,6 +80,22 @@ function cancelCrop() {
   cropFile.value = null
   fileInputKey.value++
 }
+
+// Sync avatar from server (session may predate avatarUrl support)
+onMounted(async () => {
+  const token = localStorage.getItem('autoforge-token')
+  if (!token) return
+  try {
+    const res = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } })
+    if (!res.ok) return
+    const data = await res.json()
+    if (data.avatarUrl) {
+      avatarUrl.value = data.avatarUrl
+      updateUser({ avatarUrl: data.avatarUrl })
+    }
+    if (data.displayName) displayName.value = data.displayName
+  } catch { /* ignore */ }
+})
 </script>
 
 <template>
@@ -86,7 +111,7 @@ function cancelCrop() {
       <div class="profile-card">
         <div class="profile-avatar">
           <div class="profile-avatar__wrap">
-            <img v-if="avatarUrl" :src="'/api/files/avatars/' + avatarUrl" alt="" class="profile-avatar__img" >
+            <img v-if="avatarSrc" :src="avatarSrc" alt="" class="profile-avatar__img" >
             <span v-else class="profile-avatar__initials">{{ user?.displayName?.slice(0, 2)?.toUpperCase() || 'U' }}</span>
             <label class="profile-avatar__change">
               <Icon name="lucide:camera" size="16" />

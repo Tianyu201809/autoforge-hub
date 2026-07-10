@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
       id: row.id,
       email,
       displayName: row.display_name,
+      avatarUrl: row.avatar_url || "",
       teamCount: row.team_count,
       joinedTeamIds: JSON.parse(row.joined_team_ids || "[]"),
     },

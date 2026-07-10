@@ -5,14 +5,17 @@ export interface AuthenticatedEvent {
 }
 
 export default defineEventHandler(async (event) => {
-  // Skip auth for non-API routes and auth endpoints
+  // Skip auth for non-API routes and public endpoints
   const url = event.path
   if (!url.startsWith('/api/')) return
   if (
     url === '/api/auth/login' ||
     url === '/api/auth/register' ||
     url === '/api/auth/captcha/generate' ||
-    url === '/api/auth/captcha/verify'
+    url === '/api/auth/captcha/verify' ||
+    // <img> / icon requests cannot send Authorization headers
+    url.startsWith('/api/files/avatars/') ||
+    url.startsWith('/api/_nuxt_icon')
   ) return
 
   const authHeader = getHeader(event, 'authorization')

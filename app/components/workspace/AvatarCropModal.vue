@@ -30,28 +30,38 @@ imgElement.src = objectUrl
 
 // ─── Crop state ───
 const CROP_SIZE = 240          // crop circle diameter in px
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 4
 
-const zoom = ref(1.5)           // current zoom level
+const zoom = ref(1)             // CSS px per image px
 const panX = ref(0)             // horizontal pan offset (px)
 const panY = ref(0)             // vertical pan offset (px)
 const isDragging = ref(false)
 const dragStart = ref({ x: 0, y: 0 })
 const panStart = ref({ x: 0, y: 0 })
+const minZoom = ref(0.1)
+const maxZoom = ref(8)
 
 const containerRef = ref<HTMLElement | null>(null)
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+
+/** Displayed size — set width/height directly (no CSS scale) so preview matches crop math */
+const displayW = computed(() => imgNatural.value.w * zoom.value)
+const displayH = computed(() => imgNatural.value.h * zoom.value)
 
 function resetPan() {
   panX.value = 0
   panY.value = 0
   if (imgLoaded.value) {
-    // Fit the longer edge of the image into the crop circle
-    const maxDim = Math.max(imgNatural.value.w, imgNatural.value.h)
-    zoom.value = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, CROP_SIZE / maxDim))
+    const { w, h } = imgNatural.value
+    const minDim = Math.min(w, h)
+    const maxDim = Math.max(w, h)
+    // Cover: shorter edge fills the crop circle so the avatar has no empty padding
+    const cover = CROP_SIZE / minDim
+    const contain = CROP_SIZE / maxDim
+    minZoom.value = Math.max(0.05, contain * 0.5)
+    maxZoom.value = Math.max(8, cover * 4)
+    zoom.value = Math.min(maxZoom.value, Math.max(minZoom.value, cover))
   } else {
-    zoom.value = 1.5
+    zoom.value = 1
   }
 }
 
@@ -80,7 +90,7 @@ function onPointerUp(_e: PointerEvent) {
 function onWheel(e: WheelEvent) {
   e.preventDefault()
   const delta = e.deltaY > 0 ? -0.08 : 0.08
-  zoom.value = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom.value + delta))
+  zoom.value = Math.min(maxZoom.value, Math.max(minZoom.value, zoom.value + delta))
 }
 
 // ─── Confirm crop ───
@@ -92,51 +102,44 @@ async function confirmCrop() {
   const rect = container.getBoundingClientRect()
   const centerX = rect.width / 2
   const centerY = rect.height / 2
-  const halfCrop = CROP_SIZE / 2
-
-  // The visible image position in the container
   const scale = zoom.value
   const imgW = imgNatural.value.w * scale
   const imgH = imgNatural.value.h * scale
 
-  // Image top-left in container coordinates
+  // Image top-left in container coordinates (matches translate(-50% + pan) centering)
   const imgLeft = (rect.width - imgW) / 2 + panX.value
   const imgTop = (rect.height - imgH) / 2 + panY.value
 
-  // Crop circle center → which pixel in the original image?
   const cropCenterImgX = (centerX - imgLeft) / scale
   const cropCenterImgY = (centerY - imgTop) / scale
+  const srcSize = CROP_SIZE / scale
+  const srcLeft = cropCenterImgX - srcSize / 2
+  const srcTop = cropCenterImgY - srcSize / 2
 
-  // Extract the square region centered at that point
+  // Opaque square output — CSS border-radius makes it circular in the UI
   const outputSize = 256
   canvas.width = outputSize
   canvas.height = outputSize
   const ctx = canvas.getContext('2d')!
-  ctx.clearRect(0, 0, outputSize, outputSize)
-
-  // Draw the cropped circular region
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2)
-  ctx.closePath()
-  ctx.clip()
-
-  // Source rect: the visible region within the crop circle
-  const srcLeft = cropCenterImgX - halfCrop / scale
-  const srcTop = cropCenterImgY - halfCrop / scale
-  const srcSize = (CROP_SIZE / scale)
-
+  ctx.fillStyle = '#0a0a0c'
+  ctx.fillRect(0, 0, outputSize, outputSize)
   ctx.drawImage(
     imgElement,
     srcLeft, srcTop, srcSize, srcSize,
     0, 0, outputSize, outputSize,
   )
-  ctx.restore()
 
-  // Convert to blob
-  canvas.toBlob((blob) => {
-    if (blob) emit('crop', blob)
-  }, 'image/webp', 0.9)
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/webp', 0.9)
+  })
+  if (blob) {
+    emit('crop', blob)
+    return
+  }
+  const pngBlob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((b) => resolve(b), 'image/png')
+  })
+  if (pngBlob) emit('crop', pngBlob)
 }
 
 // ─── Cleanup ───
@@ -152,7 +155,7 @@ onUnmounted(() => {
         <!-- Header -->
         <div class="crop-modal__head">
           <h2 class="crop-modal__title">裁剪头像</h2>
-          <p class="crop-modal__desc">拖动图片或使用滚轮缩放，选择最佳裁剪区域</p>
+          <p class="crop-modal__desc">拖动或缩放图片，让头像填满裁剪圈</p>
         </div>
 
         <!-- Crop area -->
@@ -171,7 +174,9 @@ onUnmounted(() => {
             :src="objectUrl"
             class="crop-stage__img"
             :style="{
-              transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
+              width: displayW + 'px',
+              height: displayH + 'px',
+              transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px))`,
             }"
             draggable="false"
             alt="裁剪预览"
@@ -202,8 +207,8 @@ onUnmounted(() => {
           <input
             type="range"
             class="crop-zoom__slider"
-            :min="MIN_ZOOM"
-            :max="MAX_ZOOM"
+            :min="minZoom"
+            :max="maxZoom"
             step="0.01"
             v-model.number="zoom"
           >
