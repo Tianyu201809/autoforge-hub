@@ -46,7 +46,7 @@ function onSubmit() {
         </div>
         <div class="modal-form__field">
           <label class="modal-form__label">描述</label>
-          <textarea v-model="description" class="modal-form__textarea" placeholder="简要描述脚本的功能" rows="3" maxlength="200" :disabled="saving" />
+          <textarea v-model="description" class="modal-form__textarea" placeholder="简要描述脚本的功能" rows="3" maxlength="150" :disabled="saving" />
         </div>
         <div class="modal-form__field">
           <label class="modal-form__label">分类</label>

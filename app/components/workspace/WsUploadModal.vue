@@ -155,7 +155,7 @@ function formatSize(bytes: number): string {
         <div class="upload-form__field">
           <label class="upload-form__label">描述</label>
           <textarea
-v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3"
+v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3" maxlength="150"
             :disabled="uploading" />
         </div>
 
