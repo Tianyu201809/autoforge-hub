@@ -3,7 +3,7 @@ import type { Script } from "~/types/workspace"
 import { SCRIPT_CATEGORIES, SCRIPT_LANGUAGES } from "~/types/workspace"
 
 const props = defineProps<{ script: Script }>()
-const emit = defineEmits<{ close: []; saved: [payload: { id: string; title: string; description: string; tags: string[]; icon: string; category: string; language: string }] }>()
+const emit = defineEmits<{ close: []; saved: [payload: { id: string; title: string; description: string; tags: string[]; icon: string; iconColor?: string; category: string; language: string }] }>()
 
 const title = ref(props.script.title)
 const description = ref(props.script.description)
@@ -11,6 +11,7 @@ const tagsText = ref(props.script.tags.join(", "))
 const category = ref(props.script.category || "")
 const language = ref(props.script.language || "")
 const icon = ref(props.script.icon || "file-archive")
+const iconColor = ref<string | undefined>(props.script.iconColor)
 const error = ref("")
 const saving = ref(false)
 
@@ -26,7 +27,7 @@ function onSubmit() {
   const tags = tagsText.value.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean)
   setTimeout(() => {
     saving.value = false
-    emit("saved", { id: props.script.id, title: title.value.trim(), description: description.value.trim(), tags, icon: icon.value, category: category.value, language: language.value })
+    emit("saved", { id: props.script.id, title: title.value.trim(), description: description.value.trim(), tags, icon: icon.value, iconColor: iconColor.value, category: category.value, language: language.value })
   }, 300)
 }
 </script>
@@ -66,7 +67,7 @@ function onSubmit() {
           </select>
         </div>
         <div class="modal-form__field">
-          <WorkspaceWsIconPicker v-model="icon" />
+          <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
         </div>
         <div class="modal-form__field">
           <label class="modal-form__label">标签</label>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const modelValue = defineModel<string>({ default: 'file-archive' })
+const color = defineModel<string | undefined>('color', { default: undefined })
 
 const ICONS = [
   { id: 'file-archive', label: '归档' },
@@ -42,6 +43,18 @@ const ICONS = [
   { id: 'link', label: '链接' },
   { id: 'share-2', label: '分享' },
 ]
+
+const COLORS = [
+  '#ef4444', '#f97316', '#f59e0b', '#eab308',
+  '#84cc16', '#22c55e', '#10b981', '#14b8a6',
+  '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1',
+  '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
+  '#f43f5e', '#78716c', '#64748b', '#71717a',
+]
+
+function toggleColor(c: string) {
+  color.value = color.value === c ? undefined : c
+}
 </script>
 
 <template>
@@ -60,6 +73,31 @@ const ICONS = [
         <Icon :name="`lucide:${ic.id}`" size="16" />
       </button>
     </div>
+
+    <label class="icon-picker__label icon-picker__label--mt">图标颜色</label>
+    <div class="icon-picker__colors">
+      <button
+        type="button"
+        class="icon-picker__swatch icon-picker__swatch--none"
+        :class="{ 'icon-picker__swatch--active': !color }"
+        title="默认主题色"
+        @click="color = undefined"
+      >
+        <Icon name="lucide:sparkles" size="12" />
+      </button>
+      <button
+        v-for="c in COLORS"
+        :key="c"
+        type="button"
+        class="icon-picker__swatch"
+        :class="{ 'icon-picker__swatch--active': color === c }"
+        :style="{ background: c }"
+        :title="c"
+        @click="toggleColor(c)"
+      >
+        <Icon v-if="color === c" name="lucide:check" size="12" class="icon-picker__check" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -70,6 +108,10 @@ const ICONS = [
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text);
+}
+
+.icon-picker__label--mt {
+  margin-top: 12px;
 }
 
 .icon-picker__grid {
@@ -117,5 +159,60 @@ const ICONS = [
   background: var(--accent-soft);
   border-color: var(--accent-border);
   color: var(--accent);
+}
+
+.icon-picker__colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+}
+
+.icon-picker__swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.icon-picker__swatch:hover {
+  transform: scale(1.15);
+}
+
+.icon-picker__swatch--none {
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.icon-picker__swatch--none:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.icon-picker__swatch--active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+}
+
+.icon-picker__swatch--none.icon-picker__swatch--active {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-picker__check {
+  color: #fff;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
 }
 </style>

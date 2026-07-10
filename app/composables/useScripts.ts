@@ -51,6 +51,7 @@ export function useScripts() {
     icon: string,
     zipFile: File,
     teamId?: string,
+    iconColor?: string,
   ): Promise<Script | null> {
     try {
       const formData = new FormData()
@@ -60,6 +61,7 @@ export function useScripts() {
       formData.append("category", category)
       formData.append("language", language)
       formData.append("icon", icon)
+      if (iconColor) formData.append("iconColor", iconColor)
       if (teamId) formData.append("teamId", teamId)
       formData.append("file", zipFile)
 
@@ -126,6 +128,7 @@ function toScript(data: any): Script {
     zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
     filePath: data.filePath ?? data.file_path ?? "",
     icon: data.icon || 'file-archive',
+    iconColor: data.iconColor ?? data.icon_color ?? undefined,
     tags: (Array.isArray(data.tags) ? data.tags : []),
     createdAt: data.createdAt ?? data.created_at ?? "",
     updatedAt: data.updatedAt ?? data.updated_at ?? "",

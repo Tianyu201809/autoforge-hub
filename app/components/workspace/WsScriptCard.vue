@@ -117,7 +117,7 @@ function cancelCaptcha() {
 <template>
   <div class="script-card">
     <div class="script-card__icon">
-      <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" class="script-card__archive-icon" />
+      <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" class="script-card__archive-icon" :style="script.iconColor ? { color: script.iconColor } : undefined" />
     </div>
 
     <div class="script-card__body">

@@ -53,12 +53,13 @@ export default defineEventHandler(async (event) => {
   const category = body?.category || ""
   const language = body?.language || ""
   const icon = body?.icon || "file-archive"
+  const iconColor = body?.iconColor ?? null
 
   if (!title) throw createError({ statusCode: 400, message: "请输入脚本名称" })
 
   const now = new Date().toISOString()
-  db.run("UPDATE scripts SET title = ?, description = ?, tags = ?, icon = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
-    title, description, JSON.stringify(tags), icon, category, language, now, scriptId
+  db.run("UPDATE scripts SET title = ?, description = ?, tags = ?, icon = ?, icon_color = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
+    title, description, JSON.stringify(tags), icon, iconColor, category, language, now, scriptId
   ])
   saveDb()
 

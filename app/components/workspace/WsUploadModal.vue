@@ -13,6 +13,7 @@ const emit = defineEmits<{
     category: string
     language: string
     icon: string
+    iconColor?: string
   }]
 }>()
 
@@ -21,6 +22,7 @@ const description = ref('')
 const category = ref('')
 const language = ref('')
 const icon = ref('file-archive')
+const iconColor = ref<string | undefined>(undefined)
 const tagsText = ref('')
 const zipFile = ref<File | null>(null)
 const error = ref('')
@@ -110,6 +112,7 @@ function onSubmit() {
       category: category.value,
       language: language.value,
       icon: icon.value,
+      iconColor: iconColor.value,
       zipName: zipFile.value!.name,
       zipSize: zipFile.value!.size,
       tags,
@@ -175,7 +178,7 @@ v-model="description" class="upload-form__textarea" placeholder="简要描述脚
           </select>
         </div>
         <div class="upload-form__field">
-          <WorkspaceWsIconPicker v-model="icon" />
+          <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
         </div>
         <div class="upload-form__field">
           <input
