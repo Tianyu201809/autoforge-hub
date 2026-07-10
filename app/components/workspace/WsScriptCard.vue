@@ -20,6 +20,20 @@ const deleteConfirmText = ref('')
 const downloading = ref(false)
 const showCaptchaModal = ref(false)
 const quotaError = ref('')
+const usedToday = ref(0)
+
+async function fetchQuota() {
+  try {
+    const token = localStorage.getItem('autoforge-token')
+    const res = await fetch('/api/downloads/quota', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (res.ok) {
+      const data = await res.json()
+      usedToday.value = data.used
+    }
+  } catch { /* ignore */ }
+}
 
 const deleteInputMatch = computed(() => deleteConfirmText.value === props.script.title)
 
@@ -50,10 +64,10 @@ function confirmDelete() {
 
 function handleDownload() {
   if (downloading.value) return
-  // Reset previous errors
   quotaError.value = ''
-  // Open captcha modal
-  showCaptchaModal.value = true
+  fetchQuota().then(() => {
+    showCaptchaModal.value = true
+  })
 }
 
 async function onCaptchaVerified(captchaToken: string, captchaPosition: number) {
@@ -85,6 +99,7 @@ async function onCaptchaVerified(captchaToken: string, captchaPosition: number) 
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
+    usedToday.value++
   } catch (err) {
     console.error('[download]', err)
   } finally {
@@ -237,6 +252,7 @@ function cancelCaptcha() {
   <WorkspaceDownloadCaptchaModal
     v-if="showCaptchaModal"
     :script-id="script.id"
+    :used-today="usedToday"
     @verified="onCaptchaVerified"
     @cancel="cancelCaptcha"
   />

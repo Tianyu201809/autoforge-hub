@@ -18,27 +18,16 @@ function getTodayDateStr(): string {
 /**
  * Check if the user has remaining download quota for today.
  * Returns ok:true if quota is available, or ok:false with usage info if exceeded.
+ * Always includes used count and limit for UI display.
  */
 export async function checkDownloadQuota(
   userId: string
-): Promise<{ ok: true } | { ok: false; used: number; limit: number }> {
+): Promise<{ ok: true; used: number; limit: number } | { ok: false; used: number; limit: number }> {
   const key = `${userId}:${getTodayDateStr()}`
 
   let count = quotaCache.get(key)
   if (count === undefined) {
-    // Cache miss — query DB
-    const db = await getDb()
-    const today = getTodayDateStr()
-    const stmt = db.prepare(
-      "SELECT COUNT(*) AS cnt FROM download_logs WHERE user_id = ? AND downloaded_at >= ?"
-    )
-    stmt.bind([userId, today])
-    if (stmt.step()) {
-      count = (stmt.getAsObject() as any).cnt as number
-    } else {
-      count = 0
-    }
-    stmt.free()
+    count = await getTodayDownloadCount(userId)
     quotaCache.set(key, count)
   }
 
@@ -46,7 +35,25 @@ export async function checkDownloadQuota(
     return { ok: false, used: count, limit: DAILY_LIMIT }
   }
 
-  return { ok: true }
+  return { ok: true, used: count, limit: DAILY_LIMIT }
+}
+
+/**
+ * Get today's download count for a user (from DB, bypassing cache).
+ */
+export async function getTodayDownloadCount(userId: string): Promise<number> {
+  const db = await getDb()
+  const today = getTodayDateStr()
+  const stmt = db.prepare(
+    "SELECT COUNT(*) AS cnt FROM download_logs WHERE user_id = ? AND downloaded_at >= ?"
+  )
+  stmt.bind([userId, today])
+  let count = 0
+  if (stmt.step()) {
+    count = (stmt.getAsObject() as any).cnt as number
+  }
+  stmt.free()
+  return count
 }
 
 /**
