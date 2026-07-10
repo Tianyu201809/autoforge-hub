@@ -30,7 +30,7 @@ imgElement.src = objectUrl
 
 // ─── Crop state ───
 const CROP_SIZE = 240          // crop circle diameter in px
-const MIN_ZOOM = 1
+const MIN_ZOOM = 0.25
 const MAX_ZOOM = 4
 
 const zoom = ref(1.5)           // current zoom level
@@ -46,7 +46,13 @@ const canvasRef = ref<HTMLCanvasElement | null>(null)
 function resetPan() {
   panX.value = 0
   panY.value = 0
-  zoom.value = 1.5
+  if (imgLoaded.value) {
+    // Fit the longer edge of the image into the crop circle
+    const maxDim = Math.max(imgNatural.value.w, imgNatural.value.h)
+    zoom.value = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, CROP_SIZE / maxDim))
+  } else {
+    zoom.value = 1.5
+  }
 }
 
 // ─── Mouse / Touch handlers ───
@@ -165,7 +171,7 @@ onUnmounted(() => {
             :src="objectUrl"
             class="crop-stage__img"
             :style="{
-              transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+              transform: `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoom})`,
             }"
             draggable="false"
             alt="裁剪预览"
@@ -293,14 +299,10 @@ onUnmounted(() => {
   width: auto;
   height: auto;
   max-width: none;
-  min-width: 100%;
-  min-height: 100%;
+  max-height: none;
   transform-origin: center center;
   will-change: transform;
   pointer-events: none;
-  /* Start centered: translate to negate top/left 50% */
-  margin-top: -50%;
-  margin-left: -50%;
 }
 
 .crop-stage__loading {
