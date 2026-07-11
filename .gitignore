@@ -27,3 +27,6 @@ logs
 # Runtime data (database files, uploads, etc.)
 data/*
 output/
+
+# Brainstorm visual companion sessions
+.superpowers/
