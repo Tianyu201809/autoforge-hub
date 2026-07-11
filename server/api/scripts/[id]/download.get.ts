@@ -1,7 +1,7 @@
 import { getDb } from "../../../db/index"
-import { getFilePath } from "../../../utils/storage"
+import { getFilePath, readFile } from "../../../utils/storage"
 import { readFileSync, existsSync } from "fs"
-import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
+import { parseSettings, checkMemberPermission } from "../../../utils/team-permissions"
 import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
 import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
 import { peekInstallToken, consumeInstallToken } from "../../../utils/install-token"
@@ -58,7 +58,11 @@ async function handleDownload(event: any) {
     }
 
     const remaining = await incrementDownloadQuota(userId, scriptId)
-    return serveScriptFile(event, row, remaining, "private, no-store")
+    // Proxy bytes through Hub — do not 302 to OSS (private bucket / Referer anti-leech → 403 for Autoforge)
+    return await serveScriptFile(event, row, remaining, {
+      cacheControl: "private, no-store",
+      proxy: true,
+    })
   }
 
   // ── Existing authenticated + captcha path ──
@@ -125,15 +129,30 @@ async function handleDownload(event: any) {
 
   // ── Record download & serve file ──
   const remaining = await incrementDownloadQuota(userId, scriptId)
-  return serveScriptFile(event, row, remaining)
+  return await serveScriptFile(event, row, remaining)
 }
 
-function serveScriptFile(
+async function serveScriptFile(
   event: any,
   row: any,
   remaining: number,
-  cacheControl = "public, max-age=31536000"
+  options: { cacheControl?: string; proxy?: boolean } = {}
 ) {
+  const cacheControl = options.cacheControl ?? "public, max-age=31536000"
+  const filename = row.file_name || "script.zip"
+
+  // Autoforge (and other non-browser clients) must receive the zip body from Hub.
+  // Redirecting to a raw OSS URL often yields HTTP 403 (private ACL / Referer hotlink rules).
+  if (options.proxy) {
+    const data = await readFile(row.file_path)
+    if (!data) throw createError({ statusCode: 404, message: "文件不存在" })
+    setHeader(event, "Content-Type", "application/zip")
+    setHeader(event, "Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
+    setHeader(event, "Cache-Control", cacheControl)
+    setHeader(event, "X-Remaining-Downloads", String(remaining))
+    return new Uint8Array(data)
+  }
+
   const filePath = getFilePath(row.file_path)
   if (filePath.startsWith("http")) {
     return sendRedirect(event, filePath, 302)
@@ -141,7 +160,6 @@ function serveScriptFile(
 
   if (!existsSync(filePath)) throw createError({ statusCode: 404, message: "文件不存在" })
   const data = readFileSync(filePath)
-  const filename = row.file_name || "script.zip"
   setHeader(event, "Content-Type", "application/zip")
   setHeader(event, "Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
   setHeader(event, "Cache-Control", cacheControl)
