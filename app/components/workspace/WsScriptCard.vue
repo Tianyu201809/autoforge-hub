@@ -25,9 +25,73 @@ const quotaError = ref('')
 const usedToday = ref(0)
 
 const { checkHealth, installScript } = useAutoforgeBridge()
+const { showTip } = useTip()
 const installing = ref(false)
 const installMessage = ref('')
 const installMessageIsError = ref(false)
+
+const ADD_DEBOUNCE_MS = 3000
+let lastAddClickAt = 0
+
+function onAddToLocalClick() {
+  const now = Date.now()
+  if (now - lastAddClickAt < ADD_DEBOUNCE_MS) return
+  lastAddClickAt = now
+  void handleAddToLocal()
+}
+
+async function handleAddToLocal() {
+  if (installing.value || downloading.value) return
+
+  installing.value = true
+  installMessage.value = ''
+  installMessageIsError.value = false
+  try {
+    const healthy = await checkHealth()
+    if (!healthy) {
+      installMessageIsError.value = true
+      installMessage.value = '请先启动 Autoforge 桌面端，然后再试'
+      return
+    }
+
+    const token = localStorage.getItem('autoforge-token')
+    const mintRes = await fetch(`/api/scripts/${props.script.id}/install-token`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const mintData = await mintRes.json().catch(() => ({} as any))
+    if (!mintRes.ok) {
+      installMessageIsError.value = true
+      installMessage.value = mintData.message || '添加失败，请重试'
+      return
+    }
+
+    const result = await installScript({
+      zipUrl: mintData.zipUrl,
+      scriptName: mintData.scriptName || props.script.title,
+      hubScriptId: mintData.hubScriptId || props.script.id,
+    })
+    if (result.ok) {
+      installMessageIsError.value = false
+      installMessage.value = ''
+      showTip(
+        result.name
+          ? `已添加到本地 Autoforge（${result.name}）`
+          : '已添加到本地 Autoforge',
+        'success'
+      )
+      usedToday.value++
+    } else {
+      installMessageIsError.value = true
+      installMessage.value = result.message
+    }
+  } catch {
+    installMessageIsError.value = true
+    installMessage.value = '添加失败，请重试'
+  } finally {
+    installing.value = false
+  }
+}
 
 async function fetchQuota() {
   try {
@@ -117,54 +181,6 @@ async function onCaptchaVerified(captchaToken: string, captchaPosition: number) 
 function cancelCaptcha() {
   showCaptchaModal.value = false
 }
-
-async function handleAddToLocal() {
-  if (installing.value || downloading.value) return
-  installing.value = true
-  installMessage.value = ''
-  installMessageIsError.value = false
-  try {
-    const healthy = await checkHealth()
-    if (!healthy) {
-      installMessageIsError.value = true
-      installMessage.value = '请先启动 Autoforge 桌面端，然后再试'
-      return
-    }
-
-    const token = localStorage.getItem('autoforge-token')
-    const mintRes = await fetch(`/api/scripts/${props.script.id}/install-token`, {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const mintData = await mintRes.json().catch(() => ({} as any))
-    if (!mintRes.ok) {
-      installMessageIsError.value = true
-      installMessage.value = mintData.message || '添加失败，请重试'
-      return
-    }
-
-    const result = await installScript({
-      zipUrl: mintData.zipUrl,
-      scriptName: mintData.scriptName || props.script.title,
-      hubScriptId: mintData.hubScriptId || props.script.id,
-    })
-    if (result.ok) {
-      installMessageIsError.value = false
-      installMessage.value = result.name
-        ? `已添加到本地 Autoforge（${result.name}）`
-        : '已添加到本地 Autoforge'
-      usedToday.value++
-    } else {
-      installMessageIsError.value = true
-      installMessage.value = result.message
-    }
-  } catch {
-    installMessageIsError.value = true
-    installMessage.value = '添加失败，请重试'
-  } finally {
-    installing.value = false
-  }
-}
 </script>
 
 <template>
@@ -250,12 +266,23 @@ async function handleAddToLocal() {
           <button
             type="button"
             class="script-card__add-local"
+            :class="{ 'script-card__add-local--loading': installing }"
             :disabled="installing || downloading"
+            :aria-busy="installing"
             title="添加到本地 Autoforge"
-            @click="handleAddToLocal"
+            @click="onAddToLocalClick"
           >
-            <Icon :name="installing ? 'lucide:loader-circle' : 'lucide:hard-drive-download'" size="13" :class="{ 'script-card__spin': installing }" />
-            {{ installing ? '添加中...' : '添加到本地' }}
+            <span class="script-card__add-local-shine" aria-hidden="true" />
+            <span class="script-card__add-local-inner">
+              <Icon
+                :name="installing ? 'lucide:loader-circle' : 'lucide:monitor-down'"
+                size="14"
+                :class="{ 'script-card__spin': installing }"
+              />
+              <span class="script-card__add-local-label">
+                {{ installing ? '添加中…' : '添加到本地 Autoforge' }}
+              </span>
+            </span>
           </button>
         </div>
         <p v-if="quotaError" class="script-card__quota-error">{{ quotaError }}</p>
@@ -263,6 +290,7 @@ async function handleAddToLocal() {
           v-if="installMessage"
           class="script-card__install-msg"
           :class="{ 'script-card__install-msg--error': installMessageIsError }"
+          role="status"
         >
           {{ installMessage }}
         </p>
@@ -692,6 +720,14 @@ async function handleAddToLocal() {
   max-width: 240px;
 }
 
+.script-card__meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
 .script-card__download {
   display: inline-flex;
   align-items: center;
@@ -716,42 +752,86 @@ async function handleAddToLocal() {
   cursor: not-allowed;
 }
 
-.script-card__meta-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
-  flex-wrap: wrap;
-}
-
 .script-card__add-local {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0;
-  border: none;
-  background: none;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--btn-primary-text, #fff);
   font-family: inherit;
   font-size: var(--text-xs);
-  color: var(--accent);
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 0.12s;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--accent) 50%, #000);
+  transition:
+    filter 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.12s ease;
 }
 
-.script-card__add-local:hover {
-  opacity: 0.75;
+.script-card__add-local:hover:not(:disabled) {
+  filter: brightness(1.06);
 }
 
-.script-card__add-local:disabled {
-  opacity: 0.5;
+.script-card__add-local:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.script-card__add-local:disabled:not(.script-card__add-local--loading) {
+  opacity: 0.55;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.script-card__add-local--loading {
+  cursor: wait;
+  pointer-events: none;
+}
+
+.script-card__add-local-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 25%,
+    color-mix(in srgb, #fff 28%, transparent) 45%,
+    transparent 65%
+  );
+  background-size: 220% 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.script-card__add-local--loading .script-card__add-local-shine {
+  opacity: 1;
+  animation: addLocalShine 1.1s ease-in-out infinite;
+}
+
+.script-card__add-local-inner {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.script-card__add-local-label {
+  line-height: 1.2;
 }
 
 .script-card__install-msg {
   margin: 0;
   width: 100%;
   font-size: var(--text-xs);
+  font-weight: 500;
   color: var(--accent);
 }
 
@@ -760,7 +840,7 @@ async function handleAddToLocal() {
 }
 
 .script-card__spin {
-  animation: spin 0.8s linear infinite;
+  animation: spin 0.75s linear infinite;
 }
 
 .script-card__quota-error {
@@ -806,5 +886,21 @@ async function handleAddToLocal() {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes addLocalShine {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .script-card__add-local--loading .script-card__add-local-shine {
+    animation: none;
+    opacity: 0.35;
+  }
+
+  .script-card__spin {
+    animation: none;
+  }
 }
 </style>
