@@ -143,6 +143,26 @@ export async function getDb(): Promise<SqlJsDbType> {
   `)
   saveDb()
 
+  // Migration: team custom icon
+  try { _sqlDb.run("ALTER TABLE teams ADD COLUMN icon TEXT NOT NULL DEFAULT 'users'") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE teams ADD COLUMN icon_color TEXT DEFAULT NULL") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE teams ADD COLUMN avatar_url TEXT NOT NULL DEFAULT ''") } catch (e) {}
+
+  _sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS team_messages (
+      id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL REFERENCES teams(id),
+      author_id TEXT NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `)
+  _sqlDb.run(`
+    CREATE INDEX IF NOT EXISTS idx_team_messages_team_created
+    ON team_messages(team_id, created_at DESC)
+  `)
+  saveDb()
+
   return _sqlDb
 }
 

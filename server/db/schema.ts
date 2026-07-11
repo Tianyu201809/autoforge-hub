@@ -28,3 +28,25 @@ export const passwordResetCodes = sqliteTable('password_reset_codes', {
   attempts: integer('attempts').notNull().default(0),
   createdAt: text('created_at').notNull(),
 })
+
+export const teams = sqliteTable('teams', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description').notNull().default(''),
+  ownerId: text('owner_id').notNull(),
+  memberIds: text('member_ids').notNull().default('[]'),
+  settings: text('settings').notNull().default('{}'),
+  icon: text('icon').notNull().default('users'),
+  iconColor: text('icon_color'),
+  avatarUrl: text('avatar_url').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
+
+export const teamMessages = sqliteTable('team_messages', {
+  id: text('id').primaryKey(),
+  teamId: text('team_id').notNull(),
+  authorId: text('author_id').notNull(),
+  content: text('content').notNull(),
+  createdAt: text('created_at').notNull(),
+})

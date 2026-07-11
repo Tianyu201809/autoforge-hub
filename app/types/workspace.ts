@@ -41,6 +41,21 @@ export interface Team {
   createdAt: string
   ownerId: string
   memberCount: number
+  icon?: string
+  iconColor?: string
+  avatarUrl?: string
+}
+
+export interface TeamMessage {
+  id: string
+  teamId: string
+  authorId: string
+  authorDisplayName: string
+  authorAvatarUrl: string
+  authorRole: 'owner' | 'admin' | 'member'
+  content: string
+  createdAt: string
+  canDelete: boolean
 }
 
 export interface StoredTeam {
