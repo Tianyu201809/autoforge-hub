@@ -1,4 +1,4 @@
-import { createHash, randomInt } from 'crypto'
+import { createHash, randomInt, timingSafeEqual } from 'crypto'
 import { getJwtSecret } from './jwt'
 
 export const RESET_CODE_TTL_MS = 10 * 60 * 1000
@@ -14,5 +14,9 @@ export function hashResetCode(code: string): string {
 }
 
 export function verifyResetCode(code: string, codeHash: string): boolean {
-  return hashResetCode(code) === codeHash
+  const digest = hashResetCode(code)
+  const a = Buffer.from(digest, 'hex')
+  const b = Buffer.from(codeHash, 'hex')
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
 }

@@ -13,14 +13,20 @@ export async function sendPasswordResetCode(email: string, code: string): Promis
   const text = `你的密码重置验证码是：${code}\n\n验证码 10 分钟内有效。如非本人操作，请忽略此邮件。`
   const html = `<p>你的密码重置验证码是：</p><p style="font-size:24px;font-weight:700;letter-spacing:4px">${code}</p><p>验证码 <strong>10 分钟</strong>内有效。如非本人操作，请忽略此邮件。</p>`
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from, to: [email], subject, text, html }),
-  })
+  let res: Response
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to: [email], subject, text, html }),
+    })
+  } catch (err) {
+    console.error('[email] Resend fetch failed:', err)
+    throw createError({ statusCode: 502, message: '发送失败，请稍后重试' })
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '')
