@@ -4,6 +4,7 @@ import { readFileSync, existsSync } from "fs"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
 import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
 import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
+import { consumeInstallToken } from "../../../utils/install-token"
 
 export default defineEventHandler(async (event) => {
   try {
@@ -17,9 +18,6 @@ export default defineEventHandler(async (event) => {
 })
 
 async function handleDownload(event: any) {
-  const auth = event.context.auth
-  if (!auth) throw createError({ statusCode: 401, message: "未登录" })
-
   const scriptId = getRouterParam(event, "id")
   if (!scriptId) throw createError({ statusCode: 400, message: "缺少脚本 ID" })
 
@@ -33,7 +31,35 @@ async function handleDownload(event: any) {
   const row = stmt.getAsObject() as any
   stmt.free()
 
-  const userId = auth.user.userId
+  const query = getQuery(event)
+  const installToken = query.installToken as string | undefined
+
+  let userId: string
+
+  if (installToken) {
+    const consumed = consumeInstallToken(installToken, scriptId)
+    if (!consumed) {
+      throw createError({ statusCode: 401, message: "安装链接无效或已过期" })
+    }
+    userId = consumed.userId
+
+    const quota = await checkDownloadQuota(userId)
+    if (!quota.ok) {
+      throw createError({
+        statusCode: 429,
+        message: `今日下载次数已达上限（${quota.used}/${quota.limit}）`,
+        data: { used: quota.used, limit: quota.limit },
+      })
+    }
+
+    const remaining = await incrementDownloadQuota(userId, scriptId)
+    return serveScriptFile(event, row, remaining)
+  }
+
+  // ── Existing authenticated + captcha path ──
+  const auth = event.context.auth
+  if (!auth) throw createError({ statusCode: 401, message: "未登录" })
+  userId = auth.user.userId
 
   // Check access
   if (row.team_id) {
@@ -62,7 +88,6 @@ async function handleDownload(event: any) {
   }
 
   // ── Captcha verification ──
-  const query = getQuery(event)
   const captchaToken = query.captchaToken as string | undefined
   const captchaPosition = query.captchaPosition as string | undefined
 
@@ -95,7 +120,10 @@ async function handleDownload(event: any) {
 
   // ── Record download & serve file ──
   const remaining = await incrementDownloadQuota(userId, scriptId)
+  return serveScriptFile(event, row, remaining)
+}
 
+function serveScriptFile(event: any, row: any, remaining: number) {
   const filePath = getFilePath(row.file_path)
   if (filePath.startsWith("http")) {
     return sendRedirect(event, filePath, 302)
