@@ -149,6 +149,7 @@ function scrollToTop() {
 }
 
 function onKeydown(e: KeyboardEvent) {
+  if (!props.open) return
   if (e.key === 'Escape') {
     e.preventDefault()
     close()
@@ -841,6 +842,16 @@ onBeforeUnmount(() => {
   .msg-drawer {
     width: 100vw;
     border-left: none;
+  }
+
+  .msg-item__delete {
+    opacity: 1;
+  }
+}
+
+@media (hover: none) {
+  .msg-item__delete {
+    opacity: 1;
   }
 }
 </style>

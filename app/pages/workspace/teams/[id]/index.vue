@@ -528,7 +528,7 @@ function canSetRole(member: any): boolean {
             操作日志
           </NuxtLink>
           <button
-            v-if="isMember || isOwner"
+            v-if="teamDetail"
             type="button"
             class="ws-team-btn ws-team-btn--ghost"
             @click="showMessages = true"
