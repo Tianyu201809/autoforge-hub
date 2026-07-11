@@ -14,6 +14,7 @@ export function getJwtSecret(): string {
         "Set the JWT_SECRET environment variable to a strong, unique value."
       )
       process.exit(1)
+      break
     case "staging":
       return "autoforge-hub-staging-secret-key"
     case "development":
