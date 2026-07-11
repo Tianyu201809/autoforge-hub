@@ -106,3 +106,20 @@ useHubFilters() ──► filteredItems
 1. 将 `HUB_ITEMS` 替换为 `useFetch` / `useAsyncData` 拉取的数据
 2. 保留 `useHubFilters` 逻辑，改为对 API 结果过滤，或服务端 query 参数
 3. 新增 `pages/items/[id].vue` 作为资源详情页，`HubItemCard` 链接指向该路由
+
+---
+
+## Workspace & Local Install（补充）
+
+Hub 已不止是 mock 门户：`server/` 提供 Auth / Scripts / Teams API；工作区脚本卡片支持「添加到本地 Autoforge」。
+
+| 区域 | 路径 | 说明 |
+|------|------|------|
+| 签发 token | `server/api/scripts/[id]/install-token.post.ts` | 登录 + 权限 + 配额检查后签发 |
+| 下载 / 安装取包 | `server/api/scripts/[id]/download.get.ts` | `installToken` 分支代理 zip |
+| Token 存储 | `server/utils/install-token.ts` | 内存一次性 token，TTL 120s |
+| 本机桥 | `app/composables/useAutoforgeBridge.ts` | `127.0.0.1:19276` health / install |
+| UI | `app/components/workspace/WsScriptCard.vue` | 按钮、防抖、全局 tip |
+| Tip | `app/composables/useTip.ts` + `AfGlobalTip.vue` | 全站浮层提示 |
+
+详见 [Hub Local Install API](../api/hub-local-install.md)。

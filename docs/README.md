@@ -7,10 +7,12 @@ Autoforge Hub 的前端项目文档，用于发现与浏览自动化资源（Scr
 | 文档 | 说明 |
 |------|------|
 | [Code Map](./code-map/overview.md) | 架构、目录结构与数据流 |
-| [Composables API](./api/composables.md) | `useHubFilters`、`useTheme` |
+| [Composables API](./api/composables.md) | `useHubFilters`、`useTheme`、`useAutoforgeBridge`、`useTip` 等 |
+| [Hub Local Install API](./api/hub-local-install.md) | 一键安装到本机 Autoforge（installToken + 本机桥） |
 | [Utils API](./api/utils.md) | 图标映射与标签格式化 |
 | [Types](./api/types.md) | TypeScript 类型定义 |
 | [Components](./architecture/components.md) | Hub UI 组件说明 |
+| [Deploy Railway](./deploy-railway.md) | Railway 部署说明 |
 
 ## 快速开始
 

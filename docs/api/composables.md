@@ -85,4 +85,79 @@ onMounted(() => initTheme())
 
 ## useAutoforgeBridge
 
-**Purpose:** 探测本机 Autoforge 桌面端桥（`http://127.0.0.1:19276`）并触发脚本安装。`checkHealth()` 带 ~1s 超时；`installScript({ zipUrl, scriptName?, hubScriptId? })` 调用桌面端 `POST /install`，返回 `{ ok, ... }` 并映射中文错误文案。用于 `WsScriptCard` 的「添加到本地」按钮。
+**Purpose:** 探测本机 Autoforge 桌面端 HTTP 桥，并将脚本 zip URL 交给桌面端安装。
+
+**Constants:**
+
+| 名称 | 值 |
+|------|-----|
+| Bridge base | `http://127.0.0.1:19276` |
+| Health timeout | `1000` ms |
+
+**Returns:**
+
+| 名称 | 类型 | 说明 |
+|------|------|------|
+| `checkHealth` | `() => Promise<boolean>` | `GET /health`；超时或非 `{ ok: true }` 为 `false` |
+| `installScript` | `(body) => Promise<BridgeInstallResult>` | `POST /install` |
+
+**`installScript` body:**
+
+- `zipUrl` (string, 必填): 绝对 http(s) URL（通常含 `installToken`）
+- `scriptName` (string, 可选)
+- `hubScriptId` (string, 可选)
+
+**`BridgeInstallResult`:**
+
+```ts
+| { ok: true; scriptId: string; name: string }
+| { ok: false; status?: number; error?: string; message: string }
+```
+
+失败时 `message` 优先用桌面端返回文案，否则按状态码映射（`busy` / `download_failed` / `invalid_package` 等）。
+
+**Example:**
+
+```ts
+const { checkHealth, installScript } = useAutoforgeBridge()
+
+if (!(await checkHealth())) {
+  // 请先启动 Autoforge
+  return
+}
+
+const result = await installScript({
+  zipUrl,
+  scriptName: '我的脚本',
+  hubScriptId: scriptId,
+})
+```
+
+**Notes:** 用于 `WsScriptCard`「添加到本地 Autoforge」。完整链路见 [Hub Local Install API](./hub-local-install.md)。
+
+---
+
+## useTip
+
+**Purpose:** 全站顶部浮层 tip（成功 / 错误 / 信息），由 `AfGlobalTip` 在 `app.vue` 挂载展示。
+
+**Returns:**
+
+| 名称 | 类型 | 说明 |
+|------|------|------|
+| `tip` | `Ref<TipState>` | `{ visible, message, type }`（`useState` 共享） |
+| `showTip` | `(message, type?, durationMs?) => void` | 显示 tip；默认 type `success`，时长 3200ms |
+| `hideTip` | `() => void` | 立即关闭 |
+
+**`TipType`:** `'success' \| 'error' \| 'info'`
+
+**Example:**
+
+```ts
+const { showTip } = useTip()
+
+showTip('已添加到本地 Autoforge', 'success')
+showTip('请先启动 Autoforge 桌面端，然后再试', 'info')
+```
+
+**Notes:** 隐藏定时器为模块级单例，避免多处调用 `useTip()` 时互相抢 timer。
