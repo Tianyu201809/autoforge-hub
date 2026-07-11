@@ -19,6 +19,15 @@ export default defineEventHandler(async (event) => {
     url.startsWith('/api/_nuxt_icon')
   ) return
 
+  // One-shot local-install download: Autoforge fetches zip without Bearer
+  const pathOnly = url.split('?')[0]
+  if (/^\/api\/scripts\/[^/]+\/download\/?$/.test(pathOnly)) {
+    const query = getQuery(event)
+    if (typeof query.installToken === 'string' && query.installToken.length > 0) {
+      return
+    }
+  }
+
   const authHeader = getHeader(event, 'authorization')
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw createError({ statusCode: 401, message: '未登录，请先登录' })
