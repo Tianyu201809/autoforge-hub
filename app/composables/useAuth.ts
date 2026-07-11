@@ -4,12 +4,25 @@ const AUTH_KEY = 'autoforge-auth'
 const AUTH_HINT_COOKIE = 'autoforge-auth'
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+function clearAuthStorage() {
+  if (!import.meta.client) return
+  localStorage.removeItem(AUTH_KEY)
+  localStorage.removeItem('autoforge-token')
+  writeAuthHintCookie(null)
+}
+
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const token = import.meta.client ? localStorage.getItem('autoforge-token') : null
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(url, { ...options, headers })
   const data = await res.json()
+  if (res.status === 401) {
+    clearAuthStorage()
+    if (import.meta.client && window.location.pathname !== '/login') {
+      navigateTo('/login')
+    }
+  }
   if (!res.ok) throw new Error(data.message || '请求失败')
   return data
 }
@@ -32,9 +45,7 @@ function readSession(): AuthSession | null {
     if (!raw) return null
     const session = JSON.parse(raw) as AuthSession
     if (session.expiresAt < Date.now()) {
-      localStorage.removeItem(AUTH_KEY)
-      localStorage.removeItem('autoforge-token')
-      writeAuthHintCookie(null)
+      clearAuthStorage()
       return null
     }
     return session
@@ -48,9 +59,7 @@ function writeSession(session: AuthSession | null) {
     localStorage.setItem('autoforge-token', session.token)
     writeAuthHintCookie(session.expiresAt)
   } else {
-    localStorage.removeItem(AUTH_KEY)
-    localStorage.removeItem('autoforge-token')
-    writeAuthHintCookie(null)
+    clearAuthStorage()
   }
 }
 

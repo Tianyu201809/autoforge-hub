@@ -120,6 +120,8 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | 变量名 | 值 | 说明 |
 |--------|-----|------|
 | `NITRO_PORT` | `8080` | 服务器端口（Railway 自动设置 `PORT`，通常无需修改） |
+| `RESEND_API_KEY` | `re_xxxx` | Resend API 密钥（密码重置邮件） |
+| `RESEND_FROM` | `Autoforge Hub <noreply@yourdomain.com>` | 发件人地址（需在 Resend 验证域名） |
 
 ---
 

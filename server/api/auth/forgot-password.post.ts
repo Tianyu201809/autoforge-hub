@@ -9,6 +9,7 @@ import {
 } from '../../utils/password-reset'
 
 const SUCCESS_MESSAGE = '若该邮箱已注册，将收到验证码'
+const lastForgotRequestAt = new Map<string, number>()
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -17,6 +18,13 @@ export default defineEventHandler(async (event) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw createError({ statusCode: 400, message: '邮箱格式不正确' })
   }
+
+  const nowMs = Date.now()
+  const lastAt = lastForgotRequestAt.get(email)
+  if (lastAt !== undefined && nowMs - lastAt < RESET_RESEND_COOLDOWN_MS) {
+    throw createError({ statusCode: 429, message: '请稍后再试' })
+  }
+  lastForgotRequestAt.set(email, nowMs)
 
   const db = await getDb()
   const userStmt = db.prepare('SELECT id FROM users WHERE email = ?')
@@ -27,20 +35,6 @@ export default defineEventHandler(async (event) => {
   if (!userExists) {
     return { ok: true, message: SUCCESS_MESSAGE }
   }
-
-  const latestStmt = db.prepare(
-    'SELECT created_at FROM password_reset_codes WHERE email = ? ORDER BY created_at DESC LIMIT 1'
-  )
-  latestStmt.bind([email])
-  if (latestStmt.step()) {
-    const latest = latestStmt.getAsObject() as { created_at: string }
-    const createdMs = Date.parse(latest.created_at)
-    if (!Number.isNaN(createdMs) && Date.now() - createdMs < RESET_RESEND_COOLDOWN_MS) {
-      latestStmt.free()
-      throw createError({ statusCode: 429, message: '请稍后再试' })
-    }
-  }
-  latestStmt.free()
 
   const code = generateResetCode()
   const now = new Date()

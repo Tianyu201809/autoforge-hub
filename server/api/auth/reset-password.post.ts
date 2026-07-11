@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const email = body?.email?.trim().toLowerCase()
   const code = String(body?.code ?? '').trim()
-  const newPassword = body?.newPassword
+  const newPassword = String(body?.newPassword ?? '')
 
   if (!email || !code || !newPassword) {
     throw createError({ statusCode: 400, message: '请填写邮箱、验证码和新密码' })

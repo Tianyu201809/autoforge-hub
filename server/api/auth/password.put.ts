@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
   const oldPassword = body?.oldPassword
-  const newPassword = body?.newPassword
+  const newPassword = String(body?.newPassword ?? '')
 
   if (!oldPassword || !newPassword) {
     throw createError({ statusCode: 400, message: '请填写旧密码和新密码' })
@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
     'UPDATE users SET password_hash = ?, token_version = ?, updated_at = ? WHERE id = ?',
     [passwordHash, nextTv, now, user.id]
   )
+  db.run('DELETE FROM password_reset_codes WHERE email = ?', [user.email])
   saveDb()
 
   const token = signToken({ userId: user.id, email: user.email, tv: nextTv })
