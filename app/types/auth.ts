@@ -23,3 +23,5 @@ export interface StoredUserRecord {
 }
 
 export type AuthTab = 'login' | 'register'
+
+export type AuthView = AuthTab | 'forgot-email' | 'forgot-reset'

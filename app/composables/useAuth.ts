@@ -54,6 +54,12 @@ function writeSession(session: AuthSession | null) {
   }
 }
 
+function applyAuthResponse(data: { user: any; token: string }) {
+  const expiresAt = Date.now() + SESSION_TTL_MS
+  const newSession: AuthSession = { token: data.token, user: toUser(data.user), expiresAt }
+  return newSession
+}
+
 function toUser(data: any): User {
   return {
     id: data.id,
@@ -93,8 +99,7 @@ export function useAuth() {
         method: 'POST',
         body: JSON.stringify(body)
       })
-      const expiresAt = Date.now() + SESSION_TTL_MS
-      const newSession: AuthSession = { token: data.token, user: toUser(data.user), expiresAt }
+      const newSession = applyAuthResponse(data)
       session.value = newSession
       writeSession(newSession)
       return { ok: true }
@@ -110,8 +115,7 @@ export function useAuth() {
         method: 'POST',
         body: JSON.stringify({ email, password })
       })
-      const expiresAt = Date.now() + SESSION_TTL_MS
-      const newSession: AuthSession = { token: data.token, user: toUser(data.user), expiresAt }
+      const newSession = applyAuthResponse(data)
       session.value = newSession
       writeSession(newSession)
       return { ok: true }
@@ -148,5 +152,54 @@ export function useAuth() {
     return '/api/files/avatars/' + encodeURIComponent(name)
   }
 
-  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, updateUser, getUserInitials, getAvatarSrc }
+  async function forgotPassword(email: string): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+    try {
+      const data = await apiFetch<{ ok: boolean; message: string }>('/api/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      })
+      return { ok: true, message: data.message || '若该邮箱已注册，将收到验证码' }
+    } catch (err: any) {
+      return { ok: false, error: err.message || '发送失败' }
+    }
+  }
+
+  async function resetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      const data = await apiFetch<{ ok: boolean; user: any; token: string }>('/api/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ email, code, newPassword }),
+      })
+      const newSession = applyAuthResponse(data)
+      session.value = newSession
+      writeSession(newSession)
+      return { ok: true }
+    } catch (err: any) {
+      return { ok: false, error: err.message || '重置失败' }
+    }
+  }
+
+  async function changePassword(
+    oldPassword: string,
+    newPassword: string
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+      const data = await apiFetch<{ ok: boolean; user: any; token: string }>('/api/auth/password', {
+        method: 'PUT',
+        body: JSON.stringify({ oldPassword, newPassword }),
+      })
+      const newSession = applyAuthResponse(data)
+      session.value = newSession
+      writeSession(newSession)
+      return { ok: true }
+    } catch (err: any) {
+      return { ok: false, error: err.message || '修改失败' }
+    }
+  }
+
+  return { session, user, isAuthenticated, hydrated, loadSession, register, login, logout, updateUser, getUserInitials, getAvatarSrc, forgotPassword, resetPassword, changePassword }
 }
