@@ -1,16 +1,14 @@
 ﻿import jwt from 'jsonwebtoken'
-import { isProduction, getEnv } from './env'
+import { getEnv } from './env'
 
 const ENV = getEnv()
 
-function resolveSecret(): string {
+export function getJwtSecret(): string {
   const explicit = process.env.JWT_SECRET
   if (explicit) return explicit
 
-  // Environment-specific defaults
   switch (ENV) {
     case "production":
-      // In production, JWT_SECRET MUST be explicitly set
       console.error(
         "[jwt] FATAL: JWT_SECRET is not configured in production! " +
         "Set the JWT_SECRET environment variable to a strong, unique value."
@@ -24,12 +22,13 @@ function resolveSecret(): string {
   }
 }
 
-const JWT_SECRET = resolveSecret()
+const JWT_SECRET = getJwtSecret()
 const JWT_EXPIRES_IN = '7d'
 
 export interface JwtPayload {
   userId: string
   email: string
+  tv: number
 }
 
 export function signToken(payload: JwtPayload): string {
@@ -38,7 +37,9 @@ export function signToken(payload: JwtPayload): string {
 
 export function verifyToken(token: string): JwtPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JwtPayload
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload
+    if (typeof decoded.tv !== 'number') return null
+    return decoded
   } catch {
     return null
   }
