@@ -3,12 +3,18 @@ definePageMeta({ layout: 'default' })
 
 useHead({ title: '编辑资料 - Autoforge Hub' })
 
-const { user, updateUser, getAvatarSrc } = useAuth()
+const { user, updateUser, getAvatarSrc, changePassword } = useAuth()
 const displayName = ref(user.value?.displayName || '')
 const avatarUrl = ref(user.value?.avatarUrl || '')
 const saving = ref(false)
 const message = ref('')
 const errorMsg = ref('')
+const oldPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const pwdSaving = ref(false)
+const pwdMessage = ref('')
+const pwdError = ref('')
 
 const avatarSrc = computed(() => getAvatarSrc(avatarUrl.value))
 
@@ -32,6 +38,37 @@ async function saveProfile() {
     message.value = '保存成功'
   } catch (e: any) { errorMsg.value = e.message || '保存失败' }
   saving.value = false
+}
+
+async function savePassword() {
+  pwdSaving.value = true
+  pwdMessage.value = ''
+  pwdError.value = ''
+  if (!oldPassword.value || !newPassword.value) {
+    pwdError.value = '请填写旧密码和新密码'
+    pwdSaving.value = false
+    return
+  }
+  if (newPassword.value.length < 8) {
+    pwdError.value = '密码至少需要 8 位'
+    pwdSaving.value = false
+    return
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    pwdError.value = '两次输入的新密码不一致'
+    pwdSaving.value = false
+    return
+  }
+  const result = await changePassword(oldPassword.value, newPassword.value)
+  if (!result.ok) {
+    pwdError.value = result.error
+  } else {
+    pwdMessage.value = '密码已更新'
+    oldPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+  }
+  pwdSaving.value = false
 }
 
 function selectAvatarFile(e: Event) {
@@ -135,6 +172,30 @@ onMounted(async () => {
           </button>
         </div>
       </div>
+
+      <div class="profile-card profile-card--password">
+        <h2 class="profile-card__heading">修改密码</h2>
+        <div class="profile-form">
+          <div class="profile-form__field">
+            <label class="profile-form__label">旧密码</label>
+            <input v-model="oldPassword" type="password" class="profile-form__input" autocomplete="current-password" :disabled="pwdSaving">
+          </div>
+          <div class="profile-form__field">
+            <label class="profile-form__label">新密码</label>
+            <input v-model="newPassword" type="password" class="profile-form__input" placeholder="至少 8 位" autocomplete="new-password" :disabled="pwdSaving">
+          </div>
+          <div class="profile-form__field">
+            <label class="profile-form__label">确认新密码</label>
+            <input v-model="confirmPassword" type="password" class="profile-form__input" autocomplete="new-password" :disabled="pwdSaving">
+          </div>
+          <div v-if="pwdMessage" class="profile-form__msg profile-form__msg--success">{{ pwdMessage }}</div>
+          <div v-if="pwdError" class="profile-form__msg profile-form__msg--error">{{ pwdError }}</div>
+          <button type="button" class="profile-form__submit" :disabled="pwdSaving" @click="savePassword">
+            <Icon v-if="pwdSaving" name="lucide:loader-circle" size="16" class="profile-form__spinner" />
+            {{ pwdSaving ? '更新中...' : '更新密码' }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <Teleport to="body">
@@ -156,6 +217,14 @@ onMounted(async () => {
 .profile-page__title { margin: 0 0 24px; font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
 
 .profile-card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-elevated); box-shadow: var(--shadow-card); overflow: hidden; }
+.profile-card--password { margin-top: 20px; }
+.profile-card__heading {
+  margin: 0;
+  padding: 20px 24px 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text);
+}
 .profile-avatar { display: flex; flex-direction: column; align-items: center; padding: 32px 24px 24px; border-bottom: 1px solid var(--border); }
 .profile-avatar__wrap { position: relative; width: 96px; height: 96px; }
 .profile-avatar__img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border-accent); }
