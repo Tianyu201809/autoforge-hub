@@ -33,7 +33,7 @@
 **Files:**
 - Create: `server/utils/install-token.ts`
 
-- [ ] **Step 1: Create `server/utils/install-token.ts`**
+- [x] **Step 1: Create `server/utils/install-token.ts`**
 
 ```ts
 export const INSTALL_TOKEN_TTL_MS = 120_000
@@ -90,7 +90,7 @@ export function consumeInstallToken(
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit** — `24fa180b`
 
 ```bash
 git add server/utils/install-token.ts
@@ -104,7 +104,7 @@ git commit -m "feat(scripts): add in-memory installToken store"
 **Files:**
 - Modify: `server/middleware/auth.ts`
 
-- [ ] **Step 1: Add early return for script download + installToken**
+- [x] **Step 1: Add early return for script download + installToken**
 
 Near the top of the handler, after the existing public-path whitelist `return`s and **before** the Authorization header check, insert:
 
@@ -121,7 +121,7 @@ Near the top of the handler, after the existing public-path whitelist `return`s 
 
 Keep all other routes requiring Bearer as today.
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit** — `7e8f7df3`
 
 ```bash
 git add server/middleware/auth.ts
@@ -135,7 +135,7 @@ git commit -m "feat(auth): allow script download with installToken without Beare
 **Files:**
 - Modify: `server/api/scripts/[id]/download.get.ts`
 
-- [ ] **Step 1: Import token helper and branch before captcha**
+- [x] **Step 1: Import token helper and branch before captcha** — also `51e9f950` peek-before-quota fix
 
 Add import:
 
@@ -219,7 +219,7 @@ Replace the old inline serve block at the end of the captcha path with `return s
 
 **Important:** Do not require captcha when `installToken` is present. Do not use `event.context.auth` on that branch.
 
-- [ ] **Step 2: Manual verify token rejection (dev server running)**
+- [x] **Step 2: Manual verify token rejection (dev server running)** — verified `GET .../download?installToken=x` reaches handler (404 for missing script, not middleware 401); 401-on-bad-token for a *real* script still needs a seeded script (manual)
 
 ```bash
 curl -s -o /dev/null -w "%{http_code}" "%BASE%/api/scripts/any-id/download?installToken=not-a-real-token"
@@ -227,7 +227,7 @@ curl -s -o /dev/null -w "%{http_code}" "%BASE%/api/scripts/any-id/download?insta
 
 Expected: `401` (or `404` if you use a missing script id — prefer a real script id from DB to assert `401` for bad token).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit** — `e43d3c2d` (+ `51e9f950` peek fix)
 
 ```bash
 git add server/api/scripts/[id]/download.get.ts
@@ -241,7 +241,7 @@ git commit -m "feat(scripts): serve zip via one-shot installToken without captch
 **Files:**
 - Create: `server/api/scripts/[id]/install-token.post.ts`
 
-- [ ] **Step 1: Create the handler**
+- [x] **Step 1: Create the handler**
 
 ```ts
 import { getDb } from "../../../db/index"
@@ -312,7 +312,7 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-- [ ] **Step 2: Verify mint + consume with curl**
+- [ ] **Step 2: Verify mint + consume with curl** — manual: needs a logged-in JWT + a real script id (register requires captcha; no seeded dev script)
 
 Login first (or reuse a JWT from the browser). Then:
 
@@ -332,7 +332,7 @@ curl -s -o /dev/null -w "%{http_code}" "%ZIP_URL%"
 # Expect: 401
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit** — `9ea98fcf`
 
 ```bash
 git add server/api/scripts/[id]/install-token.post.ts
@@ -346,7 +346,7 @@ git commit -m "feat(scripts): add install-token endpoint for local Autoforge ins
 **Files:**
 - Create: `app/composables/useAutoforgeBridge.ts`
 
-- [ ] **Step 1: Create composable**
+- [x] **Step 1: Create composable**
 
 ```ts
 const BRIDGE_BASE = "http://127.0.0.1:19276"
@@ -419,7 +419,7 @@ function mapInstallError(status: number, data: any): string {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit** — `95e61816`
 
 ```bash
 git add app/composables/useAutoforgeBridge.ts
@@ -433,7 +433,7 @@ git commit -m "feat(scripts): add useAutoforgeBridge for localhost health/instal
 **Files:**
 - Modify: `app/components/workspace/WsScriptCard.vue`
 
-- [ ] **Step 1: Add state and install handler in `<script setup>`**
+- [x] **Step 1: Add state and install handler in `<script setup>`**
 
 After existing refs (`downloading`, `quotaError`, etc.), add:
 
@@ -492,7 +492,7 @@ async function handleAddToLocal() {
 }
 ```
 
-- [ ] **Step 2: Template — button next to download**
+- [x] **Step 2: Template — button next to download**
 
 Replace the single download button block so meta actions are a group (download keeps `margin-left: auto` on the group). Example:
 
@@ -529,7 +529,7 @@ Replace the single download button block so meta actions are a group (download k
         </p>
 ```
 
-- [ ] **Step 3: Styles**
+- [x] **Step 3: Styles**
 
 Move `margin-left: auto` from `.script-card__download` to `.script-card__meta-actions`. Add:
 
@@ -596,14 +596,14 @@ Move `margin-left: auto` from `.script-card__download` to `.script-card__meta-ac
 
 If `--success` is not defined in the project theme, use `color: var(--accent)` for success and keep danger for errors.
 
-- [ ] **Step 4: Manual UI checks**
+- [ ] **Step 4: Manual UI checks** — manual: requires Autoforge desktop on/off in a browser session
 
 1. Autoforge **not** running → click「添加到本地」→ message「请先启动 Autoforge 桌面端，然后再试」; Network tab shows **no** `install-token` call.  
 2. Autoforge running + valid script zip → success message; script appears/opens in desktop.  
 3. During install, both buttons disabled.  
 4. Ordinary「下载」still opens captcha modal.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — `8fd52f87`
 
 ```bash
 git add app/components/workspace/WsScriptCard.vue
@@ -617,15 +617,23 @@ git commit -m "feat(scripts): add Add-to-local Autoforge button on script cards"
 **Files:**
 - None required (optional: one-line note in `docs/api/composables.md` if that doc lists composables)
 
-- [ ] **Step 1: Walk the Hub 验收清单 from the spec**
+- [x] **Step 1: Walk the Hub 验收清单 from the spec**
 
-- [ ] Mint works only when logged in and download-permitted  
-- [ ] Autoforge off → start prompt, no token mint  
-- [ ] Autoforge on + good package → Hub success + desktop opens script  
-- [ ] Token reuse fails with 401; captcha download still requires captcha  
-- [ ] Quota exhausted → mint returns 429 with message  
-- [ ] Button loading prevents double submit  
-- [ ] `zipUrl` absolute; `curl` to it within TTL downloads zip without Bearer  
+Verified via curl against running dev server (port 9876) without a logged-in session:
+
+- `GET /api/scripts/<missing>/download?installToken=bad` → **404** from handler (auth middleware bypassed — installToken path reached the handler, did **not** return middleware "未登录" 401) ✅
+- `POST /api/scripts/<missing>/install-token` (no Bearer) → **401** (mint requires login) ✅
+- `GET /api/scripts/<missing>/download` (no installToken, no Bearer) → **401** (captcha/auth path still gated) ✅
+
+The following need a logged-in JWT + a real seeded script and/or Autoforge desktop, so they remain **manual**:
+
+- [ ] **Mint works only when logged in and download-permitted** — no-auth 401 verified; success + permission 403 need a real session/script  
+- [ ] **Autoforge off → start prompt, no token mint** — manual (browser UI)  
+- [ ] **Autoforge on + good package → Hub success + desktop opens script** — manual (needs Autoforge desktop)  
+- [ ] **Token reuse fails with 401; captcha download still requires captcha** — auth-gate verified; reuse-401 + captcha-still-required need a real token/session  
+- [ ] **Quota exhausted → mint returns 429 with message** — manual  
+- [ ] **Button loading prevents double submit** — manual (UI)  
+- [ ] **`zipUrl` absolute; `curl` to it within TTL downloads zip without Bearer** — no-Bearer bypass verified; actual zip download needs a valid minted token + real script file  
 
 - [ ] **Step 2: Final commit if any small fixes remain**
 

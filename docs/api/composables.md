@@ -80,3 +80,9 @@ onMounted(() => initTheme())
 ```
 
 **Notes:** `plugins/theme.client.ts` 在 hydration 前读取 storage，避免主题闪烁。
+
+---
+
+## useAutoforgeBridge
+
+**Purpose:** 探测本机 Autoforge 桌面端桥（`http://127.0.0.1:19276`）并触发脚本安装。`checkHealth()` 带 ~1s 超时；`installScript({ zipUrl, scriptName?, hubScriptId? })` 调用桌面端 `POST /install`，返回 `{ ok, ... }` 并映射中文错误文案。用于 `WsScriptCard` 的「添加到本地」按钮。
