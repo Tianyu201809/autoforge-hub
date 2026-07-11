@@ -1,4 +1,4 @@
-﻿import type { Team } from "~/types/workspace"
+﻿import type { Team, TeamMessage } from "~/types/workspace"
 
 const API_BASE = "/api"
 
@@ -150,10 +150,65 @@ export function useTeams() {
     }
   }
 
+  function getTeamAvatarSrc(url?: string | null): string {
+    if (!url) return ""
+    const name = url.replace(/^team-avatars\//, "")
+    if (!name) return ""
+    return "/api/files/team-avatars/" + encodeURIComponent(name)
+  }
+
+  async function updateTeamIcon(
+    teamId: string,
+    payload: { mode: "icon"; icon: string; iconColor?: string | null } | FormData,
+  ): Promise<{ ok: true; icon: string; iconColor: string | null; avatarUrl: string } | { ok: false; error: string }> {
+    try {
+      const token = import.meta.client ? localStorage.getItem("autoforge-token") : null
+      const headers: Record<string, string> = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+      let body: BodyInit
+      if (payload instanceof FormData) {
+        body = payload
+      } else {
+        headers["Content-Type"] = "application/json"
+        body = JSON.stringify(payload)
+      }
+      const res = await fetch(`${API_BASE}/teams/${teamId}/icon`, { method: "PUT", headers, body })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || "更新失败")
+      const team = teams.value.find(t => t.id === teamId)
+      if (team) {
+        team.icon = data.icon
+        team.iconColor = data.iconColor || undefined
+        team.avatarUrl = data.avatarUrl || ""
+      }
+      return { ok: true, icon: data.icon, iconColor: data.iconColor ?? null, avatarUrl: data.avatarUrl || "" }
+    } catch (err: any) {
+      return { ok: false, error: err.message || "更新失败" }
+    }
+  }
+
+  async function fetchTeamMessages(teamId: string, offset = 0, limit = 10) {
+    return apiFetch<{ items: TeamMessage[]; total: number; hasMore: boolean }>(
+      `/teams/${teamId}/messages?limit=${limit}&offset=${offset}`,
+    )
+  }
+
+  async function postTeamMessage(teamId: string, content: string) {
+    return apiFetch<{ ok: boolean; message: TeamMessage }>(`/teams/${teamId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    })
+  }
+
+  async function deleteTeamMessage(teamId: string, msgId: string) {
+    return apiFetch<{ ok: boolean }>(`/teams/${teamId}/messages/${msgId}`, { method: "DELETE" })
+  }
+
   return {
     teams, loaded, loadTeams, getTeamsForUser, getTeamById, getTeamDetail, getStoredTeamById,
     isTeamOwner, isTeamMember, createTeam, joinTeam, leaveTeam, deleteTeam,
     getTeamInviteCode, resolveInviteCode,
     updateTeamSettings, manageMember,
+    getTeamAvatarSrc, updateTeamIcon, fetchTeamMessages, postTeamMessage, deleteTeamMessage,
   }
 }
