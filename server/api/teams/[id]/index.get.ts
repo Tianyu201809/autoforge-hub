@@ -54,6 +54,9 @@ export default defineEventHandler(async (event) => {
     members,
     settings,
     scriptCount,
+    icon: row.icon || "users",
+    iconColor: row.icon_color || undefined,
+    avatarUrl: row.avatar_url || "",
     createdAt: row.created_at,
     currentUserRole,
   }

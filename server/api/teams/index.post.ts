@@ -35,6 +35,17 @@ export default defineEventHandler(async (event) => {
 
   return {
     ok: true,
-    team: { id, name, description, ownerId: userId, memberCount: 1, settings: JSON.parse(defaultSettings), createdAt: now }
+    team: {
+      id,
+      name,
+      description,
+      ownerId: userId,
+      memberCount: 1,
+      settings: JSON.parse(defaultSettings),
+      icon: "users",
+      iconColor: undefined,
+      avatarUrl: "",
+      createdAt: now,
+    }
   }
 })

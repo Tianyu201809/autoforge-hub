@@ -27,6 +27,9 @@ export default defineEventHandler(async (event) => {
         description: row[columns.indexOf("description")],
         ownerId: row[columns.indexOf("owner_id")],
         memberCount: memberIds.length,
+        icon: (row[columns.indexOf("icon")] as string) || "users",
+        iconColor: (row[columns.indexOf("icon_color")] as string) || undefined,
+        avatarUrl: (row[columns.indexOf("avatar_url")] as string) || "",
         createdAt: row[columns.indexOf("created_at")],
       }
     })
