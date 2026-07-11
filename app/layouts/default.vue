@@ -9,11 +9,6 @@
       <div class="bg-nebula__stars" />
     </div>
 
-    <!-- Leaves effect (light) -->
-    <div class="bg-leaves" :style="{ opacity: isDark ? 0 : 1 }" aria-hidden="true">
-      <span v-for="i in 15" :key="i" class="bg-leaf" :style="getLeafStyle(i)" />
-    </div>
-
     <div class="layout__content">
       <slot />
     </div>
@@ -22,24 +17,6 @@
 
 <script setup lang="ts">
 const { isDark } = useTheme()
-
-function hash(n: number): number {
-  // Simple deterministic hash from index
-  return ((n * 9301 + 49297) % 233280) / 233280
-}
-
-function getLeafStyle(i: number) {
-  const h = (x: number) => hash(i * 7 + x * 13)
-  return {
-    '--x': `${h(1) * 100}%`,
-    '--delay': `${h(2) * 10}s`,
-    '--duration': `${8 + h(3) * 12}s`,
-    '--size': `${10 + h(4) * 14}px`,
-    '--drift': `${(h(5) - 0.5) * 120}px`,
-    '--opacity': `${0.15 + h(6) * 0.25}`,
-    '--rotation': `${h(7) * 360}deg`,
-  }
-}
 </script>
 
 <style scoped>
@@ -155,32 +132,6 @@ function getLeafStyle(i: number) {
 }
 
 /* ═══════════════════════════════════════
-   LEAVES — light mode only
-   ═══════════════════════════════════════ */
-.bg-leaves {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-}
-
-.bg-leaf {
-  position: absolute;
-  bottom: -30px;
-  left: var(--x, 50%);
-  width: var(--size, 16px);
-  height: calc(var(--size, 16px) * 1.4);
-  border-radius: 0 80% 80% 80%;
-  background: linear-gradient(135deg, rgba(34, 197, 94, var(--opacity, 0.2)), rgba(22, 163, 74, var(--opacity, 0.15)));
-  transform: rotate(var(--rotation, 0deg));
-  animation: leafFloat var(--duration, 12s) var(--delay, 0s) linear infinite;
-  opacity: 0;
-}
-
-/* ═══════════════════════════════════════
    KEYFRAMES
    ═══════════════════════════════════════ */
 @keyframes nebulaDrift1 {
@@ -211,22 +162,5 @@ function getLeafStyle(i: number) {
 @keyframes starTwinkle {
   0% { opacity: 0.3; }
   100% { opacity: 0.8; }
-}
-
-@keyframes leafFloat {
-  0% {
-    transform: translateY(0) translateX(0) rotate(var(--rotation, 0deg));
-    opacity: 0;
-  }
-  5% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(calc(-100vh - 50px)) translateX(var(--drift, 0px)) rotate(calc(var(--rotation, 0deg) + 720deg));
-    opacity: 0;
-  }
 }
 </style>
