@@ -51,6 +51,6 @@ export default defineEventHandler(async (event) => {
   )
   saveDb()
 
-  const token = signToken({ userId: id, email })
+  const token = signToken({ userId: id, email, tv: 0 })
   return { ok: true, user: { id, email, displayName, teamCount: 0, joinedTeamIds: [] }, token }
 })

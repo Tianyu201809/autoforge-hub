@@ -23,7 +23,11 @@ export default defineEventHandler(async (event) => {
   const valid = await bcrypt.compare(password, row.password_hash)
   if (!valid) throw createError({ statusCode: 401, message: "邮箱或密码不正确" })
 
-  const token = signToken({ userId: row.id, email })
+  const token = signToken({
+    userId: row.id,
+    email,
+    tv: Number(row.token_version ?? 0),
+  })
   return {
     ok: true,
     user: {
