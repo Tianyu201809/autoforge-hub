@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import type { AuthTab } from '~/types/auth'
+import type { AuthTab, AuthView } from '~/types/auth'
 
 definePageMeta({
   layout: 'auth'
@@ -10,9 +10,15 @@ useHead({
 })
 
 const route = useRoute()
-const { login, register } = useAuth()
+const { login, register, forgotPassword, resetPassword } = useAuth()
 
-const activeTab = ref<AuthTab>('login')
+const view = ref<AuthView>('login')
+const activeTab = computed<AuthTab>({
+  get: () => (view.value === 'register' ? 'register' : 'login'),
+  set: (tab) => { view.value = tab },
+})
+const isAuthTab = computed(() => view.value === 'login' || view.value === 'register')
+
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -23,36 +29,52 @@ const successMessage = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const socialHint = ref('')
 
+const resetCode = ref('')
+const newPassword = ref('')
+const confirmNewPassword = ref('')
+const resendCooldown = ref(0)
+let resendTimer: ReturnType<typeof setInterval> | null = null
+
 const captchaToken = ref('')
 const captchaTargetPosition = ref(0)
 const captchaFinalPosition = ref(0)
 const captchaVerified = ref(false)
 
-const headerTitle = computed(() =>
-  activeTab.value === 'login' ? '欢迎回来' : '创建新档案'
-)
-const headerSubtitle = computed(() =>
-  activeTab.value === 'login'
+const headerTitle = computed(() => {
+  if (view.value === 'forgot-email') return '找回密码'
+  if (view.value === 'forgot-reset') return '设置新密码'
+  return view.value === 'login' ? '欢迎回来' : '创建新档案'
+})
+const headerSubtitle = computed(() => {
+  if (view.value === 'forgot-email') return '输入注册邮箱，我们将发送验证码'
+  if (view.value === 'forgot-reset') return '输入验证码并设置新密码'
+  return view.value === 'login'
     ? '登录以管理你的脚本与团队空间'
     : '填写基本信息，开始你的旅程'
-)
+})
 const submitLabel = computed(() => {
   if (loading.value) return '处理中...'
-  return activeTab.value === 'login' ? '登录' : '创建账号'
+  if (view.value === 'forgot-email') return '发送验证码'
+  if (view.value === 'forgot-reset') return '重置密码'
+  return view.value === 'login' ? '登录' : '创建账号'
 })
 
-watch(activeTab, () => {
-  formError.value = ''
-  fieldErrors.value = {}
-  successMessage.value = ''
-  socialHint.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-  captchaVerified.value = false
-  if (activeTab.value === 'register') {
-    nextTick(() => loadCaptcha())
+// Only login ↔ register transitions reset fields here; forgot flows reset in their handlers
+// so they can preserve state (e.g. email + success message) across forgot-email → forgot-reset.
+watch(view, (newView, oldView) => {
+  if ((oldView === 'login' || oldView === 'register') && (newView === 'login' || newView === 'register')) {
+    formError.value = ''
+    fieldErrors.value = {}
+    successMessage.value = ''
+    socialHint.value = ''
+    password.value = ''
+    confirmPassword.value = ''
+    captchaVerified.value = false
+    if (newView === 'register') {
+      nextTick(() => loadCaptcha())
+    }
+    nextTick(() => focusFirstField())
   }
-  nextTick(() => focusFirstField())
 })
 
 onMounted(() => {
@@ -60,10 +82,14 @@ onMounted(() => {
   const registered = route.query.registered as string | undefined
   if (registered) {
     email.value = registered
-    activeTab.value = 'login'
+    view.value = 'login'
     successMessage.value = '账号已创建，请登录'
   }
   focusFirstField()
+})
+
+onBeforeUnmount(() => {
+  if (resendTimer) clearInterval(resendTimer)
 })
 
 function focusFirstField() {
@@ -100,7 +126,41 @@ function onSocialClick(provider: string) {
 }
 
 function switchTab(tab: AuthTab) {
-  activeTab.value = tab
+  view.value = tab
+}
+
+function openForgot() {
+  view.value = 'forgot-email'
+  formError.value = ''
+  successMessage.value = ''
+  fieldErrors.value = {}
+  socialHint.value = ''
+  password.value = ''
+  nextTick(() => focusFirstField())
+}
+
+function backToLogin() {
+  view.value = 'login'
+  resetCode.value = ''
+  newPassword.value = ''
+  confirmNewPassword.value = ''
+  formError.value = ''
+  successMessage.value = ''
+  fieldErrors.value = {}
+  socialHint.value = ''
+  nextTick(() => focusFirstField())
+}
+
+function startResendCooldown(seconds = 60) {
+  resendCooldown.value = seconds
+  if (resendTimer) clearInterval(resendTimer)
+  resendTimer = setInterval(() => {
+    resendCooldown.value -= 1
+    if (resendCooldown.value <= 0 && resendTimer) {
+      clearInterval(resendTimer)
+      resendTimer = null
+    }
+  }, 1000)
 }
 
 function validateLogin(): boolean {
@@ -123,12 +183,70 @@ function validateRegister(): boolean {
   return Object.keys(errors).length === 0
 }
 
+async function onForgotEmailSubmit() {
+  formError.value = ''
+  fieldErrors.value = {}
+  if (!email.value.trim()) {
+    fieldErrors.value = { email: '请输入邮箱' }
+    return
+  }
+  loading.value = true
+  const result = await forgotPassword(email.value.trim())
+  loading.value = false
+  if (!result.ok) {
+    formError.value = result.error
+    return
+  }
+  successMessage.value = result.message
+  view.value = 'forgot-reset'
+  startResendCooldown(60)
+  nextTick(() => focusFirstField())
+}
+
+async function onForgotResetSubmit() {
+  formError.value = ''
+  fieldErrors.value = {}
+  const errors: Record<string, string> = {}
+  if (!resetCode.value.trim()) errors.code = '请输入验证码'
+  if (!newPassword.value || newPassword.value.length < 8) errors.newPassword = '密码至少需要 8 位'
+  if (newPassword.value !== confirmNewPassword.value) errors.confirmNewPassword = '两次输入的密码不一致'
+  if (Object.keys(errors).length) {
+    fieldErrors.value = errors
+    return
+  }
+  loading.value = true
+  const result = await resetPassword(email.value.trim(), resetCode.value.trim(), newPassword.value)
+  loading.value = false
+  if (!result.ok) {
+    formError.value = result.error
+    return
+  }
+  await navigateTo('/workspace')
+}
+
+async function onResendCode() {
+  if (resendCooldown.value > 0 || loading.value) return
+  formError.value = ''
+  loading.value = true
+  const result = await forgotPassword(email.value.trim())
+  loading.value = false
+  if (!result.ok) {
+    formError.value = result.error
+    return
+  }
+  successMessage.value = result.message
+  startResendCooldown(60)
+}
+
 async function onSubmit() {
+  if (view.value === 'forgot-email') return onForgotEmailSubmit()
+  if (view.value === 'forgot-reset') return onForgotResetSubmit()
+
   formError.value = ''
   successMessage.value = ''
   socialHint.value = ''
 
-  if (activeTab.value === 'login') {
+  if (view.value === 'login') {
     if (!validateLogin()) return
     loading.value = true
     const result = await login(email.value, password.value, rememberMe.value)
@@ -153,7 +271,7 @@ async function onSubmit() {
     }
     return
   }
-  activeTab.value = 'login'
+  view.value = 'login'
   password.value = ''
   confirmPassword.value = ''
   successMessage.value = '账号已创建，请登录'
@@ -183,7 +301,7 @@ async function onSubmit() {
             <p class="login-form-panel__subtitle">{{ headerSubtitle }}</p>
           </header>
 
-          <div class="login-form-panel__tabs">
+          <div v-if="isAuthTab" class="login-form-panel__tabs">
             <AuthTabs v-model="activeTab" />
           </div>
 
@@ -201,7 +319,7 @@ async function onSubmit() {
           </div> -->
           <p v-if="socialHint" class="login-social__hint" role="status">{{ socialHint }}</p>
 
-          <div class="login-divider" role="separator">
+          <div v-if="isAuthTab" class="login-divider" role="separator">
             <span>或使用邮箱</span>
           </div>
 
@@ -222,6 +340,7 @@ async function onSubmit() {
 
           <form class="login-form" @submit.prevent="onSubmit">
             <AuthInputGroup
+              v-if="view !== 'forgot-reset'"
               v-model="email"
               label="邮箱"
               type="email"
@@ -232,18 +351,19 @@ async function onSubmit() {
             />
 
             <AuthInputGroup
+              v-if="isAuthTab"
               v-model="password"
               label="密码"
               type="password"
               placeholder="至少 8 位"
-              :autocomplete="activeTab === 'login' ? 'current-password' : 'new-password'"
+              :autocomplete="view === 'login' ? 'current-password' : 'new-password'"
               :error="fieldErrors.password"
               :disabled="loading"
-              :hint="activeTab === 'register' ? '密码至少需要 8 位' : undefined"
+              :hint="view === 'register' ? '密码至少需要 8 位' : undefined"
             />
 
             <AuthInputGroup
-              v-if="activeTab === 'register'"
+              v-if="view === 'register'"
               v-model="confirmPassword"
               label="确认密码"
               type="password"
@@ -254,7 +374,7 @@ async function onSubmit() {
             />
 
             <div
-              v-if="activeTab === 'register'"
+              v-if="view === 'register'"
               class="login-form__captcha"
             >
               <AuthSliderCaptcha
@@ -271,15 +391,73 @@ async function onSubmit() {
               </p>
             </div>
 
-            <label v-if="activeTab === 'login'" class="login-form__remember">
+            <label v-if="view === 'login'" class="login-form__remember">
               <input v-model="rememberMe" type="checkbox" :disabled="loading">
               <span>记住我</span>
             </label>
 
             <button
+              v-if="view === 'login'"
+              type="button"
+              class="login-form__forgot"
+              :disabled="loading"
+              @click="openForgot"
+            >
+              忘记密码？
+            </button>
+
+            <template v-if="view === 'forgot-reset'">
+              <AuthInputGroup
+                v-model="resetCode"
+                label="验证码"
+                type="text"
+                placeholder="6 位数字"
+                autocomplete="one-time-code"
+                :error="fieldErrors.code"
+                :disabled="loading"
+              />
+              <AuthInputGroup
+                v-model="newPassword"
+                label="新密码"
+                type="password"
+                placeholder="至少 8 位"
+                autocomplete="new-password"
+                :error="fieldErrors.newPassword"
+                :disabled="loading"
+              />
+              <AuthInputGroup
+                v-model="confirmNewPassword"
+                label="确认新密码"
+                type="password"
+                placeholder="再次输入新密码"
+                autocomplete="new-password"
+                :error="fieldErrors.confirmNewPassword"
+                :disabled="loading"
+              />
+              <div class="login-form__forgot-actions">
+                <button
+                  type="button"
+                  class="login-form-panel__link"
+                  :disabled="loading || resendCooldown > 0"
+                  @click="onResendCode"
+                >
+                  {{ resendCooldown > 0 ? `重新发送 (${resendCooldown}s)` : '重新发送' }}
+                </button>
+                <button
+                  type="button"
+                  class="login-form-panel__link"
+                  :disabled="loading"
+                  @click="backToLogin"
+                >
+                  返回登录
+                </button>
+              </div>
+            </template>
+
+            <button
               type="submit"
               class="login-form__submit"
-              :disabled="loading || (activeTab === 'register' && !captchaVerified)"
+              :disabled="loading || (view === 'register' && !captchaVerified)"
             >
               <Icon
                 v-if="loading"
@@ -292,16 +470,21 @@ async function onSubmit() {
           </form>
 
           <p class="login-form-panel__footer">
-            <template v-if="activeTab === 'login'">
+            <template v-if="view === 'login'">
               还没有账号？
               <button type="button" class="login-form-panel__link" @click="switchTab('register')">
                 创建账号
               </button>
             </template>
-            <template v-else>
+            <template v-else-if="view === 'register'">
               已是团队成员？
               <button type="button" class="login-form-panel__link" @click="switchTab('login')">
                 登录
+              </button>
+            </template>
+            <template v-else-if="view === 'forgot-email'">
+              <button type="button" class="login-form-panel__link" @click="backToLogin">
+                返回登录
               </button>
             </template>
           </p>
@@ -588,6 +771,32 @@ async function onSubmit() {
   height: 16px;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+.login-form__forgot {
+  align-self: flex-end;
+  margin-top: -8px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-sm);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.login-form__forgot:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.login-form__forgot:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-form__forgot-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .login-form__submit {
