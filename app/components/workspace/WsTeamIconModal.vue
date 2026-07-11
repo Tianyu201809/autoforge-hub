@@ -20,14 +20,22 @@ const preview = ref(props.initialAvatarUrl ? getTeamAvatarSrc(props.initialAvata
 const saving = ref(false)
 const error = ref('')
 
+function revokePreviewBlob() {
+  if (preview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(preview.value)
+  }
+}
+
 function onFile(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
   if (!f) return
+  revokePreviewBlob()
   file.value = f
   preview.value = URL.createObjectURL(f)
 }
 
 function clearFile() {
+  revokePreviewBlob()
   file.value = null
   preview.value = props.initialAvatarUrl ? getTeamAvatarSrc(props.initialAvatarUrl) : ''
   const input = document.querySelector<HTMLInputElement>('.icon-modal__file-input')
@@ -42,6 +50,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown)
 })
 onBeforeUnmount(() => {
+  revokePreviewBlob()
   window.removeEventListener('keydown', onKeydown)
 })
 

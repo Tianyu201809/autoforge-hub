@@ -432,11 +432,11 @@ function canSetRole(member: any): boolean {
           <div
             class="ws-team-header__icon"
             :class="{ 'ws-team-header__icon--editable': canEditIcon }"
-            :title="canEditIcon ? '更换团队图标' : ''"
-            role="button"
-            tabindex="0"
-            @click="openIconModal"
-            @keydown.enter.prevent="openIconModal"
+            :title="canEditIcon ? '更换团队图标' : undefined"
+            :role="canEditIcon ? 'button' : undefined"
+            :tabindex="canEditIcon ? 0 : undefined"
+            @click="canEditIcon && openIconModal()"
+            @keydown.enter.prevent="canEditIcon && openIconModal()"
           >
             <img
               v-if="team.avatarUrl"
