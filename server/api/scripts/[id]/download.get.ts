@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from "fs"
 import { parseSettings, getTeamRole, checkMemberPermission } from "../../../utils/team-permissions"
 import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
 import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
-import { consumeInstallToken } from "../../../utils/install-token"
+import { peekInstallToken, consumeInstallToken } from "../../../utils/install-token"
 
 export default defineEventHandler(async (event) => {
   try {
@@ -37,11 +37,11 @@ async function handleDownload(event: any) {
   let userId: string
 
   if (installToken) {
-    const consumed = consumeInstallToken(installToken, scriptId)
-    if (!consumed) {
+    const peeked = peekInstallToken(installToken, scriptId)
+    if (!peeked) {
       throw createError({ statusCode: 401, message: "安装链接无效或已过期" })
     }
-    userId = consumed.userId
+    userId = peeked.userId
 
     const quota = await checkDownloadQuota(userId)
     if (!quota.ok) {
@@ -52,8 +52,13 @@ async function handleDownload(event: any) {
       })
     }
 
+    const consumed = consumeInstallToken(installToken, scriptId)
+    if (!consumed) {
+      throw createError({ statusCode: 401, message: "安装链接无效或已过期" })
+    }
+
     const remaining = await incrementDownloadQuota(userId, scriptId)
-    return serveScriptFile(event, row, remaining)
+    return serveScriptFile(event, row, remaining, "private, no-store")
   }
 
   // ── Existing authenticated + captcha path ──
@@ -123,7 +128,12 @@ async function handleDownload(event: any) {
   return serveScriptFile(event, row, remaining)
 }
 
-function serveScriptFile(event: any, row: any, remaining: number) {
+function serveScriptFile(
+  event: any,
+  row: any,
+  remaining: number,
+  cacheControl = "public, max-age=31536000"
+) {
   const filePath = getFilePath(row.file_path)
   if (filePath.startsWith("http")) {
     return sendRedirect(event, filePath, 302)
@@ -134,7 +144,7 @@ function serveScriptFile(event: any, row: any, remaining: number) {
   const filename = row.file_name || "script.zip"
   setHeader(event, "Content-Type", "application/zip")
   setHeader(event, "Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`)
-  setHeader(event, "Cache-Control", "public, max-age=31536000")
+  setHeader(event, "Cache-Control", cacheControl)
   setHeader(event, "X-Remaining-Downloads", String(remaining))
   return new Uint8Array(data)
 }

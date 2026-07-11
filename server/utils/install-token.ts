@@ -35,6 +35,21 @@ export function createInstallToken(
 }
 
 /**
+ * Validate without consuming. Returns null if missing, expired, or scriptId mismatch.
+ */
+export function peekInstallToken(
+  token: string,
+  scriptId: string
+): { userId: string } | null {
+  cleanupExpired()
+  const entry = store.get(token)
+  if (!entry) return null
+  if (entry.expiresAt < Date.now()) return null
+  if (entry.scriptId !== scriptId) return null
+  return { userId: entry.userId }
+}
+
+/**
  * One-shot consume. Deletes the token whether valid or not once looked up.
  * Returns null if missing, expired, or scriptId mismatch.
  */
