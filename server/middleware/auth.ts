@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
     url === '/api/auth/forgot-password' ||
     url === '/api/auth/reset-password' ||
     url.startsWith('/api/files/avatars/') ||
+    url.startsWith('/api/files/team-avatars/') ||
     url.startsWith('/api/_nuxt_icon')
   ) return
 
