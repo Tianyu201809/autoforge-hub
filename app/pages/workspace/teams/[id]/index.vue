@@ -23,6 +23,7 @@ const {
   updateTeamSettings,
   manageMember,
   getTeamAvatarSrc,
+  fetchTeamMessages,
 } = useTeams()
 
 const { copyToClipboard } = useClipboard()
@@ -71,6 +72,7 @@ async function refreshDetail() {
   loadingDetail.value = true
   try {
     teamDetail.value = await getTeamDetail(teamId.value)
+    prefetchMessageTotal()
   } catch {
     teamDetail.value = null
   } finally {
@@ -114,6 +116,20 @@ const isOnlyOwner = computed(() => currentUserRole.value === "owner")
 
 const canEditIcon = computed(() => currentUserRole.value === "owner" || currentUserRole.value === "admin")
 const showIconModal = ref(false)
+
+// ─── Message board drawer ───
+const showMessages = ref(false)
+const messageTotal = ref(0)
+
+async function prefetchMessageTotal() {
+  if (!teamId.value) return
+  try {
+    const res = await fetchTeamMessages(teamId.value, 0, 1)
+    messageTotal.value = res.total
+  } catch {
+    messageTotal.value = 0
+  }
+}
 
 function openIconModal() {
   if (!canEditIcon.value) return
@@ -511,6 +527,16 @@ function canSetRole(member: any): boolean {
             <Icon name="lucide:history" size="16" />
             操作日志
           </NuxtLink>
+          <button
+            v-if="isMember || isOwner"
+            type="button"
+            class="ws-team-btn ws-team-btn--ghost"
+            @click="showMessages = true"
+          >
+            <Icon name="lucide:message-square" size="16" />
+            留言板
+            <span v-if="messageTotal > 0" class="ws-team-btn__badge">{{ messageTotal }}</span>
+          </button>
         </div>
 
         <div class="ws-layout">
@@ -767,6 +793,12 @@ v-for="perm in ([
         @saved="onIconSaved"
       />
     </Teleport>
+    <WorkspaceWsTeamMessageDrawer
+      :team-id="teamId"
+      :open="showMessages"
+      @close="showMessages = false"
+      @total-change="messageTotal = $event"
+    />
     <Teleport to="body">
       <WorkspaceWsEditModal
         v-if="showEdit && editingScript"
@@ -1159,6 +1191,23 @@ v-for="perm in ([
 .ws-team-btn--danger:hover {
   border-color: var(--danger-border);
   background: var(--danger-soft);
+}
+
+.ws-team-btn__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .ws-invite-code {
