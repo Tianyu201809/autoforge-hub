@@ -127,6 +127,22 @@ export async function getDb(): Promise<SqlJsDbType> {
   `)
   saveDb()
 
+  // Migration: token_version for JWT invalidation
+  try { _sqlDb.run("ALTER TABLE users ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0") } catch (e) {}
+
+  // password_reset_codes table
+  _sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS password_reset_codes (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+  `)
+  saveDb()
+
   return _sqlDb
 }
 

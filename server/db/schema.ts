@@ -14,6 +14,17 @@ export const users = sqliteTable('users', {
   displayName: text('display_name').notNull().default(''),
   teamCount: integer('team_count').notNull().default(0),
   joinedTeamIds: text('joined_team_ids').notNull().default('[]'),
+  avatarUrl: text('avatar_url').notNull().default(''),
+  tokenVersion: integer('token_version').notNull().default(0),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+})
+
+export const passwordResetCodes = sqliteTable('password_reset_codes', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull(),
+  codeHash: text('code_hash').notNull(),
+  expiresAt: text('expires_at').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  createdAt: text('created_at').notNull(),
 })
