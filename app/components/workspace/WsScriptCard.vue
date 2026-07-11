@@ -24,6 +24,11 @@ const showCaptchaModal = ref(false)
 const quotaError = ref('')
 const usedToday = ref(0)
 
+const { checkHealth, installScript } = useAutoforgeBridge()
+const installing = ref(false)
+const installMessage = ref('')
+const installMessageIsError = ref(false)
+
 async function fetchQuota() {
   try {
     const token = localStorage.getItem('autoforge-token')
@@ -112,6 +117,54 @@ async function onCaptchaVerified(captchaToken: string, captchaPosition: number) 
 function cancelCaptcha() {
   showCaptchaModal.value = false
 }
+
+async function handleAddToLocal() {
+  if (installing.value || downloading.value) return
+  installing.value = true
+  installMessage.value = ''
+  installMessageIsError.value = false
+  try {
+    const healthy = await checkHealth()
+    if (!healthy) {
+      installMessageIsError.value = true
+      installMessage.value = '请先启动 Autoforge 桌面端，然后再试'
+      return
+    }
+
+    const token = localStorage.getItem('autoforge-token')
+    const mintRes = await fetch(`/api/scripts/${props.script.id}/install-token`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    const mintData = await mintRes.json().catch(() => ({} as any))
+    if (!mintRes.ok) {
+      installMessageIsError.value = true
+      installMessage.value = mintData.message || '添加失败，请重试'
+      return
+    }
+
+    const result = await installScript({
+      zipUrl: mintData.zipUrl,
+      scriptName: mintData.scriptName || props.script.title,
+      hubScriptId: mintData.hubScriptId || props.script.id,
+    })
+    if (result.ok) {
+      installMessageIsError.value = false
+      installMessage.value = result.name
+        ? `已添加到本地 Autoforge（${result.name}）`
+        : '已添加到本地 Autoforge'
+      usedToday.value++
+    } else {
+      installMessageIsError.value = true
+      installMessage.value = result.message
+    }
+  } catch {
+    installMessageIsError.value = true
+    installMessage.value = '添加失败，请重试'
+  } finally {
+    installing.value = false
+  }
+}
 </script>
 
 <template>
@@ -183,18 +236,36 @@ function cancelCaptcha() {
           <Icon name="lucide:calendar" size="13" />
           {{ formatDate(script.createdAt) }}
         </span>
-        <button
-          v-if="downloadable !== false"
-          type="button"
-          class="script-card__download"
-          :disabled="downloading"
-          title="下载脚本"
-          @click="handleDownload"
-        >
-              <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__spin': downloading }" />
-          {{ downloading ? '下载中...' : '下载' }}
-        </button>
+        <div v-if="downloadable !== false" class="script-card__meta-actions">
+          <button
+            type="button"
+            class="script-card__download"
+            :disabled="downloading || installing"
+            title="下载脚本"
+            @click="handleDownload"
+          >
+            <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__spin': downloading }" />
+            {{ downloading ? '下载中...' : '下载' }}
+          </button>
+          <button
+            type="button"
+            class="script-card__add-local"
+            :disabled="installing || downloading"
+            title="添加到本地 Autoforge"
+            @click="handleAddToLocal"
+          >
+            <Icon :name="installing ? 'lucide:loader-circle' : 'lucide:hard-drive-download'" size="13" :class="{ 'script-card__spin': installing }" />
+            {{ installing ? '添加中...' : '添加到本地' }}
+          </button>
+        </div>
         <p v-if="quotaError" class="script-card__quota-error">{{ quotaError }}</p>
+        <p
+          v-if="installMessage"
+          class="script-card__install-msg"
+          :class="{ 'script-card__install-msg--error': installMessageIsError }"
+        >
+          {{ installMessage }}
+        </p>
       </div>
 
       <div v-if="script.tags.length" class="script-card__tags">
@@ -634,7 +705,6 @@ function cancelCaptcha() {
   white-space: nowrap;
   cursor: pointer;
   transition: opacity 0.12s;
-  margin-left: auto;
 }
 
 .script-card__download:hover {
@@ -644,6 +714,49 @@ function cancelCaptcha() {
 .script-card__download:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.script-card__meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.script-card__add-local {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  color: var(--accent);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.script-card__add-local:hover {
+  opacity: 0.75;
+}
+
+.script-card__add-local:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.script-card__install-msg {
+  margin: 0;
+  width: 100%;
+  font-size: var(--text-xs);
+  color: var(--accent);
+}
+
+.script-card__install-msg--error {
+  color: var(--danger);
 }
 
 .script-card__spin {
