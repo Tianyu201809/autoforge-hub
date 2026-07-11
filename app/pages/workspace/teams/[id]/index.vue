@@ -22,6 +22,7 @@ const {
   getTeamDetail,
   updateTeamSettings,
   manageMember,
+  getTeamAvatarSrc,
 } = useTeams()
 
 const { copyToClipboard } = useClipboard()
@@ -90,6 +91,9 @@ const team = computed(() => getTeamById(teamId.value) || (teamDetail.value ? {
   ownerId: teamDetail.value.ownerId,
   memberCount: teamDetail.value.memberCount || 0,
   createdAt: teamDetail.value.createdAt,
+  icon: teamDetail.value.icon,
+  iconColor: teamDetail.value.iconColor,
+  avatarUrl: teamDetail.value.avatarUrl,
 } : undefined))
 const storedTeam = computed(() => getStoredTeamById(teamId.value))
 
@@ -107,6 +111,32 @@ const isMember = computed(() => {
 const currentUserRole = computed(() => teamDetail.value?.currentUserRole || "member")
 const isAdminOrOwner = computed(() => currentUserRole.value === "owner" || currentUserRole.value === "admin")
 const isOnlyOwner = computed(() => currentUserRole.value === "owner")
+
+const canEditIcon = computed(() => currentUserRole.value === "owner" || currentUserRole.value === "admin")
+const showIconModal = ref(false)
+
+function openIconModal() {
+  if (!canEditIcon.value) return
+  showIconModal.value = true
+}
+
+function onIconSaved(payload: { icon: string; iconColor?: string; avatarUrl: string }) {
+  // Patch local cached team (from list)
+  const cached = getTeamById(teamId.value)
+  if (cached) {
+    cached.icon = payload.icon
+    cached.iconColor = payload.iconColor
+    cached.avatarUrl = payload.avatarUrl
+  }
+  // Patch teamDetail if present
+  if (teamDetail.value) {
+    teamDetail.value.icon = payload.icon
+    teamDetail.value.iconColor = payload.iconColor
+    teamDetail.value.avatarUrl = payload.avatarUrl
+  }
+  actionSuccess.value = '团队图标已更新'
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+}
 
 const teamScripts = computed(() => {
   if (!team.value) return []
@@ -399,8 +429,31 @@ function canSetRole(member: any): boolean {
 
         <!-- Team header -->
         <div class="ws-team-header">
-          <div class="ws-team-header__icon">
-            <Icon name="lucide:users" size="32" class="ws-team-header__users-icon" />
+          <div
+            class="ws-team-header__icon"
+            :class="{ 'ws-team-header__icon--editable': canEditIcon }"
+            :title="canEditIcon ? '更换团队图标' : ''"
+            role="button"
+            tabindex="0"
+            @click="openIconModal"
+            @keydown.enter.prevent="openIconModal"
+          >
+            <img
+              v-if="team.avatarUrl"
+              :src="getTeamAvatarSrc(team.avatarUrl)"
+              alt=""
+              class="ws-team-header__avatar-img"
+            >
+            <Icon
+              v-else
+              :name="`lucide:${team.icon || 'users'}`"
+              size="32"
+              class="ws-team-header__users-icon"
+              :style="team.iconColor ? { color: team.iconColor } : undefined"
+            />
+            <span v-if="canEditIcon" class="ws-team-header__icon-edit" aria-hidden="true">
+              <Icon name="lucide:pencil" size="12" />
+            </span>
           </div>
           <div class="ws-team-header__info">
             <h1 class="ws-team-header__name">{{ team.name }}</h1>
@@ -704,6 +757,17 @@ v-for="perm in ([
       />
     </Teleport>
     <Teleport to="body">
+      <WorkspaceWsTeamIconModal
+        v-if="showIconModal && team"
+        :team-id="teamId"
+        :initial-icon="team.icon"
+        :initial-icon-color="team.iconColor"
+        :initial-avatar-url="team.avatarUrl"
+        @close="showIconModal = false"
+        @saved="onIconSaved"
+      />
+    </Teleport>
+    <Teleport to="body">
       <WorkspaceWsEditModal
         v-if="showEdit && editingScript"
         :script="editingScript"
@@ -893,6 +957,7 @@ v-for="perm in ([
 }
 
 .ws-team-header__icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -901,10 +966,54 @@ v-for="perm in ([
   border-radius: var(--radius-md);
   background: var(--secondary-soft);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.ws-team-header__icon--editable {
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.ws-team-header__icon--editable:hover {
+  box-shadow: var(--shadow-glow-orange);
+  transform: translateY(-1px);
+}
+
+.ws-team-header__icon--editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ws-team-header__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .ws-team-header__users-icon {
   color: var(--secondary);
+}
+
+.ws-team-header__icon-edit {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ws-team-header__icon--editable:hover .ws-team-header__icon-edit,
+.ws-team-header__icon--editable:focus-visible .ws-team-header__icon-edit {
+  opacity: 1;
 }
 
 .ws-team-header__info {

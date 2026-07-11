@@ -11,6 +11,8 @@ const emit = defineEmits<{
   delete: [teamId: string]
 }>()
 
+const { getTeamAvatarSrc } = useTeams()
+
 const showConfirm = ref(false)
 
 function formatDate(iso: string): string {
@@ -36,7 +38,19 @@ function handleDelete() {
   <NuxtLink :to="`/workspace/teams/${team.id}`" class="team-card">
     <div class="team-card__header">
       <div class="team-card__icon">
-        <Icon name="lucide:users" size="24" class="team-card__users-icon" />
+        <img
+          v-if="team.avatarUrl"
+          :src="getTeamAvatarSrc(team.avatarUrl)"
+          alt=""
+          class="team-card__avatar-img"
+        >
+        <Icon
+          v-else
+          :name="`lucide:${team.icon || 'users'}`"
+          size="24"
+          class="team-card__users-icon"
+          :style="team.iconColor ? { color: team.iconColor } : undefined"
+        />
       </div>
       <div class="team-card__info">
         <h3 class="team-card__name">{{ team.name }}</h3>
@@ -99,10 +113,17 @@ function handleDelete() {
   border-radius: var(--radius-md);
   background: var(--secondary-soft);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .team-card__users-icon {
   color: var(--secondary);
+}
+
+.team-card__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .team-card__info {

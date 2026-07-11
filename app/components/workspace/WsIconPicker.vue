@@ -3,6 +3,7 @@ const modelValue = defineModel<string>({ default: 'file-archive' })
 const color = defineModel<string | undefined>('color', { default: undefined })
 
 const ICONS = [
+  { id: 'users', label: '团队' },
   { id: 'file-archive', label: '归档' },
   { id: 'code-2', label: '代码' },
   { id: 'braces', label: '括号' },
