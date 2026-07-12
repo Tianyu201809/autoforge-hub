@@ -329,7 +329,7 @@ function cancelCaptcha() {
         :class="{ 'script-card__add-local--loading': installing }"
         :disabled="installing || downloading"
         :aria-busy="installing"
-        title="添加到本地 Autoforge"
+        title="添加到 Autoforge"
         @click="onAddToLocalClick"
       >
         <span class="script-card__add-local-shine" aria-hidden="true" />
@@ -340,7 +340,7 @@ function cancelCaptcha() {
             :class="{ 'script-card__spin': installing }"
           />
           <span class="script-card__add-local-label">
-            {{ installing ? '添加中…' : '添加到本地' }}
+            {{ installing ? '添加中…' : '添加到 Autoforge' }}
           </span>
         </span>
       </button>
@@ -752,18 +752,6 @@ function cancelCaptcha() {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
-}
-
-.script-card__desc {
-  margin: 6px 0 0;
-  font-size: var(--text-sm);
-  line-height: 1.45;
-  color: var(--text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  line-clamp: 2;
-  overflow: hidden;
 }
 
 .script-card__meta-row {
