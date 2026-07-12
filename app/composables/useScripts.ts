@@ -1,6 +1,7 @@
-﻿import type { Script, ScriptSort } from "~/types/workspace"
+﻿import type { Script, ScriptSort, ScriptListQuery, ScriptListResult } from "~/types/workspace"
 
 const API_BASE = "/api"
+const PAGE_SIZE_DEFAULT = 30
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const token = import.meta.client ? localStorage.getItem("autoforge-token") : null
@@ -18,19 +19,108 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   return data
 }
 
+function toScript(data: any): Script {
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description || "",
+    category: data.category || "",
+    language: data.language || "",
+    zipName: data.zipName ?? data.file_name ?? "",
+    zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
+    filePath: data.filePath ?? data.file_path ?? "",
+    icon: data.icon || "file-archive",
+    iconColor: data.iconColor ?? data.icon_color ?? undefined,
+    tags: (Array.isArray(data.tags) ? data.tags : []),
+    createdAt: data.createdAt ?? data.created_at ?? "",
+    updatedAt: data.updatedAt ?? data.updated_at ?? "",
+    ownerId: data.ownerId ?? data.owner_id ?? "",
+    teamId: data.teamId ?? data.team_id ?? undefined,
+  }
+}
+
 export function useScripts() {
   const scripts = useState<Script[]>("workspace-scripts", () => [])
+  const total = useState<number>("workspace-scripts-total", () => 0)
+  const hasMore = useState<boolean>("workspace-scripts-has-more", () => false)
+  const listLoading = useState<boolean>("workspace-scripts-loading", () => false)
+  const listLoadingMore = useState<boolean>("workspace-scripts-loading-more", () => false)
+  const listError = useState<string>("workspace-scripts-error", () => "")
+  const currentQuery = useState<ScriptListQuery>("workspace-scripts-query", () => ({}))
+  const currentPage = useState<number>("workspace-scripts-page", () => 0)
 
-  async function loadScripts(scope = "personal", teamId?: string) {
+  function buildQueryString(query: ScriptListQuery, page: number): string {
+    const params = new URLSearchParams()
+    if (query.teamId) params.set("teamId", query.teamId)
+    else params.set("scope", query.scope || "personal")
+    params.set("page", String(page))
+    params.set("pageSize", String(query.pageSize || PAGE_SIZE_DEFAULT))
+    if (query.q?.trim()) params.set("q", query.q.trim())
+    if (query.category) params.set("category", query.category)
+    if (query.language) params.set("language", query.language)
+    if (query.sort) params.set("sort", query.sort)
+    return `?${params.toString()}`
+  }
+
+  async function loadScripts(query: ScriptListQuery = {}): Promise<void> {
+    listLoading.value = true
+    listError.value = ""
+    currentQuery.value = { ...query }
+    currentPage.value = 1
     try {
-      const query = teamId ? `?teamId=${teamId}` : `?scope=${scope}`
-      const data = await apiFetch<any[]>(`/scripts${query}`)
-      console.log('[useScripts] loadScripts raw data:', data)
-      scripts.value = data.map(toScript)
-      console.log('[useScripts] scripts after map:', scripts.value)
+      const data = await apiFetch<ScriptListResult>(
+        `/scripts${buildQueryString(query, 1)}`
+      )
+      scripts.value = (data.items || []).map(toScript)
+      total.value = data.total
+      hasMore.value = data.hasMore
+      currentPage.value = data.page
     } catch (err: any) {
-      console.error('[useScripts] loadScripts error:', err)
+      console.error("[useScripts] loadScripts error:", err)
       scripts.value = []
+      total.value = 0
+      hasMore.value = false
+      listError.value = err?.message || "加载失败"
+    } finally {
+      listLoading.value = false
+    }
+  }
+
+  async function loadMoreScripts(): Promise<void> {
+    if (!hasMore.value || listLoading.value || listLoadingMore.value) return
+    listLoadingMore.value = true
+    listError.value = ""
+    const nextPage = currentPage.value + 1
+    try {
+      const data = await apiFetch<ScriptListResult>(
+        `/scripts${buildQueryString(currentQuery.value, nextPage)}`
+      )
+      const mapped = (data.items || []).map(toScript)
+      scripts.value = [...scripts.value, ...mapped]
+      total.value = data.total
+      hasMore.value = data.hasMore
+      currentPage.value = data.page
+    } catch (err: any) {
+      console.error("[useScripts] loadMoreScripts error:", err)
+      listError.value = err?.message || "加载更多失败"
+    } finally {
+      listLoadingMore.value = false
+    }
+  }
+
+  function patchScript(id: string, patch: Partial<Script>) {
+    const idx = scripts.value.findIndex(s => s.id === id)
+    if (idx >= 0) {
+      scripts.value[idx] = { ...scripts.value[idx], ...patch }
+    }
+  }
+
+  function removeScriptLocal(id: string) {
+    const before = scripts.value.length
+    scripts.value = scripts.value.filter(s => s.id !== id)
+    if (scripts.value.length < before) {
+      total.value = Math.max(0, total.value - 1)
+      hasMore.value = scripts.value.length < total.value
     }
   }
 
@@ -75,9 +165,7 @@ export function useScripts() {
       if (!res.ok) throw new Error(data.message || "上传失败")
 
       if (data.script) {
-        const mapped = toScript(data.script)
-        scripts.value.unshift(mapped)
-        return mapped
+        return toScript(data.script)
       }
       return null
     } catch (err: any) {
@@ -92,7 +180,7 @@ export function useScripts() {
       method: "DELETE",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).catch(() => {})
-    scripts.value = scripts.value.filter(s => s.id !== id)
+    removeScriptLocal(id)
   }
 
   function searchScripts(userId: string, query: string): Script[] {
@@ -117,28 +205,22 @@ export function useScripts() {
     }
   }
 
-function toScript(data: any): Script {
   return {
-    id: data.id,
-    title: data.title,
-    description: data.description || "",
-    category: data.category || "",
-    language: data.language || "",
-    zipName: data.zipName ?? data.file_name ?? "",
-    zipSize: (typeof data.zipSize === "number" ? data.zipSize : (typeof data.file_size === "number" ? data.file_size : 0)),
-    filePath: data.filePath ?? data.file_path ?? "",
-    icon: data.icon || 'file-archive',
-    iconColor: data.iconColor ?? data.icon_color ?? undefined,
-    tags: (Array.isArray(data.tags) ? data.tags : []),
-    createdAt: data.createdAt ?? data.created_at ?? "",
-    updatedAt: data.updatedAt ?? data.updated_at ?? "",
-    ownerId: data.ownerId ?? data.owner_id ?? "",
-    teamId: data.teamId ?? data.team_id ?? undefined,
-  }
-}
-
-  return {
-    scripts, loadScripts, getPersonalScripts, getTeamScripts,
-    addScript, deleteScript, searchScripts, sortScripts,
+    scripts,
+    total,
+    hasMore,
+    listLoading,
+    listLoadingMore,
+    listError,
+    currentQuery,
+    loadScripts,
+    loadMoreScripts,
+    getPersonalScripts,
+    getTeamScripts,
+    addScript,
+    deleteScript,
+    patchScript,
+    searchScripts,
+    sortScripts,
   }
 }
