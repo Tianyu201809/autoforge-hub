@@ -1,6 +1,6 @@
 import { getDb, saveDb } from "../../db/index"
 import { saveFile } from "../../utils/storage"
-import { parseSettings, getTeamRole, checkMemberPermission } from "../../utils/team-permissions"
+import { parseSettings, checkMemberPermission } from "../../utils/team-permissions"
 import { createAuditLog } from "../../utils/audit-log"
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
 
   const title = getField("title").trim()
   const description = getField("description").trim()
+  const readme = getField("readme")
   const tagsRaw = getField("tags")
   const category = getField("category") || ""
   const language = getField("language") || ""
@@ -25,6 +26,9 @@ export default defineEventHandler(async (event) => {
   const fileField = formData.find(f => f.name === "file")
 
   if (!title) throw createError({ statusCode: 400, message: "Please enter a script name" })
+  if (readme.length > 50000) {
+    throw createError({ statusCode: 400, message: "说明书过长（最多 50000 字符）" })
+  }
   if (!fileField || !fileField.data || !fileField.filename) {
     throw createError({ statusCode: 400, message: "Please select a .zip file" })
   }
@@ -65,8 +69,8 @@ export default defineEventHandler(async (event) => {
   const now = new Date().toISOString()
 
   db.run(
-    "INSERT INTO scripts (id, title, description, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, title, description, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, iconColor, category, language, userId, teamId, now, now]
+    "INSERT INTO scripts (id, title, description, readme, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, title, description, readme, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, iconColor, category, language, userId, teamId, now, now]
   )
   saveDb()
 
@@ -93,7 +97,7 @@ export default defineEventHandler(async (event) => {
     ok: true,
     script: {
       id, title, description, zipName: filename, zipSize: fileField.data.length,
-      icon, iconColor, tags, category, language, ownerId: userId, teamId, createdAt: now, updatedAt: now
+      icon, iconColor, tags, category, language, ownerId: userId, teamId, createdAt: now, updatedAt: now, readme
     }
   }
 })

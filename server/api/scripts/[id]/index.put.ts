@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
   const body = await readBody(event)
   const title = body?.title?.trim()
   const description = body?.description?.trim() || ""
+  const readme = typeof body?.readme === "string" ? body.readme : ""
   const tags = body?.tags || []
   const category = body?.category || ""
   const language = body?.language || ""
@@ -56,10 +57,13 @@ export default defineEventHandler(async (event) => {
   const iconColor = body?.iconColor ?? null
 
   if (!title) throw createError({ statusCode: 400, message: "请输入脚本名称" })
+  if (readme.length > 50000) {
+    throw createError({ statusCode: 400, message: "说明书过长（最多 50000 字符）" })
+  }
 
   const now = new Date().toISOString()
-  db.run("UPDATE scripts SET title = ?, description = ?, tags = ?, icon = ?, icon_color = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
-    title, description, JSON.stringify(tags), icon, iconColor, category, language, now, scriptId
+  db.run("UPDATE scripts SET title = ?, description = ?, readme = ?, tags = ?, icon = ?, icon_color = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
+    title, description, readme, JSON.stringify(tags), icon, iconColor, category, language, now, scriptId
   ])
   saveDb()
 
@@ -83,6 +87,7 @@ export default defineEventHandler(async (event) => {
             const c: string[] = []
             if (row.title !== title) c.push("title")
             if ((row.description || "") !== description) c.push("description")
+            if ((row.readme || "") !== readme) c.push("readme")
             if (JSON.stringify(JSON.parse(row.tags || "[]")) !== JSON.stringify(tags)) c.push("tags")
             if ((row.icon || "") !== icon) c.push("icon")
             return c
