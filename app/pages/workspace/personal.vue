@@ -11,7 +11,17 @@ useHead({
 })
 
 const { user } = useAuth()
-const { scripts, getPersonalScripts, deleteScript, searchScripts, sortScripts, addScript, loadScripts } = useScripts()
+const {
+  scripts,
+  hasMore,
+  listLoading,
+  listLoadingMore,
+  listError,
+  deleteScript,
+  addScript,
+  loadScripts,
+  loadMoreScripts,
+} = useScripts()
 
 const searchQuery = ref('')
 const sortBy = ref<ScriptSort>('newest')
@@ -25,36 +35,59 @@ const shareScript = ref<any>(null)
 const actionMsg = ref('')
 const actionError = ref('')
 
-// ─── Pagination ───
-const PAGE_SIZE = 5
-const currentPage = ref(1)
+// ─── Script list (server pagination) ───
+const PAGE_SIZE = 30
+const loadMoreSentinel = ref<HTMLElement | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let loadMoreObserver: IntersectionObserver | null = null
 
-const totalPages = computed(() => Math.max(1, Math.ceil(personalScripts.value.length / PAGE_SIZE)))
+function currentListQuery() {
+  return {
+    scope: 'personal' as const,
+    pageSize: PAGE_SIZE,
+    q: searchQuery.value,
+    category: filterCategory.value,
+    language: filterLanguage.value,
+    sort: sortBy.value,
+  }
+}
 
-const pagedScripts = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return personalScripts.value.slice(start, start + PAGE_SIZE)
-})
-
-// Reset to page 1 when search/sort/filter changes
-watch([searchQuery, sortBy, filterCategory, filterLanguage], () => {
-  currentPage.value = 1
-})
+function refreshScriptList() {
+  return loadScripts(currentListQuery())
+}
 
 onMounted(() => {
-  loadScripts()
-  console.log('[DIAG] scripts loaded:', scripts.value.length)
-  console.log('[DIAG] user id:', user.value?.id)
+  refreshScriptList()
+
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some(e => e.isIntersecting)) void loadMoreScripts()
+    },
+    { rootMargin: '200px' }
+  )
+  if (loadMoreSentinel.value) loadMoreObserver.observe(loadMoreSentinel.value)
 })
 
-const personalScripts = computed(() => {
-  if (!user.value) return []
-  // Explicitly track scripts ref for reactivity
-  void scripts.value
-  let result = searchScripts(user.value.id, searchQuery.value)
-  if (filterCategory.value) { result = result.filter(s => s.category === filterCategory.value) }
-  if (filterLanguage.value) { result = result.filter(s => s.language === filterLanguage.value) }
-  return sortScripts(result, sortBy.value)
+watch(loadMoreSentinel, (node, prev) => {
+  if (!loadMoreObserver) return
+  if (prev) loadMoreObserver.unobserve(prev)
+  if (node) loadMoreObserver.observe(node)
+})
+
+watch([sortBy, filterCategory, filterLanguage], () => {
+  refreshScriptList()
+})
+
+watch(searchQuery, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    refreshScriptList()
+  }, 300)
+})
+
+onBeforeUnmount(() => {
+  loadMoreObserver?.disconnect()
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
 function handleEdit(script: any) {
@@ -89,7 +122,7 @@ async function handleEditSave(payload: { id: string; title: string; description:
     })
   } catch (e) {}
   showEdit.value = false
-  loadScripts()
+  await refreshScriptList()
 }
 
 function handleDelete(id: string) {
@@ -110,7 +143,7 @@ async function handleUpload(payload: { title: string; description: string; zipNa
     payload.iconColor,
   )
   showUpload.value = false
-  loadScripts()
+  await refreshScriptList()
 }
 </script>
 
@@ -184,9 +217,13 @@ async function handleUpload(payload: { title: string; description: string; zipNa
         </div>
       </div>
 
-      <div v-if="pagedScripts.length > 0" class="ws-script-list">
+      <div v-if="listLoading && scripts.length === 0" class="ws-empty">
+        <p class="ws-empty__text">加载中…</p>
+      </div>
+
+      <div v-else-if="scripts.length > 0" class="ws-script-list">
         <WorkspaceWsScriptCard
-          v-for="script in pagedScripts"
+          v-for="script in scripts"
           :key="script.id"
           :script="script"
           :deletable="true"
@@ -221,12 +258,12 @@ async function handleUpload(payload: { title: string; description: string; zipNa
         {{ actionError }}
       </div>
 
-      <WorkspaceWsPagination
-        v-if="personalScripts.length > PAGE_SIZE"
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        @page-change="currentPage = $event"
-      />
+      <div v-if="scripts.length > 0" class="ws-load-more">
+        <div ref="loadMoreSentinel" class="ws-load-more__sentinel" aria-hidden="true" />
+        <p v-if="listLoadingMore" class="ws-load-more__text">加载中…</p>
+        <p v-else-if="!hasMore" class="ws-load-more__text">没有更多了</p>
+        <p v-else-if="listError" class="ws-load-more__text ws-load-more__text--error">{{ listError }}</p>
+      </div>
     </div>
 
     <Teleport to="body">
@@ -403,9 +440,44 @@ async function handleUpload(payload: { title: string; description: string; zipNa
 }
 
 .ws-script-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .ws-script-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ws-script-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ws-load-more {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 8px;
+}
+
+.ws-load-more__sentinel {
+  width: 100%;
+  height: 1px;
+}
+
+.ws-load-more__text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.ws-load-more__text--error {
+  color: var(--danger);
 }
 
 .ws-empty {

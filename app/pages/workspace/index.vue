@@ -8,11 +8,9 @@ useHead({
 })
 
 const { user } = useAuth()
-const { loadScripts } = useScripts()
 const { getTeamsForUser, loadTeams } = useTeams()
 
 onMounted(() => {
-  loadScripts()
   loadTeams()
 })
 

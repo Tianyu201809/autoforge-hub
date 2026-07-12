@@ -1,4 +1,4 @@
-﻿import type { Script, ScriptSort, ScriptListQuery, ScriptListResult } from "~/types/workspace"
+﻿import type { Script, ScriptListQuery, ScriptListResult } from "~/types/workspace"
 
 const API_BASE = "/api"
 const PAGE_SIZE_DEFAULT = 30
@@ -124,14 +124,6 @@ export function useScripts() {
     }
   }
 
-  function getPersonalScripts(userId: string): Script[] {
-    return scripts.value.filter(s => s.ownerId === userId && !s.teamId)
-  }
-
-  function getTeamScripts(teamId: string): Script[] {
-    return scripts.value.filter(s => s.teamId === teamId)
-  }
-
   async function addScript(
     title: string,
     description: string,
@@ -183,28 +175,6 @@ export function useScripts() {
     removeScriptLocal(id)
   }
 
-  function searchScripts(userId: string, query: string): Script[] {
-    const personal = getPersonalScripts(userId)
-    if (!query.trim()) return personal
-    const q = query.trim().toLowerCase()
-    return personal.filter(
-      s => s.title.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q)) ||
-        s.category.toLowerCase().includes(q) ||
-        s.language.toLowerCase().includes(q)
-    )
-  }
-
-  function sortScripts(list: Script[], sort: ScriptSort): Script[] {
-    const sorted = [...list]
-    switch (sort) {
-      case "newest": return sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      case "oldest": return sorted.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      case "name": return sorted.sort((a, b) => a.title.localeCompare(b.title))
-    }
-  }
-
   return {
     scripts,
     total,
@@ -215,12 +185,8 @@ export function useScripts() {
     currentQuery,
     loadScripts,
     loadMoreScripts,
-    getPersonalScripts,
-    getTeamScripts,
     addScript,
     deleteScript,
     patchScript,
-    searchScripts,
-    sortScripts,
   }
 }
