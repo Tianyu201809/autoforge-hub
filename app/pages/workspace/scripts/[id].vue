@@ -225,25 +225,21 @@ onMounted(() => {
 
             <div class="script-detail__people">
               <div class="script-detail__person">
-                <span class="script-detail__person-label">上传者</span>
-                <div class="script-detail__person-row">
-                  <img v-if="script.ownerAvatarUrl" :src="ownerAvatar()" alt="" class="script-detail__avatar">
-                  <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(ownerName()) }}</span>
-                  <span class="script-detail__person-name">{{ ownerName() }}</span>
-                </div>
+                <span class="script-detail__person-label">上传者：</span>
+                <img v-if="script.ownerAvatarUrl" :src="ownerAvatar()" alt="" class="script-detail__avatar">
+                <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(ownerName()) }}</span>
+                <span class="script-detail__person-name">{{ ownerName() }}</span>
               </div>
               <div class="script-detail__person">
-                <span class="script-detail__person-label">最后一次修改者</span>
-                <div class="script-detail__person-row">
-                  <img
-                    v-if="script.updaterAvatarUrl || script.ownerAvatarUrl"
-                    :src="updaterAvatar()"
-                    alt=""
-                    class="script-detail__avatar"
-                  >
-                  <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(updaterName()) }}</span>
-                  <span class="script-detail__person-name">{{ updaterName() }}</span>
-                </div>
+                <span class="script-detail__person-label">最后一次修改者：</span>
+                <img
+                  v-if="script.updaterAvatarUrl || script.ownerAvatarUrl"
+                  :src="updaterAvatar()"
+                  alt=""
+                  class="script-detail__avatar"
+                >
+                <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(updaterName()) }}</span>
+                <span class="script-detail__person-name">{{ updaterName() }}</span>
               </div>
             </div>
 
