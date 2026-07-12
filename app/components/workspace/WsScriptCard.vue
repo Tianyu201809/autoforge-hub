@@ -185,127 +185,131 @@ function cancelCaptcha() {
 
 <template>
   <div class="script-card">
-    <div class="script-card__icon">
-      <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" class="script-card__archive-icon" :style="script.iconColor ? { color: script.iconColor } : undefined" />
-    </div>
-
-    <div class="script-card__body">
-      <div class="script-card__title-row">
-        <h3 class="script-card__title">{{ script.title }}</h3>
-        <div v-if="deletable || editable || copyable || shareable" class="script-card__actions">
-          <button
-            v-if="shareable"
-            type="button"
-            class="script-card__share"
-            title="分享到团队"
-            @click="emit('share', script)"
-          >
-            <Icon name="lucide:share-2" size="15" />
-          </button>
-          <button
-            v-if="copyable"
-            type="button"
-            class="script-card__copy"
-            title="复制到我的空间"
-            @click="emit('copy', script)"
-          >
-            <Icon name="lucide:copy-plus" size="15" />
-          </button>
-          <button
-            v-if="editable"
-            type="button"
-            class="script-card__edit"
-            title="编辑脚本"
-            @click="emit('edit', script)"
-          >
-            <Icon name="lucide:pencil" size="15" />
-          </button>
-          <button
-            v-if="deletable"
-            type="button"
-            class="script-card__delete"
-            title="删除脚本"
-            @click="handleDelete"
-          >
-            <Icon name="lucide:trash-2" size="15" />
-          </button>
-        </div>
+    <div class="script-card__header">
+      <div class="script-card__heading">
+        <h3 class="script-card__title" :title="script.title">{{ script.title }}</h3>
+        <p v-if="script.description" class="script-card__desc">{{ script.description }}</p>
       </div>
-
-      <p v-if="script.description" class="script-card__desc">{{ script.description }}</p>
-
-      <div v-if="script.category || script.language" class="script-card__meta-tags">
-        <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
-        <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
-      </div>
-
-      <div class="script-card__meta">
-        <span class="script-card__meta-item">
-          <Icon name="lucide:file" size="13" />
-          {{ script.zipName }}
-        </span>
-        <span class="script-card__meta-item">
-          <Icon name="lucide:hard-drive" size="13" />
-          {{ formatSize(script.zipSize) }}
-        </span>
-        <span class="script-card__meta-item">
-          <Icon name="lucide:calendar" size="13" />
-          {{ formatDate(script.createdAt) }}
-        </span>
-        <div v-if="downloadable !== false" class="script-card__meta-actions">
-          <button
-            type="button"
-            class="script-card__download"
-            :disabled="downloading || installing"
-            title="下载脚本"
-            @click="handleDownload"
-          >
-            <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="13" :class="{ 'script-card__spin': downloading }" />
-            {{ downloading ? '下载中...' : '下载' }}
-          </button>
-          <button
-            type="button"
-            class="script-card__add-local"
-            :class="{ 'script-card__add-local--loading': installing }"
-            :disabled="installing || downloading"
-            :aria-busy="installing"
-            title="添加到本地 Autoforge"
-            @click="onAddToLocalClick"
-          >
-            <span class="script-card__add-local-shine" aria-hidden="true" />
-            <span class="script-card__add-local-inner">
-              <Icon
-                :name="installing ? 'lucide:loader-circle' : 'lucide:monitor-down'"
-                size="14"
-                :class="{ 'script-card__spin': installing }"
-              />
-              <span class="script-card__add-local-label">
-                {{ installing ? '添加中…' : '添加到本地 Autoforge' }}
-              </span>
-            </span>
-          </button>
-        </div>
-        <p v-if="quotaError" class="script-card__quota-error">{{ quotaError }}</p>
-        <p
-          v-if="installMessage"
-          class="script-card__install-msg"
-          :class="{ 'script-card__install-msg--error': installMessageIsError }"
-          role="status"
-        >
-          {{ installMessage }}
-        </p>
-      </div>
-
-      <div v-if="script.tags.length" class="script-card__tags">
-        <span
-          v-for="tag in script.tags"
-          :key="tag"
-          class="script-card__tag"
-        >
-          {{ tag }}
-        </span>
+      <div class="script-card__icon" aria-hidden="true">
+        <Icon
+          :name="`lucide:${script.icon || 'file-archive'}`"
+          size="22"
+          class="script-card__archive-icon"
+          :style="script.iconColor ? { color: script.iconColor } : undefined"
+        />
       </div>
     </div>
+
+    <div class="script-card__meta-row">
+      <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
+      <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
+      <span class="script-card__meta-item">
+        <Icon name="lucide:hard-drive" size="12" />
+        {{ formatSize(script.zipSize) }}
+      </span>
+    </div>
+
+    <div v-if="script.tags.length" class="script-card__tags">
+      <span
+        v-for="tag in script.tags.slice(0, 4)"
+        :key="tag"
+        class="script-card__tag"
+      >
+        {{ tag }}
+      </span>
+      <span v-if="script.tags.length > 4" class="script-card__tag script-card__tag--more">
+        +{{ script.tags.length - 4 }}
+      </span>
+    </div>
+
+    <div class="script-card__footer">
+      <span class="script-card__time">
+        <Icon name="lucide:clock" size="12" />
+        {{ formatDate(script.updatedAt || script.createdAt) }}
+      </span>
+      <div v-if="deletable || editable || copyable || shareable" class="script-card__actions">
+        <button
+          v-if="shareable"
+          type="button"
+          class="script-card__share"
+          title="分享到团队"
+          @click="emit('share', script)"
+        >
+          <Icon name="lucide:share-2" size="14" />
+        </button>
+        <button
+          v-if="copyable"
+          type="button"
+          class="script-card__copy"
+          title="复制到我的空间"
+          @click="emit('copy', script)"
+        >
+          <Icon name="lucide:copy-plus" size="14" />
+        </button>
+        <button
+          v-if="editable"
+          type="button"
+          class="script-card__edit"
+          title="编辑脚本"
+          @click="emit('edit', script)"
+        >
+          <Icon name="lucide:pencil" size="14" />
+        </button>
+        <button
+          v-if="deletable"
+          type="button"
+          class="script-card__delete"
+          title="删除脚本"
+          @click="handleDelete"
+        >
+          <Icon name="lucide:trash-2" size="14" />
+        </button>
+      </div>
+    </div>
+
+    <div v-if="downloadable !== false" class="script-card__cta">
+      <button
+        type="button"
+        class="script-card__download"
+        :disabled="downloading || installing"
+        title="下载脚本"
+        @click="handleDownload"
+      >
+        <Icon :name="downloading ? 'lucide:loader-circle' : 'lucide:download'" size="14" :class="{ 'script-card__spin': downloading }" />
+        {{ downloading ? '下载中...' : '下载' }}
+      </button>
+      <button
+        type="button"
+        class="script-card__add-local"
+        :class="{ 'script-card__add-local--loading': installing }"
+        :disabled="installing || downloading"
+        :aria-busy="installing"
+        title="添加到本地 Autoforge"
+        @click="onAddToLocalClick"
+      >
+        <span class="script-card__add-local-shine" aria-hidden="true" />
+        <span class="script-card__add-local-inner">
+          <Icon
+            :name="installing ? 'lucide:loader-circle' : 'lucide:monitor-down'"
+            size="14"
+            :class="{ 'script-card__spin': installing }"
+          />
+          <span class="script-card__add-local-label">
+            {{ installing ? '添加中…' : '添加到本地' }}
+          </span>
+        </span>
+      </button>
+    </div>
+
+    <p v-if="quotaError" class="script-card__quota-error">{{ quotaError }}</p>
+    <p
+      v-if="installMessage"
+      class="script-card__install-msg"
+      :class="{ 'script-card__install-msg--error': installMessageIsError }"
+      role="status"
+    >
+      {{ installMessage }}
+    </p>
   </div>
 
   <!-- ═══ Delete Confirmation Modal ═══ -->
@@ -371,26 +375,56 @@ function cancelCaptcha() {
 <style scoped>
 .script-card {
   display: flex;
-  gap: 14px;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
   animation: cardReveal 0.35s ease both;
 }
 
 .script-card:hover {
   border-color: var(--border-accent);
   box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.script-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.script-card__heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.script-card__title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .script-card__icon {
-  display: flex;
-  align-items: flex-start;
   flex-shrink: 0;
-  padding-top: 2px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
 }
 
 .script-card__archive-icon {
@@ -398,37 +432,11 @@ function cancelCaptcha() {
   filter: var(--icon-accent-filter);
 }
 
-.script-card__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.script-card__title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.script-card__title {
-  margin: 0;
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .script-card__actions {
   display: flex;
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  margin-left: auto;
 }
 
 .script-card__edit {
@@ -685,10 +693,10 @@ function cancelCaptcha() {
 }
 
 .script-card__desc {
-  margin: 0;
+  margin: 6px 0 0;
   font-size: var(--text-sm);
-  line-height: var(--leading-snug);
-  color: var(--text-secondary);
+  line-height: 1.45;
+  color: var(--text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -696,12 +704,11 @@ function cancelCaptcha() {
   overflow: hidden;
 }
 
-.script-card__meta {
+.script-card__meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 4px;
-  min-width: 0;
+  align-items: center;
+  gap: 6px;
 }
 
 .script-card__meta-item {
@@ -711,40 +718,57 @@ function cancelCaptcha() {
   font-size: var(--text-xs);
   color: var(--text-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
-.script-card__meta-item:first-child {
-  max-width: 240px;
+.script-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
-.script-card__meta-actions {
+.script-card__time {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  margin-left: auto;
-  flex-wrap: wrap;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.script-card__cta {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
 }
 
 .script-card__download {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 0;
-  border: none;
-  background: none;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
   font-family: inherit;
   font-size: var(--text-xs);
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--text);
   white-space: nowrap;
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: border-color 0.12s, background 0.12s;
 }
 
-.script-card__download:hover {
-  opacity: 0.75;
+.script-card__download:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .script-card__download:disabled {
@@ -757,6 +781,7 @@ function cancelCaptcha() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 28px;
   padding: 0 10px;
   overflow: hidden;
@@ -844,24 +869,12 @@ function cancelCaptcha() {
 }
 
 .script-card__quota-error {
-  margin: 0 0 0 8px;
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--danger);
-  white-space: nowrap;
 }
 
-.script-card__meta-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-.script-card__cat-badge { padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); border: 1px solid var(--accent-border); font-size: 0.6875rem; font-weight: 600; color: var(--accent); white-space: nowrap; }
-.script-card__lang-badge { padding: 2px 8px; border-radius: 999px; background: var(--secondary-soft); border: 1px solid var(--secondary-border); font-size: 0.6875rem; font-weight: 600; color: var(--secondary); white-space: nowrap; }
-
-.script-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 2px;
-}
-
-.script-card__tag {
+.script-card__cat-badge {
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--accent-soft);
@@ -870,6 +883,38 @@ function cancelCaptcha() {
   font-weight: 600;
   color: var(--accent);
   white-space: nowrap;
+}
+
+.script-card__lang-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--secondary-soft);
+  border: 1px solid var(--secondary-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--secondary);
+  white-space: nowrap;
+}
+
+.script-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.script-card__tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.script-card__tag--more {
+  color: var(--text-muted);
 }
 
 @keyframes cardReveal {
