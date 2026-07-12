@@ -217,33 +217,35 @@ function cancelCaptcha() {
     <div class="script-card__meta-row">
       <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
       <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
-      <span class="script-card__meta-item">
-        <Icon name="lucide:hard-drive" size="12" />
-        {{ formatSize(script.zipSize) }}
-      </span>
     </div>
 
-    <div class="script-card__owner">
-      <img
-        v-if="script.ownerAvatarUrl"
-        :src="ownerAvatar()"
-        alt=""
-        class="script-card__owner-avatar"
-      >
-      <span v-else class="script-card__owner-fallback">{{ initials(ownerName()) }}</span>
-      <span class="script-card__owner-name">{{ ownerName() }}</span>
-    </div>
-
-    <div class="script-card__dates">
-      <span title="上传日期">
-        <Icon name="lucide:upload" size="12" />
-        {{ formatDate(script.createdAt) }}
-      </span>
-      <span title="最近修改">
-        <Icon name="lucide:pencil" size="12" />
-        {{ formatDate(script.updatedAt || script.createdAt) }}
-      </span>
-    </div>
+    <dl class="script-card__info">
+      <div class="script-card__info-row">
+        <dt>大小</dt>
+        <dd>{{ formatSize(script.zipSize) }}</dd>
+      </div>
+      <div class="script-card__info-row">
+        <dt>上传者</dt>
+        <dd class="script-card__owner">
+          <img
+            v-if="script.ownerAvatarUrl"
+            :src="ownerAvatar()"
+            alt=""
+            class="script-card__owner-avatar"
+          >
+          <span v-else class="script-card__owner-fallback">{{ initials(ownerName()) }}</span>
+          <span class="script-card__owner-name" :title="ownerName()">{{ ownerName() }}</span>
+        </dd>
+      </div>
+      <div class="script-card__info-row">
+        <dt>上传</dt>
+        <dd>{{ formatDate(script.createdAt) }}</dd>
+      </div>
+      <div class="script-card__info-row">
+        <dt>修改</dt>
+        <dd>{{ formatDate(script.updatedAt || script.createdAt) }}</dd>
+      </div>
+    </dl>
 
     <div v-if="script.tags.length" class="script-card__tags">
       <span
@@ -259,6 +261,10 @@ function cancelCaptcha() {
     </div>
 
     <div class="script-card__footer">
+      <NuxtLink :to="`/workspace/scripts/${script.id}`" class="script-card__detail">
+        <Icon name="lucide:panel-right" size="14" />
+        详情
+      </NuxtLink>
       <div v-if="deletable || editable || copyable || shareable" class="script-card__actions">
         <button
           v-if="shareable"
@@ -300,10 +306,6 @@ function cancelCaptcha() {
     </div>
 
     <div v-if="downloadable !== false" class="script-card__cta">
-      <NuxtLink :to="`/workspace/scripts/${script.id}`" class="script-card__detail">
-        <Icon name="lucide:panel-right" size="14" />
-        详情
-      </NuxtLink>
       <button
         type="button"
         class="script-card__download"
@@ -759,16 +761,48 @@ function cancelCaptcha() {
 .script-card__footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 8px;
+}
+
+.script-card__info {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.script-card__info-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.script-card__info-row dt {
+  margin: 0;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.script-card__info-row dd {
+  margin: 0;
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .script-card__owner {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .script-card__owner-avatar,
@@ -792,30 +826,14 @@ function cancelCaptcha() {
 }
 
 .script-card__owner-name {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.script-card__dates {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.script-card__dates span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .script-card__cta {
   display: grid;
-  grid-template-columns: auto 1fr 1.2fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
   gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
@@ -827,7 +845,7 @@ function cancelCaptcha() {
   justify-content: center;
   gap: 4px;
   min-height: 28px;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -836,11 +854,18 @@ function cancelCaptcha() {
   font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .script-card__detail:hover {
   border-color: var(--accent-border);
   color: var(--accent);
+}
+
+.script-card__add-local-label {
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .script-card__download {
