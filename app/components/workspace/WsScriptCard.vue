@@ -129,10 +129,14 @@ function formatSize(bytes: number): string {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('zh-CN', {
+  return new Date(iso).toLocaleString('zh-CN', {
     year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
   })
 }
 
@@ -200,10 +204,7 @@ function cancelCaptcha() {
 <template>
   <div class="script-card">
     <div class="script-card__header">
-      <div class="script-card__heading">
-        <h3 class="script-card__title" :title="script.title">{{ script.title }}</h3>
-        <p v-if="script.description" class="script-card__desc">{{ script.description }}</p>
-      </div>
+      <h3 class="script-card__title" :title="script.title">{{ script.title }}</h3>
       <div class="script-card__icon" aria-hidden="true">
         <Icon
           :name="`lucide:${script.icon || 'file-archive'}`"
@@ -213,6 +214,12 @@ function cancelCaptcha() {
         />
       </div>
     </div>
+
+    <div class="script-card__divider" aria-hidden="true" />
+
+    <p v-if="script.description" class="script-card__desc" :title="script.description">
+      {{ script.description }}
+    </p>
 
     <div class="script-card__meta-row">
       <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
@@ -433,20 +440,18 @@ function cancelCaptcha() {
 
 .script-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.script-card__heading {
-  min-width: 0;
-  flex: 1;
-}
-
 .script-card__title {
   margin: 0;
+  min-width: 0;
+  flex: 1;
   font-size: var(--text-base);
   font-weight: 700;
+  line-height: 1.35;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -455,14 +460,33 @@ function cancelCaptcha() {
 
 .script-card__icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
   background: var(--bg-muted);
   border: 1px solid var(--border);
+}
+
+.script-card__divider {
+  height: 1px;
+  margin: 2px 0;
+  background: var(--border);
+}
+
+.script-card__desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-clamp: 3;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .script-card__archive-icon {
