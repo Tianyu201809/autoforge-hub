@@ -100,6 +100,9 @@ export async function getDb(): Promise<SqlJsDbType> {
   // Migration: add icon_color to scripts
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN icon_color TEXT DEFAULT NULL") } catch (e) {}
 
+  // Migration: script readme (Markdown docs)
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN readme TEXT NOT NULL DEFAULT ''") } catch (e) {}
+
   // audit_logs table
   _sqlDb.run(`
     CREATE TABLE IF NOT EXISTS audit_logs (

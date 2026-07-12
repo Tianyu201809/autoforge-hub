@@ -13,7 +13,10 @@ export interface Script {
   createdAt: string
   updatedAt: string
   ownerId: string
+  ownerDisplayName?: string
+  ownerAvatarUrl?: string
   teamId?: string
+  readme: string
 }
 
 export interface StoredScript {
@@ -32,6 +35,9 @@ export interface StoredScript {
   updatedAt: string
   ownerId: string
   teamId?: string
+  readme: string
+  ownerDisplayName?: string
+  ownerAvatarUrl?: string
 }
 
 export interface Team {
