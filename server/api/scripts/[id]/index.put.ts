@@ -62,8 +62,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date().toISOString()
-  db.run("UPDATE scripts SET title = ?, description = ?, readme = ?, tags = ?, icon = ?, icon_color = ?, category = ?, language = ?, updated_at = ? WHERE id = ?", [
-    title, description, readme, JSON.stringify(tags), icon, iconColor, category, language, now, scriptId
+  db.run("UPDATE scripts SET title = ?, description = ?, readme = ?, tags = ?, icon = ?, icon_color = ?, category = ?, language = ?, updated_at = ?, updated_by = ? WHERE id = ?", [
+    title, description, readme, JSON.stringify(tags), icon, iconColor, category, language, now, userId, scriptId
   ])
   saveDb()
 

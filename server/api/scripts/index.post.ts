@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
   const now = new Date().toISOString()
 
   db.run(
-    "INSERT INTO scripts (id, title, description, readme, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    [id, title, description, readme, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, iconColor, category, language, userId, teamId, now, now]
+    "INSERT INTO scripts (id, title, description, readme, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [id, title, description, readme, filename, fileField.data.length, filePath, JSON.stringify(tags), icon, iconColor, category, language, userId, teamId, now, now, userId]
   )
   saveDb()
 

@@ -73,6 +73,14 @@ function ownerAvatar() {
   return getAvatarSrc(script.value?.ownerAvatarUrl)
 }
 
+function updaterName() {
+  return script.value?.updaterDisplayName || script.value?.ownerDisplayName || "未知用户"
+}
+
+function updaterAvatar() {
+  return getAvatarSrc(script.value?.updaterAvatarUrl || script.value?.ownerAvatarUrl)
+}
+
 function initials(name: string) {
   const t = name.trim()
   return t ? t.slice(0, 1).toUpperCase() : "?"
@@ -88,10 +96,12 @@ function formatDate(iso: string): string {
   if (!iso) return "未知"
   return new Date(iso).toLocaleString("zh-CN", {
     year: "numeric",
-    month: "short",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   })
 }
 
@@ -213,12 +223,27 @@ onMounted(() => {
               </div>
             </dl>
 
-            <div class="script-detail__owner">
-              <span class="script-detail__owner-label">作者</span>
-              <div class="script-detail__owner-row">
-                <img v-if="script.ownerAvatarUrl" :src="ownerAvatar()" alt="" class="script-detail__avatar">
-                <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(ownerName()) }}</span>
-                <span class="script-detail__owner-name">{{ ownerName() }}</span>
+            <div class="script-detail__people">
+              <div class="script-detail__person">
+                <span class="script-detail__person-label">上传者</span>
+                <div class="script-detail__person-row">
+                  <img v-if="script.ownerAvatarUrl" :src="ownerAvatar()" alt="" class="script-detail__avatar">
+                  <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(ownerName()) }}</span>
+                  <span class="script-detail__person-name">{{ ownerName() }}</span>
+                </div>
+              </div>
+              <div class="script-detail__person">
+                <span class="script-detail__person-label">最后一次修改者</span>
+                <div class="script-detail__person-row">
+                  <img
+                    v-if="script.updaterAvatarUrl || script.ownerAvatarUrl"
+                    :src="updaterAvatar()"
+                    alt=""
+                    class="script-detail__avatar"
+                  >
+                  <span v-else class="script-detail__avatar script-detail__avatar--fallback">{{ initials(updaterName()) }}</span>
+                  <span class="script-detail__person-name">{{ updaterName() }}</span>
+                </div>
               </div>
             </div>
 
@@ -405,19 +430,25 @@ onMounted(() => {
   text-align: right;
 }
 
-.script-detail__owner {
+.script-detail__people {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.script-detail__person {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.script-detail__owner-label {
+.script-detail__person-label {
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: 700;
 }
 
-.script-detail__owner-row {
+.script-detail__person-row {
   display: flex;
   align-items: center;
   gap: 9px;
@@ -428,6 +459,7 @@ onMounted(() => {
   height: 28px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .script-detail__avatar--fallback {
@@ -441,10 +473,13 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.script-detail__owner-name {
+.script-detail__person-name {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .script-detail__tags {

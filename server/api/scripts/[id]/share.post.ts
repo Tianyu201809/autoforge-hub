@@ -65,8 +65,8 @@ export default defineEventHandler(async (event) => {
   const newId = crypto.randomUUID()
   const now = new Date().toISOString()
   db.run(
-    `INSERT INTO scripts (id, title, description, readme, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO scripts (id, title, description, readme, file_name, file_size, file_path, tags, icon, icon_color, category, language, owner_id, team_id, created_at, updated_at, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       newId,
       source.title,
@@ -84,6 +84,7 @@ export default defineEventHandler(async (event) => {
       teamId,
       now,
       now,
+      userId,
     ]
   )
   saveDb()

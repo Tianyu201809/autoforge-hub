@@ -18,8 +18,11 @@ function mapScriptRow(row: any) {
     teamId: row.team_id || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    updatedBy: row.updated_by || row.owner_id || undefined,
     ownerDisplayName: row.owner_display_name || "未知用户",
     ownerAvatarUrl: row.owner_avatar_url || "",
+    updaterDisplayName: row.updater_display_name || row.owner_display_name || "未知用户",
+    updaterAvatarUrl: row.updater_avatar_url || row.owner_avatar_url || "",
   }
 }
 
@@ -32,9 +35,14 @@ export default defineEventHandler(async (event) => {
 
   const db = await getDb()
   const stmt = db.prepare(
-    `SELECT s.*, u.display_name AS owner_display_name, u.avatar_url AS owner_avatar_url
+    `SELECT s.*,
+            u.display_name AS owner_display_name,
+            u.avatar_url AS owner_avatar_url,
+            uu.display_name AS updater_display_name,
+            uu.avatar_url AS updater_avatar_url
      FROM scripts s
      LEFT JOIN users u ON u.id = s.owner_id
+     LEFT JOIN users uu ON uu.id = COALESCE(NULLIF(s.updated_by, ''), s.owner_id)
      WHERE s.id = ?`
   )
   stmt.bind([scriptId])

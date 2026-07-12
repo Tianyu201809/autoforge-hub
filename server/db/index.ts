@@ -103,6 +103,12 @@ export async function getDb(): Promise<SqlJsDbType> {
   // Migration: script readme (Markdown docs)
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN readme TEXT NOT NULL DEFAULT ''") } catch (e) {}
 
+  // Migration: last editor of script metadata
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN updated_by TEXT DEFAULT NULL") } catch (e) {}
+  try {
+    _sqlDb.run("UPDATE scripts SET updated_by = owner_id WHERE updated_by IS NULL OR updated_by = ''")
+  } catch (e) {}
+
   // audit_logs table
   _sqlDb.run(`
     CREATE TABLE IF NOT EXISTS audit_logs (
