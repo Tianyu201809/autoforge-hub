@@ -452,6 +452,14 @@ onMounted(() => {
   white-space: nowrap;
 }
 
+.script-detail__person-value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
 .script-detail__avatar {
   width: 24px;
   height: 24px;
