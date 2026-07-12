@@ -24,6 +24,7 @@ function toScript(data: any): Script {
     id: data.id,
     title: data.title,
     description: data.description || "",
+    readme: data.readme || "",
     category: data.category || "",
     language: data.language || "",
     zipName: data.zipName ?? data.file_name ?? "",
@@ -36,6 +37,8 @@ function toScript(data: any): Script {
     updatedAt: data.updatedAt ?? data.updated_at ?? "",
     ownerId: data.ownerId ?? data.owner_id ?? "",
     teamId: data.teamId ?? data.team_id ?? undefined,
+    ownerDisplayName: data.ownerDisplayName ?? data.owner_display_name ?? undefined,
+    ownerAvatarUrl: data.ownerAvatarUrl ?? data.owner_avatar_url ?? undefined,
   }
 }
 
@@ -134,11 +137,13 @@ export function useScripts() {
     zipFile: File,
     teamId?: string,
     iconColor?: string,
+    readme = "",
   ): Promise<Script | null> {
     try {
       const formData = new FormData()
       formData.append("title", title)
       formData.append("description", description)
+      formData.append("readme", readme)
       formData.append("tags", JSON.stringify(tags))
       formData.append("category", category)
       formData.append("language", language)
@@ -166,6 +171,11 @@ export function useScripts() {
     }
   }
 
+  async function fetchScript(id: string): Promise<Script> {
+    const data = await apiFetch<any>(`/scripts/${id}`)
+    return toScript(data)
+  }
+
   function deleteScript(id: string) {
     const token = localStorage.getItem("autoforge-token")
     fetch(`/api/scripts/${id}`, {
@@ -188,5 +198,6 @@ export function useScripts() {
     addScript,
     deleteScript,
     patchScript,
+    fetchScript,
   }
 }

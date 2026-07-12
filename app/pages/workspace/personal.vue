@@ -112,13 +112,13 @@ function onShareCancel() {
   shareScript.value = null
 }
 
-async function handleEditSave(payload: { id: string; title: string; description: string; tags: string[]; icon: string; iconColor?: string; category: string; language: string }) {
+async function handleEditSave(payload: { id: string; title: string; description: string; readme: string; tags: string[]; icon: string; iconColor?: string; category: string; language: string }) {
   const token = localStorage.getItem("autoforge-token")
   try {
     await fetch("/api/scripts/" + payload.id, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      body: JSON.stringify({ title: payload.title, description: payload.description, tags: payload.tags, icon: payload.icon, iconColor: payload.iconColor, category: payload.category, language: payload.language })
+      body: JSON.stringify({ title: payload.title, description: payload.description, readme: payload.readme, tags: payload.tags, icon: payload.icon, iconColor: payload.iconColor, category: payload.category, language: payload.language })
     })
   } catch (e) {}
   showEdit.value = false
@@ -129,7 +129,7 @@ function handleDelete(id: string) {
   deleteScript(id)
 }
 
-async function handleUpload(payload: { title: string; description: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string; icon: string; iconColor?: string }) {
+async function handleUpload(payload: { title: string; description: string; readme: string; zipName: string; zipSize: number; tags: string[]; file: File; category: string; language: string; icon: string; iconColor?: string }) {
   if (!user.value) return
   await addScript(
     payload.title,
@@ -141,6 +141,7 @@ async function handleUpload(payload: { title: string; description: string; zipNa
     payload.file,
     undefined,
     payload.iconColor,
+    payload.readme || '',
   )
   showUpload.value = false
   await refreshScriptList()

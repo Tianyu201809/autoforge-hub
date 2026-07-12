@@ -26,9 +26,23 @@ const usedToday = ref(0)
 
 const { checkHealth, installScript } = useAutoforgeBridge()
 const { showTip } = useTip()
+const { getAvatarSrc } = useAuth()
 const installing = ref(false)
 const installMessage = ref('')
 const installMessageIsError = ref(false)
+
+function ownerName() {
+  return props.script.ownerDisplayName || '未知用户'
+}
+
+function ownerAvatar() {
+  return getAvatarSrc(props.script.ownerAvatarUrl)
+}
+
+function initials(name: string) {
+  const t = name.trim()
+  return t ? t.slice(0, 1).toUpperCase() : '?'
+}
 
 const ADD_DEBOUNCE_MS = 3000
 let lastAddClickAt = 0
@@ -209,6 +223,28 @@ function cancelCaptcha() {
       </span>
     </div>
 
+    <div class="script-card__owner">
+      <img
+        v-if="script.ownerAvatarUrl"
+        :src="ownerAvatar()"
+        alt=""
+        class="script-card__owner-avatar"
+      >
+      <span v-else class="script-card__owner-fallback">{{ initials(ownerName()) }}</span>
+      <span class="script-card__owner-name">{{ ownerName() }}</span>
+    </div>
+
+    <div class="script-card__dates">
+      <span title="上传日期">
+        <Icon name="lucide:upload" size="12" />
+        {{ formatDate(script.createdAt) }}
+      </span>
+      <span title="最近修改">
+        <Icon name="lucide:pencil" size="12" />
+        {{ formatDate(script.updatedAt || script.createdAt) }}
+      </span>
+    </div>
+
     <div v-if="script.tags.length" class="script-card__tags">
       <span
         v-for="tag in script.tags.slice(0, 4)"
@@ -223,10 +259,6 @@ function cancelCaptcha() {
     </div>
 
     <div class="script-card__footer">
-      <span class="script-card__time">
-        <Icon name="lucide:clock" size="12" />
-        {{ formatDate(script.updatedAt || script.createdAt) }}
-      </span>
       <div v-if="deletable || editable || copyable || shareable" class="script-card__actions">
         <button
           v-if="shareable"
@@ -268,6 +300,10 @@ function cancelCaptcha() {
     </div>
 
     <div v-if="downloadable !== false" class="script-card__cta">
+      <NuxtLink :to="`/workspace/scripts/${script.id}`" class="script-card__detail">
+        <Icon name="lucide:panel-right" size="14" />
+        详情
+      </NuxtLink>
       <button
         type="button"
         class="script-card__download"
@@ -723,26 +759,88 @@ function cancelCaptcha() {
 .script-card__footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px;
   margin-top: auto;
   padding-top: 4px;
 }
 
-.script-card__time {
+.script-card__owner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.script-card__owner-avatar,
+.script-card__owner-fallback {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.script-card__owner-fallback {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.script-card__owner-name {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.script-card__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
 
+.script-card__dates span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .script-card__cta {
   display: grid;
-  grid-template-columns: 1fr 1.4fr;
+  grid-template-columns: auto 1fr 1.2fr;
   gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
+}
+
+.script-card__detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.script-card__detail:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .script-card__download {
