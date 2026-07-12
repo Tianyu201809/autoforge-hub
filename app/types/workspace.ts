@@ -82,6 +82,25 @@ export interface AuditLog {
 export type WorkspaceTab = 'personal' | 'teams'
 export type ScriptSort = 'newest' | 'oldest' | 'name'
 
+export type ScriptListQuery = {
+  scope?: 'personal'
+  teamId?: string
+  page?: number
+  pageSize?: number
+  q?: string
+  category?: string
+  language?: string
+  sort?: ScriptSort
+}
+
+export type ScriptListResult = {
+  items: Script[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
+}
+
 export const SCRIPT_CATEGORIES = [
   '数据处理', '自动化', 'DevOps', 'Web 开发', 'AI/ML',
   '数据库', '监控', '安全', '测试', '其他'
