@@ -839,6 +839,10 @@ function cancelCaptcha() {
   border-top: 1px solid var(--border);
 }
 
+.script-card__cta > * {
+  min-width: 0;
+}
+
 .script-card__detail {
   display: inline-flex;
   align-items: center;
@@ -905,8 +909,9 @@ function cancelCaptcha() {
   align-items: center;
   justify-content: center;
   width: 100%;
+  min-width: 0;
   min-height: 28px;
-  padding: 0 10px;
+  padding: 0 8px;
   overflow: hidden;
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
