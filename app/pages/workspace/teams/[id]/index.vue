@@ -29,10 +29,15 @@ const {
 const { copyToClipboard } = useClipboard()
 
 const {
-  getTeamScripts,
+  scripts,
+  hasMore,
+  listLoading,
+  listLoadingMore,
+  listError,
   addScript,
   deleteScript,
   loadScripts,
+  loadMoreScripts,
 } = useScripts()
 
 const searchQuery = ref('')
@@ -47,21 +52,26 @@ const actionSuccess = ref('')
 const sectionMembersOpen = ref(true)
 const sectionPermissionsOpen = ref(true)
 
-// ─── Pagination ───
-const PAGE_SIZE = 5
-const currentPage = ref(1)
+// ─── Script list (server pagination) ───
+const PAGE_SIZE = 30
+const loadMoreSentinel = ref<HTMLElement | null>(null)
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+let loadMoreObserver: IntersectionObserver | null = null
 
-const totalPages = computed(() => Math.max(1, Math.ceil(teamScripts.value.length / PAGE_SIZE)))
+function currentListQuery() {
+  return {
+    teamId: teamId.value,
+    pageSize: PAGE_SIZE,
+    q: searchQuery.value,
+    category: filterCategory.value,
+    language: filterLanguage.value,
+    sort: sortBy.value,
+  }
+}
 
-const pagedScripts = computed(() => {
-  const start = (currentPage.value - 1) * PAGE_SIZE
-  return teamScripts.value.slice(start, start + PAGE_SIZE)
-})
-
-// Reset to page 1 when search/sort/filter changes
-watch([searchQuery, sortBy, filterCategory, filterLanguage], () => {
-  currentPage.value = 1
-})
+function refreshScriptList() {
+  return loadScripts(currentListQuery())
+}
 
 // Team detail (includes members, settings, currentUserRole)
 const teamDetail = ref<any>(null)
@@ -82,8 +92,43 @@ async function refreshDetail() {
 
 onMounted(() => {
   loadTeams()
-  loadScripts("team", teamId.value)
+  refreshScriptList()
   refreshDetail()
+
+  loadMoreObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some(e => e.isIntersecting)) void loadMoreScripts()
+    },
+    { rootMargin: '200px' }
+  )
+  if (loadMoreSentinel.value) loadMoreObserver.observe(loadMoreSentinel.value)
+})
+
+watch(loadMoreSentinel, (node, prev) => {
+  if (!loadMoreObserver) return
+  if (prev) loadMoreObserver.unobserve(prev)
+  if (node) loadMoreObserver.observe(node)
+})
+
+watch(teamId, () => {
+  refreshScriptList()
+  refreshDetail()
+})
+
+watch([sortBy, filterCategory, filterLanguage], () => {
+  refreshScriptList()
+})
+
+watch(searchQuery, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    refreshScriptList()
+  }, 300)
+})
+
+onBeforeUnmount(() => {
+  loadMoreObserver?.disconnect()
+  if (searchTimer) clearTimeout(searchTimer)
 })
 
 const team = computed(() => getTeamById(teamId.value) || (teamDetail.value ? {
@@ -154,39 +199,6 @@ function onIconSaved(payload: { icon: string; iconColor?: string; avatarUrl: str
   setTimeout(() => { actionSuccess.value = '' }, 3000)
 }
 
-const teamScripts = computed(() => {
-  if (!team.value) return []
-  let scripts = getTeamScripts(teamId.value)
-  const q = searchQuery.value.trim().toLowerCase()
-  if (q) {
-    scripts = scripts.filter(
-      s =>
-        s.title.toLowerCase().includes(q) ||
-        s.description.toLowerCase().includes(q) ||
-        s.tags.some(t => t.toLowerCase().includes(q))
-    )
-  }
-  if (filterCategory.value) {
-    scripts = scripts.filter(s => s.category === filterCategory.value)
-  }
-  if (filterLanguage.value) {
-    scripts = scripts.filter(s => s.language === filterLanguage.value)
-  }
-  const sorted = [...scripts]
-  switch (sortBy.value) {
-    case 'newest':
-      sorted.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      break
-    case 'oldest':
-      sorted.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      break
-    case 'name':
-      sorted.sort((a, b) => a.title.localeCompare(b.title))
-      break
-  }
-  return sorted
-})
-
 // Permissions
 const memberPermissions = computed(() =>
   teamDetail.value?.settings?.memberPermissions || { upload: true, edit: true, delete: false, download: true }
@@ -213,7 +225,7 @@ async function handleUpload(payload: any) {
     payload.category, payload.language, payload.icon || "file-archive", payload.file, teamId.value, payload.iconColor,
   )
   showUpload.value = false
-  loadScripts("team", teamId.value)
+  await refreshScriptList()
 }
 
 function handleEditScript(script: any) {
@@ -234,7 +246,7 @@ async function handleEditSave(payload: { id: string; title: string; description:
   }
 
   showEdit.value = false
-  loadScripts("team", teamId.value)
+  await refreshScriptList()
 }
 
 function handleDeleteScript(id: string) {
@@ -590,9 +602,13 @@ function canSetRole(member: any): boolean {
         </div>
 
         <!-- Scripts list -->
-        <div v-if="teamScripts.length > 0" class="ws-script-list">
+        <div v-if="listLoading && scripts.length === 0" class="ws-empty">
+          <p class="ws-empty__text">加载中…</p>
+        </div>
+
+        <div v-else-if="scripts.length > 0" class="ws-script-list">
           <WorkspaceWsScriptCard
-            v-for="script in pagedScripts"
+            v-for="script in scripts"
             :key="script.id"
             :script="script"
             :deletable="canDeleteScript(script)"
@@ -611,18 +627,18 @@ function canSetRole(member: any): boolean {
           <p class="ws-empty__text">
             {{ searchQuery ? '试试其他关键词' : '上传第一个 .zip 脚本包，与团队成员共享' }}
           </p>
-          <button v-if="!searchQuery" type="button" class="ws-empty__btn" @click="showUpload = true">
+          <button v-if="!searchQuery && canUpload" type="button" class="ws-empty__btn" @click="showUpload = true">
             <Icon name="lucide:upload" size="16" />
             上传第一个脚本
           </button>
         </div>
 
-        <WorkspaceWsPagination
-          v-if="teamScripts.length > PAGE_SIZE"
-          :current-page="currentPage"
-          :total-pages="totalPages"
-          @page-change="currentPage = $event"
-        />
+        <div v-if="scripts.length > 0" class="ws-load-more">
+          <div ref="loadMoreSentinel" class="ws-load-more__sentinel" aria-hidden="true" />
+          <p v-if="listLoadingMore" class="ws-load-more__text">加载中…</p>
+          <p v-else-if="!hasMore" class="ws-load-more__text">没有更多了</p>
+          <p v-else-if="listError" class="ws-load-more__text ws-load-more__text--error">{{ listError }}</p>
+        </div>
 
           </div>
           <div class="ws-layout__sidebar">
@@ -1425,9 +1441,44 @@ v-for="perm in ([
 }
 
 .ws-script-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 1100px) {
+  .ws-script-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .ws-script-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ws-load-more {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0 8px;
+}
+
+.ws-load-more__sentinel {
+  width: 100%;
+  height: 1px;
+}
+
+.ws-load-more__text {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.ws-load-more__text--error {
+  color: var(--danger);
 }
 
 .ws-empty {
