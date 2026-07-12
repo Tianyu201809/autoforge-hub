@@ -329,7 +329,7 @@ function cancelCaptcha() {
         :class="{ 'script-card__add-local--loading': installing }"
         :disabled="installing || downloading"
         :aria-busy="installing"
-        title="添加到 Autoforge"
+        title="安装到客户端"
         @click="onAddToLocalClick"
       >
         <span class="script-card__add-local-shine" aria-hidden="true" />
@@ -340,7 +340,7 @@ function cancelCaptcha() {
             :class="{ 'script-card__spin': installing }"
           />
           <span class="script-card__add-local-label">
-            {{ installing ? '添加中…' : '添加到 Autoforge' }}
+            {{ installing ? '安装中…' : '安装到客户端' }}
           </span>
         </span>
       </button>
