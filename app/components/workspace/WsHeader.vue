@@ -48,7 +48,7 @@ onMounted(() => {
     <div class="ws-header__inner">
       <div class="ws-header__left">
         <NuxtLink to="/workspace" class="ws-brand">
-          <img src="/logo.png" alt="Autoforge Hub" class="ws-brand__logo" width="28" height="28">
+          <img src="/logo-mark.png" alt="Autoforge Hub" class="ws-brand__logo" width="40" height="40">
           <span class="ws-brand__text">
             Autoforge<span class="ws-brand__accent">Hub</span>
           </span>
@@ -194,6 +194,9 @@ onMounted(() => {
 }
 
 .ws-brand__logo {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
   border-radius: 50%;
   box-shadow: var(--logo-shadow);
   transition: transform 0.2s;
