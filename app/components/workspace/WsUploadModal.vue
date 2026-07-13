@@ -21,6 +21,7 @@ const emit = defineEmits<{
 const title = ref('')
 const description = ref('')
 const readme = ref('')
+const paneTab = ref<'spec' | 'docs'>('spec')
 const readmeTab = ref<'edit' | 'preview'>('edit')
 const category = ref('')
 const language = ref('')
@@ -146,7 +147,7 @@ function formatSize(bytes: number): string {
             <Icon name="lucide:upload" size="18" class="upload-modal__title-icon" />
             上传脚本
           </h2>
-          <p class="upload-modal__subtitle">补充基础信息、脚本包与说明书</p>
+          <p class="upload-modal__subtitle">补充基础信息、按规范上传脚本包，并可选填写使用说明</p>
         </div>
         <button type="button" class="upload-modal__close" @click="emit('close')">
           <Icon name="lucide:x" size="18" />
@@ -230,11 +231,32 @@ function formatSize(bytes: number): string {
 
           <div class="upload-modal__pane upload-modal__pane--docs">
             <div class="upload-docs__head">
-              <div>
-                <label class="upload-form__label">说明书</label>
-                <p class="upload-docs__hint">支持 Markdown，最多 50000 字</p>
+              <div class="upload-docs__pane-tabs" role="tablist" aria-label="右侧面板">
+                <button
+                  type="button"
+                  class="upload-docs__pane-tab"
+                  role="tab"
+                  :aria-selected="paneTab === 'spec'"
+                  :class="{ 'upload-docs__pane-tab--active': paneTab === 'spec' }"
+                  @click="paneTab = 'spec'"
+                >
+                  <Icon name="lucide:package-check" size="13" />
+                  脚本上传规格说明
+                </button>
+                <button
+                  type="button"
+                  class="upload-docs__pane-tab"
+                  role="tab"
+                  :aria-selected="paneTab === 'docs'"
+                  :class="{ 'upload-docs__pane-tab--active': paneTab === 'docs' }"
+                  @click="paneTab = 'docs'"
+                >
+                  <Icon name="lucide:file-text" size="13" />
+                  脚本使用说明
+                </button>
               </div>
-              <div class="upload-docs__tabs" role="tablist" aria-label="说明书编辑模式">
+
+              <div v-if="paneTab === 'docs'" class="upload-docs__tabs" role="tablist" aria-label="使用说明编辑模式">
                 <button
                   type="button"
                   class="upload-docs__tab"
@@ -252,22 +274,32 @@ function formatSize(bytes: number): string {
                   预览
                 </button>
               </div>
+              <p v-else class="upload-docs__hint">script-spec · autoforge 1.0</p>
             </div>
 
-            <textarea
-              v-if="readmeTab === 'edit'"
-              v-model="readme"
-              class="upload-docs__textarea"
-              placeholder="# 使用说明&#10;&#10;写下安装方式、参数说明、示例和注意事项..."
-              maxlength="50000"
-              :disabled="uploading"
-            />
-            <ClientOnly v-else>
-              <div class="upload-docs__preview">
-                <WorkspaceWsMarkdown v-if="readme.trim()" :source="readme" />
-                <p v-else class="upload-docs__empty">暂无说明书</p>
-              </div>
-            </ClientOnly>
+            <div v-if="paneTab === 'spec'" class="upload-docs__spec">
+              <ClientOnly>
+                <WorkspaceWsZipSpecGuide :active="true" />
+              </ClientOnly>
+            </div>
+
+            <template v-else>
+              <p class="upload-docs__subhint">支持 Markdown，最多 50000 字</p>
+              <textarea
+                v-if="readmeTab === 'edit'"
+                v-model="readme"
+                class="upload-docs__textarea"
+                placeholder="# 使用说明&#10;&#10;写下安装方式、参数说明、示例和注意事项..."
+                maxlength="50000"
+                :disabled="uploading"
+              />
+              <ClientOnly v-else>
+                <div class="upload-docs__preview">
+                  <WorkspaceWsMarkdown v-if="readme.trim()" :source="readme" />
+                  <p v-else class="upload-docs__empty">暂无使用说明</p>
+                </div>
+              </ClientOnly>
+            </template>
           </div>
         </div>
 
@@ -582,10 +614,53 @@ function formatSize(bytes: number): string {
   background: var(--bg-elevated);
 }
 
+.upload-docs__pane-tabs {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+}
+
+.upload-docs__pane-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  transition: background 0.12s, color 0.12s;
+}
+
+.upload-docs__pane-tab--active {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
 .upload-docs__hint {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: var(--text-xs);
   color: var(--text-muted);
+}
+
+.upload-docs__subhint {
+  margin: 0;
+  padding: 8px 12px 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg-muted);
+}
+
+.upload-docs__spec {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
 }
 
 .upload-docs__tabs {
