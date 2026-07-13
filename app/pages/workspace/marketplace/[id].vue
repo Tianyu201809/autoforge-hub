@@ -74,26 +74,36 @@ async function load() {
 
 function playMotion() {
   gsapCtx?.revert()
+  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
   gsapCtx = gsap.context(() => {
     if (reducedMotion.value) return
-    gsap.from('[data-anim="hero"]', {
-      opacity: 0,
-      y: 16,
-      stagger: 0.07,
-      duration: 0.4,
-      ease: 'power2.out',
-    })
-    gsap.from('[data-anim="readme"]', {
-      opacity: 0,
-      y: 24,
-      duration: 0.45,
-      ease: 'power2.out',
-      scrollTrigger: {
-        trigger: '[data-anim="readme"]',
-        start: 'top 85%',
-        once: true,
-      },
-    })
+    const heroes = gsap.utils.toArray<HTMLElement>('[data-anim="hero"]')
+    const readme = gsap.utils.toArray<HTMLElement>('[data-anim="readme"]')
+    if (heroes.length) {
+      gsap.fromTo(
+        heroes,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, stagger: 0.07, duration: 0.4, ease: 'power2.out', clearProps: 'opacity,transform' }
+      )
+    }
+    if (readme.length) {
+      gsap.fromTo(
+        readme,
+        { opacity: 0, y: 24 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.45,
+          ease: 'power2.out',
+          clearProps: 'opacity,transform',
+          scrollTrigger: {
+            trigger: readme[0],
+            start: 'top 85%',
+            once: true,
+          },
+        }
+      )
+    }
   })
 }
 
@@ -213,11 +223,14 @@ watch(scriptId, async () => {
 
 onUnmounted(() => {
   gsapCtx?.revert()
+  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
 })
 </script>
 
 <template>
-  <div class="mp-detail">
+  <div class="mp-shell">
+    <WorkspaceWsHeader />
+    <div class="mp-detail">
     <NuxtLink to="/workspace/marketplace" class="mp-detail__back" data-anim="hero">
       <Icon name="lucide:arrow-left" size="16" />
       返回集市
@@ -287,10 +300,15 @@ onUnmounted(() => {
       @verified="onCaptchaVerified"
       @cancel="showCaptchaModal = false"
     />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.mp-shell {
+  min-height: 100vh;
+}
+
 .mp-detail {
   max-width: 960px;
   margin: 0 auto;

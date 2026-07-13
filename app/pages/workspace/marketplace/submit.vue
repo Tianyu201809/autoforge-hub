@@ -195,7 +195,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="mp-submit">
+  <div class="mp-shell">
+    <WorkspaceWsHeader />
+    <div class="mp-submit">
     <NuxtLink to="/workspace/marketplace" class="mp-submit__back">
       <Icon name="lucide:arrow-left" size="16" />
       返回集市
@@ -326,10 +328,15 @@ onUnmounted(() => {
 
       <p v-if="formError" class="mp-submit__error">{{ formError }}</p>
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.mp-shell {
+  min-height: 100vh;
+}
+
 .mp-submit {
   max-width: 720px;
   margin: 0 auto;

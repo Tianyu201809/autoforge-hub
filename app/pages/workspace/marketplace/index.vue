@@ -33,30 +33,59 @@ const reducedMotion = computed(() =>
   import.meta.client && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 )
 
+function reveal(targets: gsap.TweenTarget, fromVars: gsap.TweenVars, toVars: gsap.TweenVars = {}) {
+  const nodes = gsap.utils.toArray<HTMLElement>(targets)
+  if (!nodes.length) return
+  gsap.fromTo(
+    nodes,
+    { opacity: 0, ...fromVars },
+    {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      duration: 0.35,
+      ease: 'power2.out',
+      clearProps: 'opacity,transform',
+      ...toVars,
+    }
+  )
+}
+
 function playEnter(mode: 'full' | 'cards' | 'newCards' = 'full') {
   gsapCtx?.revert()
+  // Always clear leftover inline opacity from interrupted tweens
+  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
+
   gsapCtx = gsap.context(() => {
-    if (reducedMotion.value) {
-      gsap.set('[data-anim]', { clearProps: 'all', opacity: 1 })
-      return
-    }
+    if (reducedMotion.value) return
+
     if (mode === 'full') {
       const tl = gsap.timeline()
-      tl.from('[data-anim="cat"]', { opacity: 0, x: -16, stagger: 0.04, duration: 0.35, ease: 'power2.out' }, 0)
-      tl.from('[data-anim="hero"]', { opacity: 0, y: 14, stagger: 0.06, duration: 0.4, ease: 'power2.out' }, 0.1)
-      tl.from('[data-anim="toolbar"]', { opacity: 0, y: 8, duration: 0.3, ease: 'power2.out' }, 0.25)
-      tl.from('[data-anim="card"]', { opacity: 0, y: 16, stagger: 0.05, duration: 0.35, ease: 'power2.out' }, 0.3)
+      const cats = gsap.utils.toArray<HTMLElement>('[data-anim="cat"]')
+      const heroes = gsap.utils.toArray<HTMLElement>('[data-anim="hero"]')
+      const toolbar = gsap.utils.toArray<HTMLElement>('[data-anim="toolbar"]')
+      const cards = gsap.utils.toArray<HTMLElement>('[data-anim="card"]')
+      if (cats.length) {
+        tl.fromTo(cats, { opacity: 0, x: -16 }, { opacity: 1, x: 0, stagger: 0.04, duration: 0.35, ease: 'power2.out', clearProps: 'opacity,transform' }, 0)
+      }
+      if (heroes.length) {
+        tl.fromTo(heroes, { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.06, duration: 0.4, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.1)
+      }
+      if (toolbar.length) {
+        tl.fromTo(toolbar, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.25)
+      }
+      if (cards.length) {
+        tl.fromTo(cards, { opacity: 0, y: 16 }, { opacity: 1, y: 0, stagger: 0.05, duration: 0.35, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.3)
+      }
       return
     }
     if (mode === 'cards') {
-      gsap.from('[data-anim="card"]', { opacity: 0, y: 14, stagger: 0.04, duration: 0.3, ease: 'power2.out' })
+      reveal('[data-anim="card"]', { y: 14 }, { stagger: 0.04, duration: 0.3 })
       return
     }
     const cards = gsap.utils.toArray<HTMLElement>('[data-anim="card"]')
     const fresh = cards.slice(prevCardCount)
-    if (fresh.length) {
-      gsap.from(fresh, { opacity: 0, y: 12, stagger: 0.04, duration: 0.28, ease: 'power2.out' })
-    }
+    if (fresh.length) reveal(fresh, { y: 12 }, { stagger: 0.04, duration: 0.28 })
   })
 }
 
@@ -84,7 +113,10 @@ watch(loadingMore, async (v, prev) => {
 })
 
 onMounted(async () => {
-  await Promise.all([loadCategories(), loadList()])
+  await Promise.all([
+    loadCategories(),
+    loadList({ q: searchInput.value, category: category.value, sort: sort.value }),
+  ])
   await nextTick()
   prevCardCount = items.value.length
   playEnter('full')
@@ -108,11 +140,14 @@ onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
   loadMoreObserver?.disconnect()
   gsapCtx?.revert()
+  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
 })
 </script>
 
 <template>
-  <div class="mp-page">
+  <div class="mp-shell">
+    <WorkspaceWsHeader />
+    <div class="mp-page">
     <MpCategorySidebar v-model="category" :total="categoryTotal" :counts="categoryCounts" />
 
     <div class="mp-main">
@@ -154,10 +189,15 @@ onUnmounted(() => {
       <p v-if="loadingMore" class="mp-status">加载更多…</p>
       <p v-else-if="items.length && !hasMore" class="mp-status mp-status--muted">没有更多了</p>
     </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.mp-shell {
+  min-height: 100vh;
+}
+
 .mp-page {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
