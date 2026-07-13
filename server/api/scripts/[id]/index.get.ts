@@ -1,4 +1,5 @@
 import { getDb } from "../../../db/index"
+import { isPublicScript } from "../../../utils/script-access"
 
 function mapScriptRow(row: any) {
   return {
@@ -19,6 +20,9 @@ function mapScriptRow(row: any) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     updatedBy: row.updated_by || row.owner_id || undefined,
+    visibility: row.visibility || "private",
+    publishedAt: row.published_at || undefined,
+    installCount: Number(row.install_count || 0),
     ownerDisplayName: row.owner_display_name || "未知用户",
     ownerAvatarUrl: row.owner_avatar_url || "",
     updaterDisplayName: row.updater_display_name || row.owner_display_name || "未知用户",
@@ -67,7 +71,7 @@ export default defineEventHandler(async (event) => {
     if (team.owner_id !== userId && !memberIds.includes(userId)) {
       throw createError({ statusCode: 403, message: "无权查看该脚本" })
     }
-  } else if (row.owner_id !== userId) {
+  } else if (!isPublicScript(row) && row.owner_id !== userId) {
     throw createError({ statusCode: 403, message: "无权查看该脚本" })
   }
 

@@ -2,6 +2,7 @@ import { getDb } from "../../../db/index"
 import { parseSettings, checkMemberPermission } from "../../../utils/team-permissions"
 import { checkDownloadQuota } from "../../../utils/download-quota"
 import { createInstallToken } from "../../../utils/install-token"
+import { isPublicScript } from "../../../utils/script-access"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -39,7 +40,7 @@ export default defineEventHandler(async (event) => {
     if (!checkMemberPermission(teamSettings, userId, team.owner_id, "download")) {
       throw createError({ statusCode: 403, message: "没有下载权限" })
     }
-  } else if (row.owner_id !== userId) {
+  } else if (!isPublicScript(row) && row.owner_id !== userId) {
     throw createError({ statusCode: 403, message: "无权限下载" })
   }
 

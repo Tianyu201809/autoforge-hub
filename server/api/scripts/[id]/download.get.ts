@@ -1,10 +1,11 @@
-import { getDb } from "../../../db/index"
+import { getDb, saveDb } from "../../../db/index"
 import { getFilePath, readFile } from "../../../utils/storage"
 import { readFileSync, existsSync } from "fs"
 import { parseSettings, checkMemberPermission } from "../../../utils/team-permissions"
 import { verifyCaptchaToken } from "../../auth/captcha/generate.post"
 import { checkDownloadQuota, incrementDownloadQuota } from "../../../utils/download-quota"
 import { peekInstallToken, consumeInstallToken } from "../../../utils/install-token"
+import { isPublicScript } from "../../../utils/script-access"
 
 export default defineEventHandler(async (event) => {
   try {
@@ -57,6 +58,12 @@ async function handleDownload(event: any) {
       throw createError({ statusCode: 401, message: "安装链接无效或已过期" })
     }
 
+    db.run(
+      "UPDATE scripts SET install_count = COALESCE(install_count, 0) + 1 WHERE id = ?",
+      [scriptId]
+    )
+    saveDb()
+
     const remaining = await incrementDownloadQuota(userId, scriptId)
     // Proxy bytes through Hub — do not 302 to OSS (private bucket / Referer anti-leech → 403 for Autoforge)
     return await serveScriptFile(event, row, remaining, {
@@ -89,11 +96,8 @@ async function handleDownload(event: any) {
     if (!checkMemberPermission(teamSettings, userId, team.owner_id, "download")) {
       throw createError({ statusCode: 403, message: "没有下载权限" })
     }
-  } else {
-    // Personal script - only owner
-    if (row.owner_id !== userId) {
-      throw createError({ statusCode: 403, message: "无权限下载" })
-    }
+  } else if (!isPublicScript(row) && row.owner_id !== userId) {
+    throw createError({ statusCode: 403, message: "无权限下载" })
   }
 
   // ── Captcha verification ──
