@@ -109,6 +109,11 @@ export async function getDb(): Promise<SqlJsDbType> {
     _sqlDb.run("UPDATE scripts SET updated_by = owner_id WHERE updated_by IS NULL OR updated_by = ''")
   } catch (e) {}
 
+  // Migration: marketplace visibility / publish meta / install stats
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN published_at TEXT DEFAULT NULL") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN install_count INTEGER NOT NULL DEFAULT 0") } catch (e) {}
+
   // audit_logs table
   _sqlDb.run(`
     CREATE TABLE IF NOT EXISTS audit_logs (
