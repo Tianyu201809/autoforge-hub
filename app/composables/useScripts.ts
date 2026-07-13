@@ -42,6 +42,9 @@ function toScript(data: any): Script {
     updatedBy: data.updatedBy ?? data.updated_by ?? undefined,
     updaterDisplayName: data.updaterDisplayName ?? data.updater_display_name ?? undefined,
     updaterAvatarUrl: data.updaterAvatarUrl ?? data.updater_avatar_url ?? undefined,
+    visibility: data.visibility || "private",
+    publishedAt: data.publishedAt ?? data.published_at ?? undefined,
+    installCount: Number(data.installCount ?? data.install_count ?? 0),
   }
 }
 

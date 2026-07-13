@@ -55,6 +55,10 @@ onMounted(() => {
         </NuxtLink>
 
         <nav class="ws-nav" aria-label="Workspace navigation">
+          <NuxtLink to="/workspace/marketplace" class="ws-nav__link" active-class="ws-nav__link--active">
+            <Icon name="lucide:store" size="16" />
+            <span>插件集市</span>
+          </NuxtLink>
           <NuxtLink to="/workspace/personal" class="ws-nav__link" active-class="ws-nav__link--active">
             <Icon name="lucide:user" size="16" />
             <span>个人空间</span>
