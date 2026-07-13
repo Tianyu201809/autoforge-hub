@@ -56,6 +56,7 @@ function initials(name: string) {
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
   transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  opacity: 1;
 }
 
 .mp-card:hover {

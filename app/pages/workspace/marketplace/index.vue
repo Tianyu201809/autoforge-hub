@@ -33,59 +33,61 @@ const reducedMotion = computed(() =>
   import.meta.client && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 )
 
-function reveal(targets: gsap.TweenTarget, fromVars: gsap.TweenVars, toVars: gsap.TweenVars = {}) {
-  const nodes = gsap.utils.toArray<HTMLElement>(targets)
-  if (!nodes.length) return
-  gsap.fromTo(
-    nodes,
-    { opacity: 0, ...fromVars },
-    {
-      opacity: 1,
-      x: 0,
-      y: 0,
-      duration: 0.35,
-      ease: 'power2.out',
-      clearProps: 'opacity,transform',
-      ...toVars,
-    }
-  )
+function killAnim() {
+  if (import.meta.client) {
+    gsap.killTweensOf('[data-anim]')
+    gsap.killTweensOf('[data-anim="card"]')
+    document.querySelectorAll<HTMLElement>('[data-anim="card"]').forEach((el) => {
+      el.style.opacity = '1'
+      el.style.transform = ''
+    })
+  }
+  gsapCtx = null
 }
 
 function playEnter(mode: 'full' | 'cards' | 'newCards' = 'full') {
-  gsapCtx?.revert()
-  // Always clear leftover inline opacity from interrupted tweens
-  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
+  killAnim()
+  if (reducedMotion.value) return
 
   gsapCtx = gsap.context(() => {
-    if (reducedMotion.value) return
+    // Cards: only slight rise — never opacity (avoids blank list when tween interrupted)
+    const animateCards = (nodes: HTMLElement[]) => {
+      if (!nodes.length) return
+      gsap.fromTo(
+        nodes,
+        { y: 12 },
+        { y: 0, duration: 0.3, stagger: 0.04, ease: 'power2.out', clearProps: 'transform' }
+      )
+    }
 
     if (mode === 'full') {
-      const tl = gsap.timeline()
       const cats = gsap.utils.toArray<HTMLElement>('[data-anim="cat"]')
       const heroes = gsap.utils.toArray<HTMLElement>('[data-anim="hero"]')
       const toolbar = gsap.utils.toArray<HTMLElement>('[data-anim="toolbar"]')
       const cards = gsap.utils.toArray<HTMLElement>('[data-anim="card"]')
+      const tl = gsap.timeline()
       if (cats.length) {
-        tl.fromTo(cats, { opacity: 0, x: -16 }, { opacity: 1, x: 0, stagger: 0.04, duration: 0.35, ease: 'power2.out', clearProps: 'opacity,transform' }, 0)
+        tl.fromTo(cats, { x: -12 }, { x: 0, stagger: 0.03, duration: 0.3, ease: 'power2.out', clearProps: 'transform' }, 0)
       }
       if (heroes.length) {
-        tl.fromTo(heroes, { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.06, duration: 0.4, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.1)
+        tl.fromTo(heroes, { y: 10 }, { y: 0, stagger: 0.05, duration: 0.35, ease: 'power2.out', clearProps: 'transform' }, 0.05)
       }
       if (toolbar.length) {
-        tl.fromTo(toolbar, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.25)
+        tl.fromTo(toolbar, { y: 6 }, { y: 0, duration: 0.28, ease: 'power2.out', clearProps: 'transform' }, 0.15)
       }
       if (cards.length) {
-        tl.fromTo(cards, { opacity: 0, y: 16 }, { opacity: 1, y: 0, stagger: 0.05, duration: 0.35, ease: 'power2.out', clearProps: 'opacity,transform' }, 0.3)
+        tl.add(() => animateCards(cards), 0.2)
       }
       return
     }
+
     if (mode === 'cards') {
-      reveal('[data-anim="card"]', { y: 14 }, { stagger: 0.04, duration: 0.3 })
+      animateCards(gsap.utils.toArray<HTMLElement>('[data-anim="card"]'))
       return
     }
+
     const cards = gsap.utils.toArray<HTMLElement>('[data-anim="card"]')
-    const fresh = cards.slice(prevCardCount)
-    if (fresh.length) reveal(fresh, { y: 12 }, { stagger: 0.04, duration: 0.28 })
+    animateCards(cards.slice(prevCardCount))
   })
 }
 
@@ -139,8 +141,7 @@ watch(loadMoreSentinel, (node, prev) => {
 onUnmounted(() => {
   if (searchTimer) clearTimeout(searchTimer)
   loadMoreObserver?.disconnect()
-  gsapCtx?.revert()
-  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
+  killAnim()
 })
 </script>
 

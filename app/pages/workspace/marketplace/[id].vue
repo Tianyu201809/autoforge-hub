@@ -73,29 +73,34 @@ async function load() {
 }
 
 function playMotion() {
-  gsapCtx?.revert()
-  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
+  if (import.meta.client) {
+    gsap.killTweensOf('[data-anim]')
+    document.querySelectorAll<HTMLElement>('[data-anim]').forEach((el) => {
+      el.style.opacity = '1'
+      el.style.transform = ''
+    })
+  }
+  gsapCtx = null
+  if (reducedMotion.value) return
   gsapCtx = gsap.context(() => {
-    if (reducedMotion.value) return
     const heroes = gsap.utils.toArray<HTMLElement>('[data-anim="hero"]')
     const readme = gsap.utils.toArray<HTMLElement>('[data-anim="readme"]')
     if (heroes.length) {
       gsap.fromTo(
         heroes,
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, stagger: 0.07, duration: 0.4, ease: 'power2.out', clearProps: 'opacity,transform' }
+        { y: 12 },
+        { y: 0, stagger: 0.06, duration: 0.35, ease: 'power2.out', clearProps: 'transform' }
       )
     }
     if (readme.length) {
       gsap.fromTo(
         readme,
-        { opacity: 0, y: 24 },
+        { y: 16 },
         {
-          opacity: 1,
           y: 0,
-          duration: 0.45,
+          duration: 0.4,
           ease: 'power2.out',
-          clearProps: 'opacity,transform',
+          clearProps: 'transform',
           scrollTrigger: {
             trigger: readme[0],
             start: 'top 85%',
@@ -222,8 +227,8 @@ watch(scriptId, async () => {
 })
 
 onUnmounted(() => {
-  gsapCtx?.revert()
-  gsap.set('[data-anim]', { clearProps: 'opacity,transform' })
+  if (import.meta.client) gsap.killTweensOf('[data-anim]')
+  gsapCtx = null
 })
 </script>
 
