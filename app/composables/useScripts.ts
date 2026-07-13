@@ -13,7 +13,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, { ...options, headers })
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new Error(data.message || "请求失败")
+    throw Object.assign(new Error(data.message || "请求失败"), { statusCode: res.status, data })
   }
   const data = await res.json()
   return data
