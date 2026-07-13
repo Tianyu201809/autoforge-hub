@@ -149,7 +149,7 @@ onUnmounted(() => {
   <div class="mp-shell">
     <WorkspaceWsHeader />
     <div class="mp-page">
-    <MpCategorySidebar v-model="category" :total="categoryTotal" :counts="categoryCounts" />
+    <MarketplaceMpCategorySidebar v-model="category" :total="categoryTotal" :counts="categoryCounts" />
 
     <div class="mp-main">
       <header class="mp-hero">
@@ -183,7 +183,7 @@ onUnmounted(() => {
       <p v-else-if="!items.length" class="mp-status">暂无公开插件，成为第一个提交者吧</p>
 
       <div v-else class="mp-grid">
-        <MpPluginCard v-for="s in items" :key="s.id" :script="s" />
+        <MarketplaceMpPluginCard v-for="s in items" :key="s.id" :script="s" />
       </div>
 
       <div ref="loadMoreSentinel" class="mp-sentinel" aria-hidden="true" />
