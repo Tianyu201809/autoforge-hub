@@ -70,7 +70,14 @@ Replace / extend sorts and categories:
 export type ScriptSort = 'newest' | 'oldest' | 'name'
 export type MarketplaceSort = 'newest' | 'installs' | 'updated'
 
+export const MARKETPLACE_CATEGORIES = [
+  '实用工具', '自动化', '数据处理', '数据爬取',
+  'DevOps', 'Web 开发', 'AI/ML',
+  '数据库', '监控', '安全', '测试', '其他',
+] as const
+
 export type MarketplaceCategory = (typeof MARKETPLACE_CATEGORIES)[number]
+export const SCRIPT_CATEGORIES = MARKETPLACE_CATEGORIES
 
 export type ScriptListQuery = {
   scope?: 'personal' | 'marketplace'
@@ -84,20 +91,9 @@ export type ScriptListQuery = {
 }
 ```
 
-Also create `server/utils/marketplace-categories.ts` with the string array, then in `workspace.ts`:
+Also add `server/utils/marketplace-categories.ts` with the **same ordered array** for Nitro handlers (do not import `app/types` from server). Keep both lists identical when editing.
 
-```ts
-import { MARKETPLACE_CATEGORIES as _CATS } from '../../server/utils/marketplace-categories'
-// Prefer duplicating the const in app/types if Nuxt client cannot import server paths:
-export const MARKETPLACE_CATEGORIES = [
-  '实用工具', '自动化', '数据处理', '数据爬取',
-  'DevOps', 'Web 开发', 'AI/ML',
-  '数据库', '监控', '安全', '测试', '其他',
-] as const
-export const SCRIPT_CATEGORIES = MARKETPLACE_CATEGORIES
-```
-
-Keep `ScriptListResult` unchanged. Keep server util and client const in sync (same ordered list).
+Keep `ScriptListResult` unchanged.
 
 - [ ] **Step 2: Commit**
 
