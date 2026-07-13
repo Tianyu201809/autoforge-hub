@@ -20,6 +20,9 @@ export interface Script {
   updaterAvatarUrl?: string
   teamId?: string
   readme: string
+  visibility?: 'private' | 'public'
+  publishedAt?: string
+  installCount?: number
 }
 
 export interface StoredScript {
@@ -44,6 +47,9 @@ export interface StoredScript {
   updatedBy?: string
   updaterDisplayName?: string
   updaterAvatarUrl?: string
+  visibility?: 'private' | 'public'
+  publishedAt?: string
+  installCount?: number
 }
 
 export interface Team {
@@ -93,16 +99,17 @@ export interface AuditLog {
 
 export type WorkspaceTab = 'personal' | 'teams'
 export type ScriptSort = 'newest' | 'oldest' | 'name'
+export type MarketplaceSort = 'newest' | 'installs' | 'updated'
 
 export type ScriptListQuery = {
-  scope?: 'personal'
+  scope?: 'personal' | 'marketplace'
   teamId?: string
   page?: number
   pageSize?: number
   q?: string
   category?: string
   language?: string
-  sort?: ScriptSort
+  sort?: ScriptSort | MarketplaceSort
 }
 
 export type ScriptListResult = {
@@ -113,10 +120,14 @@ export type ScriptListResult = {
   hasMore: boolean
 }
 
-export const SCRIPT_CATEGORIES = [
-  '数据处理', '自动化', 'DevOps', 'Web 开发', 'AI/ML',
-  '数据库', '监控', '安全', '测试', '其他'
+export const MARKETPLACE_CATEGORIES = [
+  '实用工具', '自动化', '数据处理', '数据爬取',
+  'DevOps', 'Web 开发', 'AI/ML',
+  '数据库', '监控', '安全', '测试', '其他',
 ] as const
+
+export type MarketplaceCategory = (typeof MARKETPLACE_CATEGORIES)[number]
+export const SCRIPT_CATEGORIES = MARKETPLACE_CATEGORIES
 
 export const SCRIPT_LANGUAGES = [
   'Python', 'JavaScript'
