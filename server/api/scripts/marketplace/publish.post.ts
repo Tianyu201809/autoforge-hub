@@ -58,9 +58,6 @@ export default defineEventHandler(async (event) => {
   const description = String(body?.description ?? row.description ?? "").trim()
   const readme = String(body?.readme ?? row.readme ?? "")
   if (!title) throw createError({ statusCode: 400, message: "标题不能为空" })
-  if (readme.trim().length < 20) {
-    throw createError({ statusCode: 400, message: "请完善 README（至少 20 字）" })
-  }
   if (!row.file_path) throw createError({ statusCode: 400, message: "脚本缺少安装包" })
 
   const tags = Array.isArray(body?.tags) ? body.tags : JSON.parse(row.tags || "[]")

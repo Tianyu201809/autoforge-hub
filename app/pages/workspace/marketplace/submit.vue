@@ -156,10 +156,6 @@ function goStep3() {
     formError.value = '请选择分类'
     return
   }
-  if (form.readme.trim().length < 20) {
-    formError.value = '请完善 README（至少 20 字）'
-    return
-  }
   const githubError = getGithubUrlError(form.githubUrl)
   if (githubError) {
     formError.value = githubError
@@ -321,7 +317,7 @@ onUnmounted(() => {
         </label>
         <WsIconPicker v-model="form.icon" v-model:color="form.iconColor" />
         <label class="mp-field">
-          <span>README（Markdown，至少 20 字）</span>
+          <span>README（Markdown，可选）</span>
           <textarea v-model="form.readme" rows="8" />
         </label>
         <div v-if="form.readme.trim()" class="mp-preview">
