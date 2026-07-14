@@ -34,6 +34,8 @@ const reducedMotion = computed(() =>
 )
 
 function killAnim() {
+  gsapCtx?.revert()
+  gsapCtx = null
   if (import.meta.client) {
     gsap.killTweensOf('[data-anim]')
     gsap.killTweensOf('[data-anim="card"]')
@@ -42,7 +44,6 @@ function killAnim() {
       el.style.transform = ''
     })
   }
-  gsapCtx = null
 }
 
 function playEnter(mode: 'full' | 'cards' | 'newCards' = 'full') {
@@ -207,9 +208,7 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 24px 20px 48px;
   min-height: calc(100vh - var(--header-height));
-  background:
-    radial-gradient(ellipse 50% 40% at 10% 0%, rgba(107, 76, 230, 0.1) 0%, transparent 55%),
-    radial-gradient(ellipse 40% 30% at 90% 5%, rgba(255, 140, 0, 0.08) 0%, transparent 50%);
+  background: var(--marketplace-page-bg);
 }
 
 .mp-main {
@@ -251,11 +250,12 @@ onUnmounted(() => {
   font-weight: 600;
   box-shadow: var(--shadow-glow-orange);
   text-decoration: none;
-  transition: transform 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .mp-hero__cta:hover {
   transform: translateY(-1px);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .mp-toolbar {
@@ -274,6 +274,13 @@ onUnmounted(() => {
   border-radius: var(--radius-sm);
   background: var(--bg-muted);
   color: var(--text-muted);
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.mp-search:focus-within {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
 }
 
 .mp-search input {
@@ -292,6 +299,27 @@ onUnmounted(() => {
   background: var(--bg-muted);
   color: var(--text);
   font-size: var(--text-sm);
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.mp-sort:focus {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+:global(html[data-theme='light'] .mp-hero__title) {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+:global(html[data-theme='light'] .mp-search),
+:global(html[data-theme='light'] .mp-sort) {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 243, 247, 0.9));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 18px rgba(15, 23, 42, 0.04);
 }
 
 .mp-grid {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MARKETPLACE_CATEGORIES } from '~/types/workspace'
 
-const props = defineProps<{
+defineProps<{
   total: number
   counts: Record<string, number>
   modelValue: string
@@ -107,6 +107,22 @@ function select(cat: string) {
 
 .mp-sidebar__item--active .mp-sidebar__count {
   color: var(--accent);
+}
+
+:global(html[data-theme='light'] .mp-sidebar) {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 252, 0.96));
+  box-shadow: var(--shadow-card);
+}
+
+:global(html[data-theme='light'] .mp-sidebar__item:hover) {
+  background: #f4f6fa;
+}
+
+:global(html[data-theme='light'] .mp-sidebar__item--active) {
+  background: rgba(234, 88, 12, 0.08);
+  border-color: rgba(234, 88, 12, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.74);
 }
 
 @media (max-width: 900px) {

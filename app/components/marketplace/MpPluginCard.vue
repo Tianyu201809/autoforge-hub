@@ -356,6 +356,96 @@ function githubLabel(url?: string) {
   font-variant-numeric: tabular-nums;
 }
 
+:global(html[data-theme='light'] .mp-card__plate) {
+  border-color: rgba(15, 23, 42, 0.08);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96) 56%, rgba(243, 246, 250, 0.98)),
+    radial-gradient(circle at 16% 10%, rgba(234, 88, 12, 0.08), transparent 34%),
+    radial-gradient(circle at 88% 6%, rgba(79, 70, 229, 0.055), transparent 34%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 -18px 28px rgba(15, 23, 42, 0.035) inset,
+    0 18px 34px rgba(15, 23, 42, 0.08),
+    0 5px 12px rgba(15, 23, 42, 0.04);
+}
+
+:global(html[data-theme='light'] .mp-card__plate::before) {
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.026) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
+}
+
+:global(html[data-theme='light'] .mp-card__plate::after) {
+  right: 18px;
+  bottom: -5px;
+  left: 18px;
+  height: 22px;
+  background: rgba(15, 23, 42, 0.16);
+  filter: blur(18px);
+}
+
+:global(html[data-theme='light'] .mp-card:hover .mp-card__plate) {
+  border-color: rgba(234, 88, 12, 0.24);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    0 -18px 28px rgba(15, 23, 42, 0.04) inset,
+    0 24px 46px rgba(15, 23, 42, 0.11),
+    0 8px 18px rgba(234, 88, 12, 0.07);
+}
+
+:global(html[data-theme='light'] .mp-card__icon) {
+  border-color: rgba(234, 88, 12, 0.16);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.9), transparent 38%),
+    linear-gradient(145deg, rgba(255, 247, 237, 0.95), rgba(255, 237, 213, 0.86));
+  box-shadow:
+    0 11px 20px rgba(234, 88, 12, 0.13),
+    0 1px 0 rgba(255, 255, 255, 0.86) inset;
+}
+
+:global(html[data-theme='light'] .mp-card__badge) {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  color: #64748b;
+}
+
+:global(html[data-theme='light'] .mp-card__tag) {
+  border-color: rgba(79, 70, 229, 0.14);
+  background: rgba(79, 70, 229, 0.055);
+  color: #4f46e5;
+}
+
+:global(html[data-theme='light'] .mp-card__summary) {
+  color: #4b5563;
+}
+
+:global(html[data-theme='light'] .mp-card__info-item) {
+  color: #7b8494;
+}
+
+:global(html[data-theme='light'] .mp-card__github) {
+  color: #374151;
+}
+
+:global(html[data-theme='light'] .mp-card__github:hover) {
+  color: #ea580c;
+}
+
+:global(html[data-theme='light'] .mp-card__footer) {
+  border-top-color: rgba(15, 23, 42, 0.07);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.64), rgba(241, 243, 247, 0.72));
+}
+
+:global(html[data-theme='light'] .mp-card__avatar) {
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+:global(html[data-theme='light'] .mp-card__avatar--fallback) {
+  box-shadow: 0 5px 12px rgba(234, 88, 12, 0.18);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mp-card__plate {
     transition: border-color 0.18s ease, box-shadow 0.18s ease;
