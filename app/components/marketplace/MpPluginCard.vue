@@ -44,32 +44,32 @@ function githubLabel(url?: string) {
     <div class="mp-card__plate">
       <NuxtLink :to="`/workspace/marketplace/${script.id}`" class="mp-card__main">
         <div class="mp-card__top">
-          <div
-            class="mp-card__icon"
-            :style="script.iconColor ? { color: script.iconColor } : undefined"
-            aria-hidden="true"
-          >
-            <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" />
+          <div class="mp-card__heading">
+            <div
+              class="mp-card__icon"
+              :style="script.iconColor ? { color: script.iconColor } : undefined"
+              aria-hidden="true"
+            >
+              <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" />
+            </div>
+            <h3 class="mp-card__title">{{ script.title }}</h3>
           </div>
           <span class="mp-card__badge">
             {{ script.category || '未分类' }}
           </span>
         </div>
 
-        <h3 class="mp-card__title">{{ script.title }}</h3>
-        <p class="mp-card__summary">{{ summary }}</p>
+        <div class="mp-card__body">
+          <p class="mp-card__summary">{{ summary }}</p>
 
-        <div class="mp-card__tags" aria-label="脚本标签">
-          <span v-if="script.language" class="mp-card__tag">{{ script.language }}</span>
-          <span v-for="tag in previewTags" :key="tag" class="mp-card__tag">{{ tag }}</span>
+          <div class="mp-card__tags" aria-label="脚本标签">
+            <span v-if="script.language" class="mp-card__tag">{{ script.language }}</span>
+            <span v-for="tag in previewTags" :key="tag" class="mp-card__tag">{{ tag }}</span>
+          </div>
         </div>
       </NuxtLink>
 
       <div class="mp-card__info" aria-label="脚本概要信息">
-        <span class="mp-card__info-item">
-          <Icon name="lucide:user-round" size="13" />
-          <span class="mp-card__text">{{ ownerName }}</span>
-        </span>
         <span class="mp-card__info-item">
           <Icon name="lucide:calendar-days" size="13" />
           <span>{{ publishTime }}</span>
@@ -97,6 +97,7 @@ function githubLabel(url?: string) {
         <span class="mp-card__owner">
           <img v-if="avatarSrc" :src="avatarSrc" alt="" class="mp-card__avatar">
           <span v-else class="mp-card__avatar mp-card__avatar--fallback">{{ initials(ownerName) }}</span>
+          <span class="mp-card__owner-label">作者</span>
           <span class="mp-card__owner-name">{{ ownerName }}</span>
         </span>
         <span class="mp-card__installs">
@@ -184,6 +185,7 @@ function githubLabel(url?: string) {
 }
 
 .mp-card__top,
+.mp-card__heading,
 .mp-card__footer,
 .mp-card__owner,
 .mp-card__installs,
@@ -193,44 +195,61 @@ function githubLabel(url?: string) {
 }
 
 .mp-card__top {
+  position: relative;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: -16px -16px 0;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 140, 0, 0.28);
+  background: rgba(255, 140, 0, 0.07);
+}
+
+.mp-card__top::after {
+  display: none;
+}
+
+.mp-card__heading {
+  min-width: 0;
+  flex: 1;
+  gap: 11px;
 }
 
 .mp-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 140, 0, 0.28);
+  border-radius: var(--radius-sm);
   background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.22), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 42%),
     var(--accent-soft);
   color: var(--accent);
   box-shadow:
-    0 12px 22px rgba(0, 0, 0, 0.28),
-    0 1px 0 rgba(255, 255, 255, 0.12) inset;
-  transform: translateZ(24px);
+    0 10px 20px rgba(0, 0, 0, 0.24),
+    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  transform: translateZ(18px);
 }
 
 .mp-card__badge {
-  max-width: 54%;
+  max-width: 36%;
   overflow: hidden;
-  padding: 5px 8px;
-  border: 1px solid var(--border-strong);
+  padding: 4px 8px;
+  border: 1px solid rgba(107, 76, 230, 0.34);
   border-radius: 999px;
   color: var(--text-secondary);
   font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(107, 76, 230, 0.1);
 }
 
 .mp-card__title {
-  margin: 14px 0 0;
+  min-width: 0;
+  margin: 0;
   color: var(--text);
   font-size: var(--text-base);
   font-weight: 700;
@@ -240,10 +259,15 @@ function githubLabel(url?: string) {
   white-space: nowrap;
 }
 
+.mp-card__body {
+  margin: 12px 0 0;
+  padding: 0;
+}
+
 .mp-card__summary {
   display: -webkit-box;
-  min-height: 40px;
-  margin: 8px 0 0;
+  min-height: 38px;
+  margin: 0;
   overflow: hidden;
   color: var(--text-secondary);
   font-size: var(--text-sm);
@@ -275,7 +299,7 @@ function githubLabel(url?: string) {
 
 .mp-card__info {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 0 16px 14px;
 }
@@ -285,6 +309,10 @@ function githubLabel(url?: string) {
   gap: 6px;
   color: var(--text-muted);
   font-size: var(--text-xs);
+}
+
+.mp-card__info > .mp-card__info-item:first-child {
+  justify-self: end;
 }
 
 .mp-card__github {
@@ -311,6 +339,11 @@ function githubLabel(url?: string) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mp-card__owner-label {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .mp-card__footer {
@@ -393,6 +426,11 @@ function githubLabel(url?: string) {
     0 -18px 28px rgba(15, 23, 42, 0.04) inset,
     0 24px 46px rgba(15, 23, 42, 0.11),
     0 8px 18px rgba(234, 88, 12, 0.07);
+}
+
+:global(html[data-theme='light'] .mp-card__top) {
+  border-bottom-color: rgba(234, 88, 12, 0.3);
+  background: rgba(234, 88, 12, 0.13);
 }
 
 :global(html[data-theme='light'] .mp-card__icon) {

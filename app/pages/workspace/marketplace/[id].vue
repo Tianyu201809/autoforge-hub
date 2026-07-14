@@ -495,6 +495,11 @@ onUnmounted(() => {
   font-size: var(--text-lg);
 }
 
+:global(html[data-theme='light'] .mp-detail__hero) {
+  border-color: rgba(234, 88, 12, 0.16);
+  background: #fff4eb;
+}
+
 .mp-detail__empty-readme {
   margin: 0;
   color: var(--text-muted);
