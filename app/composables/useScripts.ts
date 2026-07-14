@@ -39,6 +39,7 @@ function toScript(data: any): Script {
     teamId: data.teamId ?? data.team_id ?? undefined,
     ownerDisplayName: data.ownerDisplayName ?? data.owner_display_name ?? undefined,
     ownerAvatarUrl: data.ownerAvatarUrl ?? data.owner_avatar_url ?? undefined,
+    githubUrl: data.githubUrl ?? data.github_url ?? undefined,
     updatedBy: data.updatedBy ?? data.updated_by ?? undefined,
     updaterDisplayName: data.updaterDisplayName ?? data.updater_display_name ?? undefined,
     updaterAvatarUrl: data.updaterAvatarUrl ?? data.updater_avatar_url ?? undefined,

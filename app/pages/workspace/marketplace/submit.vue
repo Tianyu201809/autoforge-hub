@@ -23,6 +23,7 @@ let gsapCtx: gsap.Context | null = null
 const form = reactive({
   title: '',
   description: '',
+  githubUrl: '',
   readme: '',
   category: '' as string,
   language: 'Python',
@@ -50,6 +51,25 @@ function parseTags(raw: string) {
   return raw.split(/[,，\s]+/).map(t => t.trim()).filter(Boolean)
 }
 
+function getGithubUrlError(value: string) {
+  const raw = value.trim()
+  if (!raw) return ''
+  let parsed: URL
+  try {
+    parsed = new URL(raw)
+  } catch {
+    return '请输入有效的 GitHub 地址'
+  }
+  const hostname = parsed.hostname.toLowerCase()
+  if (!['github.com', 'www.github.com'].includes(hostname) || !['http:', 'https:'].includes(parsed.protocol)) {
+    return '请输入 github.com 的 http(s) 地址'
+  }
+  if (!parsed.pathname || parsed.pathname === '/') {
+    return 'GitHub 地址需要包含仓库路径'
+  }
+  return ''
+}
+
 function animateStep() {
   gsapCtx?.revert()
   gsapCtx = gsap.context(() => {
@@ -70,6 +90,7 @@ watch(step, async () => {
 function fillFromScript(s: Script) {
   form.title = s.title
   form.description = s.description || ''
+  form.githubUrl = s.githubUrl || ''
   form.readme = s.readme || ''
   form.category = s.category || ''
   form.language = s.language || 'Python'
@@ -139,6 +160,11 @@ function goStep3() {
     formError.value = '请完善 README（至少 20 字）'
     return
   }
+  const githubError = getGithubUrlError(form.githubUrl)
+  if (githubError) {
+    formError.value = githubError
+    return
+  }
   step.value = 3
 }
 
@@ -158,6 +184,7 @@ async function submitPublish() {
       scriptId: selectedId.value,
       title: form.title.trim(),
       description: form.description.trim(),
+      githubUrl: form.githubUrl.trim(),
       readme: form.readme,
       category: form.category,
       language: form.language,
@@ -269,6 +296,10 @@ onUnmounted(() => {
           <span>简述</span>
           <input v-model="form.description" type="text" placeholder="一句话介绍">
         </label>
+        <label class="mp-field">
+          <span>GitHub 地址（可选）</span>
+          <input v-model="form.githubUrl" type="url" placeholder="https://github.com/owner/repo">
+        </label>
         <div class="mp-field-row">
           <label class="mp-field">
             <span>分类</span>
@@ -311,6 +342,7 @@ onUnmounted(() => {
           <ul>
             <li>分类：{{ form.category }}</li>
             <li>语言：{{ form.language }}</li>
+            <li v-if="form.githubUrl.trim()">GitHub：{{ form.githubUrl.trim() }}</li>
             <li>标签：{{ parseTags(form.tags).join('、') || '无' }}</li>
           </ul>
           <label class="mp-confirm__check">

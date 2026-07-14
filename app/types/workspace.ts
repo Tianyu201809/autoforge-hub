@@ -15,6 +15,7 @@ export interface Script {
   ownerId: string
   ownerDisplayName?: string
   ownerAvatarUrl?: string
+  githubUrl?: string
   updatedBy?: string
   updaterDisplayName?: string
   updaterAvatarUrl?: string
@@ -44,6 +45,7 @@ export interface StoredScript {
   readme: string
   ownerDisplayName?: string
   ownerAvatarUrl?: string
+  githubUrl?: string
   updatedBy?: string
   updaterDisplayName?: string
   updaterAvatarUrl?: string

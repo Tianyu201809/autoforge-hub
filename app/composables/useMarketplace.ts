@@ -40,6 +40,7 @@ function toScript(data: any): Script {
     teamId: data.teamId ?? data.team_id ?? undefined,
     ownerDisplayName: data.ownerDisplayName ?? data.owner_display_name ?? undefined,
     ownerAvatarUrl: data.ownerAvatarUrl ?? data.owner_avatar_url ?? undefined,
+    githubUrl: data.githubUrl ?? data.github_url ?? undefined,
     visibility: data.visibility || "private",
     publishedAt: data.publishedAt ?? data.published_at ?? undefined,
     installCount: Number(data.installCount ?? data.install_count ?? 0),

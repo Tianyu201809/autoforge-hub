@@ -9,128 +9,330 @@ const { getAvatarSrc } = useAuth()
 
 const ownerName = computed(() => props.script.ownerDisplayName || '未知用户')
 const avatarSrc = computed(() => getAvatarSrc(props.script.ownerAvatarUrl))
+const summary = computed(() => props.script.description?.trim() || '作者暂未填写概要描述')
+const publishTime = computed(() => formatCardDate(props.script.publishedAt || props.script.createdAt))
+const githubText = computed(() => githubLabel(props.script.githubUrl))
+const previewTags = computed(() => (props.script.tags || []).slice(0, 2))
 
 function initials(name: string) {
   const t = name.trim()
   return t ? t.slice(0, 1).toUpperCase() : '?'
 }
+
+function formatCardDate(iso?: string) {
+  if (!iso) return '未上架'
+  return new Date(iso).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+}
+
+function githubLabel(url?: string) {
+  if (!url) return ''
+  try {
+    const parsed = new URL(url)
+    return parsed.pathname.replace(/^\/|\/$/g, '') || parsed.hostname
+  } catch {
+    return url
+  }
+}
 </script>
 
 <template>
   <article class="mp-card" data-anim="card">
-    <NuxtLink :to="`/workspace/marketplace/${script.id}`" class="mp-card__link">
-      <div
-        class="mp-card__icon"
-        :style="script.iconColor ? { color: script.iconColor } : undefined"
-        aria-hidden="true"
-      >
-        <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="20" />
-      </div>
-      <div class="mp-card__body">
-        <h3 class="mp-card__title">{{ script.title }}</h3>
-        <p class="mp-card__meta">
-          <span v-if="script.category">{{ script.category }}</span>
-          <span v-if="script.category && script.language"> · </span>
-          <span v-if="script.language">{{ script.language }}</span>
-        </p>
-        <div class="mp-card__footer">
-          <span class="mp-card__owner">
-            <img v-if="avatarSrc" :src="avatarSrc" alt="" class="mp-card__avatar">
-            <span v-else class="mp-card__avatar mp-card__avatar--fallback">{{ initials(ownerName) }}</span>
-            <span class="mp-card__owner-name">{{ ownerName }}</span>
-          </span>
-          <span class="mp-card__installs">
-            <Icon name="lucide:download" size="12" />
-            {{ script.installCount || 0 }}
+    <div class="mp-card__plate">
+      <NuxtLink :to="`/workspace/marketplace/${script.id}`" class="mp-card__main">
+        <div class="mp-card__top">
+          <div
+            class="mp-card__icon"
+            :style="script.iconColor ? { color: script.iconColor } : undefined"
+            aria-hidden="true"
+          >
+            <Icon :name="`lucide:${script.icon || 'file-archive'}`" size="24" />
+          </div>
+          <span class="mp-card__badge">
+            {{ script.category || '未分类' }}
           </span>
         </div>
+
+        <h3 class="mp-card__title">{{ script.title }}</h3>
+        <p class="mp-card__summary">{{ summary }}</p>
+
+        <div class="mp-card__tags" aria-label="脚本标签">
+          <span v-if="script.language" class="mp-card__tag">{{ script.language }}</span>
+          <span v-for="tag in previewTags" :key="tag" class="mp-card__tag">{{ tag }}</span>
+        </div>
+      </NuxtLink>
+
+      <div class="mp-card__info" aria-label="脚本概要信息">
+        <span class="mp-card__info-item">
+          <Icon name="lucide:user-round" size="13" />
+          <span class="mp-card__text">{{ ownerName }}</span>
+        </span>
+        <span class="mp-card__info-item">
+          <Icon name="lucide:calendar-days" size="13" />
+          <span>{{ publishTime }}</span>
+        </span>
+        <a
+          v-if="script.githubUrl"
+          class="mp-card__info-item mp-card__github"
+          :href="script.githubUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          :title="githubText"
+          @click.stop
+        >
+          <Icon name="lucide:github" size="13" />
+          <span class="mp-card__text">{{ githubText }}</span>
+          <Icon name="lucide:external-link" size="11" />
+        </a>
+        <span v-else class="mp-card__info-item mp-card__info-item--muted">
+          <Icon name="lucide:github" size="13" />
+          <span>暂无仓库</span>
+        </span>
       </div>
-    </NuxtLink>
+
+      <div class="mp-card__footer">
+        <span class="mp-card__owner">
+          <img v-if="avatarSrc" :src="avatarSrc" alt="" class="mp-card__avatar">
+          <span v-else class="mp-card__avatar mp-card__avatar--fallback">{{ initials(ownerName) }}</span>
+          <span class="mp-card__owner-name">{{ ownerName }}</span>
+        </span>
+        <span class="mp-card__installs">
+          <Icon name="lucide:download" size="13" />
+          {{ script.installCount || 0 }}
+        </span>
+      </div>
+    </div>
   </article>
 </template>
 
 <style scoped>
 .mp-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  position: relative;
+  perspective: 900px;
   opacity: 1;
 }
 
-.mp-card:hover {
-  border-color: var(--border-accent);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+.mp-card__plate {
+  position: relative;
+  display: flex;
+  min-height: 254px;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 28%),
+    linear-gradient(160deg, rgba(255, 140, 0, 0.1), transparent 34%),
+    linear-gradient(330deg, rgba(107, 76, 230, 0.13), transparent 42%),
+    var(--bg-elevated);
+  box-shadow:
+    0 18px 34px rgba(0, 0, 0, 0.34),
+    0 2px 0 rgba(255, 255, 255, 0.05) inset,
+    0 -14px 24px rgba(0, 0, 0, 0.22) inset;
+  transform-style: preserve-3d;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.mp-card__link {
+.mp-card__plate::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(180deg, black, transparent 80%);
+  opacity: 0.38;
+}
+
+.mp-card__plate::after {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  left: 14px;
+  height: 18px;
+  z-index: -2;
+  content: "";
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.48);
+  filter: blur(16px);
+}
+
+.mp-card:hover .mp-card__plate {
+  border-color: var(--border-accent);
+  box-shadow:
+    0 26px 46px rgba(0, 0, 0, 0.44),
+    0 0 24px rgba(255, 140, 0, 0.12),
+    0 2px 0 rgba(255, 255, 255, 0.08) inset,
+    0 -16px 26px rgba(0, 0, 0, 0.24) inset;
+  transform: translateY(-6px) rotateX(2deg);
+}
+
+.mp-card__main {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  padding: 14px;
+  flex: 1;
+  flex-direction: column;
+  padding: 16px 16px 10px;
   color: inherit;
   text-decoration: none;
-  height: 100%;
+}
+
+.mp-card__top,
+.mp-card__footer,
+.mp-card__owner,
+.mp-card__installs,
+.mp-card__info-item {
+  display: flex;
+  align-items: center;
+}
+
+.mp-card__top {
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .mp-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   flex-shrink: 0;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.22), transparent 34%),
+    var(--accent-soft);
   color: var(--accent);
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.12) inset;
+  transform: translateZ(24px);
 }
 
-.mp-card__body {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.mp-card__badge {
+  max-width: 54%;
+  overflow: hidden;
+  padding: 5px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .mp-card__title {
-  margin: 0;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  margin: 14px 0 0;
   color: var(--text);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: var(--leading-tight);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mp-card__meta {
-  margin: 0;
+.mp-card__summary {
+  display: -webkit-box;
+  min-height: 40px;
+  margin: 8px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.mp-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 24px;
+  margin-top: 12px;
+}
+
+.mp-card__tag {
+  max-width: 44%;
+  overflow: hidden;
+  padding: 3px 7px;
+  border: 1px solid var(--secondary-border);
+  border-radius: 999px;
+  background: var(--secondary-soft);
+  color: var(--text-secondary);
   font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-card__info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+.mp-card__info-item {
+  min-width: 0;
+  gap: 6px;
   color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.mp-card__github {
+  grid-column: 1 / -1;
+  width: fit-content;
+  max-width: 100%;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.mp-card__github:hover {
+  color: var(--accent);
+}
+
+.mp-card__info-item--muted {
+  grid-column: 1 / -1;
+  opacity: 0.72;
+}
+
+.mp-card__text,
+.mp-card__owner-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mp-card__footer {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: auto;
+  padding: 11px 16px 13px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .mp-card__owner {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   min-width: 0;
-  font-size: var(--text-xs);
+  gap: 7px;
   color: var(--text-secondary);
+  font-size: var(--text-xs);
 }
 
 .mp-card__avatar {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -142,23 +344,35 @@ function initials(name: string) {
   justify-content: center;
   background: var(--gradient-orange);
   color: var(--btn-primary-text);
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.mp-card__owner-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .mp-card__installs {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-shrink: 0;
-  font-size: var(--text-xs);
   color: var(--text-muted);
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mp-card__plate {
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+
+  .mp-card:hover .mp-card__plate {
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .mp-card__plate {
+    min-height: 236px;
+  }
+
+  .mp-card:hover .mp-card__plate {
+    transform: translateY(-3px);
+  }
 }
 </style>

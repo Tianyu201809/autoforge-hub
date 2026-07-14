@@ -22,6 +22,7 @@ function mapRow(row: any, opts: { includeReadme?: boolean } = {}) {
     visibility: row.visibility || "private",
     publishedAt: row.published_at || undefined,
     installCount: Number(row.install_count || 0),
+    githubUrl: row.github_url || undefined,
     ownerDisplayName: row.owner_display_name || "未知用户",
     ownerAvatarUrl: row.owner_avatar_url || "",
   }
@@ -93,7 +94,7 @@ export default defineEventHandler(async (event) => {
   const selectCols = isMarketplace
     ? `s.id, s.title, s.description, s.file_name, s.file_size, s.file_path, s.tags, s.icon, s.icon_color,
        s.category, s.language, s.owner_id, s.team_id, s.created_at, s.updated_at, s.visibility, s.published_at,
-       s.install_count, '' AS readme, u.display_name AS owner_display_name, u.avatar_url AS owner_avatar_url`
+       s.install_count, s.github_url, '' AS readme, u.display_name AS owner_display_name, u.avatar_url AS owner_avatar_url`
     : `s.*, u.display_name AS owner_display_name, u.avatar_url AS owner_avatar_url`
 
   const listStmt = db.prepare(

@@ -23,6 +23,7 @@ function mapScriptRow(row: any) {
     visibility: row.visibility || "private",
     publishedAt: row.published_at || undefined,
     installCount: Number(row.install_count || 0),
+    githubUrl: row.github_url || undefined,
     ownerDisplayName: row.owner_display_name || "未知用户",
     ownerAvatarUrl: row.owner_avatar_url || "",
     updaterDisplayName: row.updater_display_name || row.owner_display_name || "未知用户",

@@ -76,6 +76,7 @@ export async function getDb(): Promise<SqlJsDbType> {
       file_path TEXT NOT NULL DEFAULT '',
       tags TEXT NOT NULL DEFAULT '[]',
       icon TEXT NOT NULL DEFAULT 'file-archive',
+      github_url TEXT NOT NULL DEFAULT '',
       owner_id TEXT NOT NULL REFERENCES users(id),
       team_id TEXT REFERENCES teams(id),
       created_at TEXT NOT NULL,
@@ -113,6 +114,7 @@ export async function getDb(): Promise<SqlJsDbType> {
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN visibility TEXT NOT NULL DEFAULT 'private'") } catch (e) {}
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN published_at TEXT DEFAULT NULL") } catch (e) {}
   try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN install_count INTEGER NOT NULL DEFAULT 0") } catch (e) {}
+  try { _sqlDb.run("ALTER TABLE scripts ADD COLUMN github_url TEXT NOT NULL DEFAULT ''") } catch { /* already exists */ }
 
   // audit_logs table
   _sqlDb.run(`

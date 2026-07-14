@@ -53,6 +53,16 @@ function formatDate(iso: string) {
   })
 }
 
+function githubLabel(url?: string) {
+  if (!url) return ''
+  try {
+    const parsed = new URL(url)
+    return parsed.pathname.replace(/^\/|\/$/g, '') || parsed.hostname
+  } catch {
+    return url
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -270,6 +280,17 @@ onUnmounted(() => {
             <span>安装 {{ script.installCount || 0 }}</span>
           </div>
           <div class="mp-detail__actions" data-anim="hero">
+            <a
+              v-if="script.githubUrl"
+              :href="script.githubUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mp-btn mp-btn--github"
+              :title="githubLabel(script.githubUrl)"
+            >
+              <Icon name="lucide:github" size="16" />
+              GitHub
+            </a>
             <button type="button" class="mp-btn mp-btn--primary" :disabled="installing" @click="handleInstall">
               <Icon name="lucide:plus" size="16" />
               {{ installing ? '添加中…' : '添加到本地' }}
@@ -447,6 +468,12 @@ onUnmounted(() => {
   background: var(--gradient-orange);
   color: var(--btn-primary-text);
   box-shadow: var(--shadow-glow-orange);
+}
+
+.mp-btn--github {
+  border-color: var(--border-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  color: var(--text);
 }
 
 .mp-btn--danger {

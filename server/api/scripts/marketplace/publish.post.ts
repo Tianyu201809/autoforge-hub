@@ -1,6 +1,26 @@
 import { getDb, saveDb } from "../../../db/index"
 import { MARKETPLACE_CATEGORIES } from "../../../utils/marketplace-categories"
 
+function normalizeGithubUrl(value: unknown) {
+  const raw = String(value || "").trim()
+  if (!raw) return ""
+  let parsed: URL
+  try {
+    parsed = new URL(raw)
+  } catch {
+    throw createError({ statusCode: 400, message: "请输入有效的 GitHub 地址" })
+  }
+  const hostname = parsed.hostname.toLowerCase()
+  if (!["github.com", "www.github.com"].includes(hostname) || !["http:", "https:"].includes(parsed.protocol)) {
+    throw createError({ statusCode: 400, message: "请输入 github.com 的 http(s) 地址" })
+  }
+  const pathname = parsed.pathname.replace(/\/+$/, "")
+  if (!pathname || pathname === "/") {
+    throw createError({ statusCode: 400, message: "GitHub 地址需要包含仓库路径" })
+  }
+  return `${parsed.protocol}//${hostname}${pathname}`
+}
+
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
   if (!auth) throw createError({ statusCode: 401, message: "未登录" })
@@ -47,15 +67,16 @@ export default defineEventHandler(async (event) => {
   const icon = body?.icon || row.icon || "file-archive"
   const iconColor = body?.iconColor ?? row.icon_color ?? null
   const language = String(body?.language ?? row.language ?? "").trim()
+  const githubUrl = normalizeGithubUrl(body?.githubUrl ?? row.github_url ?? "")
   const now = new Date().toISOString()
 
   db.run(
     `UPDATE scripts SET title = ?, description = ?, readme = ?, tags = ?, icon = ?, icon_color = ?,
-      category = ?, language = ?, visibility = 'public', published_at = ?, updated_at = ?, updated_by = ?
+      category = ?, language = ?, github_url = ?, visibility = 'public', published_at = ?, updated_at = ?, updated_by = ?
      WHERE id = ?`,
     [
       title, description, readme, JSON.stringify(tags), icon, iconColor,
-      category, language, now, now, auth.user.userId, scriptId,
+      category, language, githubUrl, now, now, auth.user.userId, scriptId,
     ]
   )
   saveDb()
