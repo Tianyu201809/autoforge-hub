@@ -180,7 +180,7 @@ onUnmounted(() => {
         <button type="button" class="mp-status__retry" @click="refresh('cards')">重试</button>
       </p>
       <p v-else-if="loading" class="mp-status">加载中…</p>
-      <p v-else-if="!items.length" class="mp-status">暂无公开插件，成为第一个提交者吧</p>
+      <p v-else-if="!items.length" class="mp-status">暂无公开脚本，成为第一个提交者吧</p>
 
       <div v-else class="mp-grid">
         <MarketplaceMpPluginCard v-for="s in items" :key="s.id" :script="s" />
