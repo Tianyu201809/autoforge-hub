@@ -165,7 +165,7 @@ async function submitPublish() {
       icon: form.icon,
       iconColor: form.iconColor,
     })
-    showTip('已发布到插件集市', 'success')
+    showTip('已发布到脚本集市', 'success')
     if (!reducedMotion.value && panelRef.value) {
       await gsap.to(panelRef.value, { opacity: 0.4, scale: 0.98, duration: 0.25 })
     }
@@ -205,7 +205,7 @@ onUnmounted(() => {
 
     <header class="mp-submit__head">
       <h1>提交插件</h1>
-      <p>将个人脚本公开发布到插件集市</p>
+      <p>将个人脚本公开发布到脚本集市</p>
       <ol class="mp-submit__steps">
         <li :class="{ 'is-active': step === 1, 'is-done': step > 1 }">1. 选择来源</li>
         <li :class="{ 'is-active': step === 2, 'is-done': step > 2 }">2. 完善信息</li>
@@ -315,7 +315,7 @@ onUnmounted(() => {
           </ul>
           <label class="mp-confirm__check">
             <input v-model="confirmPublic" type="checkbox">
-            我确认将此脚本公开发布到插件集市
+            我确认将此脚本公开发布到脚本集市
           </label>
         </div>
         <div class="mp-submit__footer">

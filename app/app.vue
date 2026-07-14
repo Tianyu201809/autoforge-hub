@@ -4,4 +4,5 @@
     <NuxtPage />
   </NuxtLayout>
   <AfGlobalTip />
+  <AuthSessionExpiredDialog />
 </template>

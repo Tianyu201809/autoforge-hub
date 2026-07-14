@@ -4,7 +4,7 @@ import type { MarketplaceSort } from '~/types/workspace'
 
 definePageMeta({ layout: 'default' })
 
-useHead({ title: '插件集市 - Autoforge Hub' })
+useHead({ title: '脚本集市 - Autoforge Hub' })
 
 const {
   items,
@@ -154,7 +154,7 @@ onUnmounted(() => {
     <div class="mp-main">
       <header class="mp-hero">
         <div>
-          <h1 class="mp-hero__title" data-anim="hero">插件集市</h1>
+          <h1 class="mp-hero__title" data-anim="hero">脚本集市</h1>
           <p class="mp-hero__sub" data-anim="hero">发现并安装社区公开脚本</p>
         </div>
         <NuxtLink to="/workspace/marketplace/submit" class="mp-hero__cta" data-anim="hero">

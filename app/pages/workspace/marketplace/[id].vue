@@ -28,7 +28,7 @@ const unpublishing = ref(false)
 let gsapCtx: gsap.Context | null = null
 
 const pageTitle = computed(() =>
-  script.value ? `${script.value.title} - 插件集市` : '插件详情 - Autoforge Hub'
+  script.value ? `${script.value.title} - 脚本集市` : '插件详情 - Autoforge Hub'
 )
 useHead({ title: pageTitle })
 
@@ -244,7 +244,7 @@ onUnmounted(() => {
     <p v-if="loading" class="mp-detail__status">加载中…</p>
     <div v-else-if="error" class="mp-detail__status mp-detail__status--error">
       <p>{{ error }}</p>
-      <NuxtLink v-if="unpublished" to="/workspace/marketplace" class="mp-detail__link">回到插件集市</NuxtLink>
+      <NuxtLink v-if="unpublished" to="/workspace/marketplace" class="mp-detail__link">回到脚本集市</NuxtLink>
     </div>
 
     <template v-else-if="script">
