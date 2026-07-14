@@ -11,6 +11,9 @@ const ownerName = computed(() => props.script.ownerDisplayName || '未知用户'
 const avatarSrc = computed(() => getAvatarSrc(props.script.ownerAvatarUrl))
 const summary = computed(() => props.script.description?.trim() || '作者暂未填写概要描述')
 const publishTime = computed(() => formatCardDate(props.script.publishedAt || props.script.createdAt))
+const updateTime = computed(() => formatCardDate(props.script.updatedAt || props.script.publishedAt || props.script.createdAt))
+const sizeText = computed(() => formatSize(props.script.zipSize))
+const installText = computed(() => formatCount(props.script.installCount || 0))
 const githubText = computed(() => githubLabel(props.script.githubUrl))
 const previewTags = computed(() => (props.script.tags || []).slice(0, 2))
 
@@ -26,6 +29,20 @@ function formatCardDate(iso?: string) {
     month: '2-digit',
     day: '2-digit',
   })
+}
+
+function formatSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '未知'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
+}
+
+function formatCount(count: number): string {
+  if (count < 1000) return String(count)
+  if (count < 10000) return `${(count / 1000).toFixed(1)}k`
+  return `${Math.round(count / 1000)}k`
 }
 
 function githubLabel(url?: string) {
@@ -66,14 +83,34 @@ function githubLabel(url?: string) {
             <span v-if="script.language" class="mp-card__tag">{{ script.language }}</span>
             <span v-for="tag in previewTags" :key="tag" class="mp-card__tag">{{ tag }}</span>
           </div>
+
+          <dl class="mp-card__metrics" aria-label="脚本指标">
+            <div class="mp-card__metric">
+              <dt>
+                <Icon name="lucide:hard-drive" size="13" />
+                大小
+              </dt>
+              <dd>{{ sizeText }}</dd>
+            </div>
+            <div class="mp-card__metric">
+              <dt>
+                <Icon name="lucide:download" size="13" />
+                安装
+              </dt>
+              <dd>{{ installText }}</dd>
+            </div>
+            <div class="mp-card__metric">
+              <dt>
+                <Icon name="lucide:refresh-cw" size="13" />
+                更新
+              </dt>
+              <dd>{{ updateTime }}</dd>
+            </div>
+          </dl>
         </div>
       </NuxtLink>
 
       <div class="mp-card__info" aria-label="脚本概要信息">
-        <span class="mp-card__info-item">
-          <Icon name="lucide:calendar-days" size="13" />
-          <span>{{ publishTime }}</span>
-        </span>
         <a
           v-if="script.githubUrl"
           class="mp-card__info-item mp-card__github"
@@ -84,6 +121,7 @@ function githubLabel(url?: string) {
           @click.stop
         >
           <Icon name="lucide:github" size="13" />
+          <span class="mp-card__repo-label">仓库</span>
           <span class="mp-card__text">{{ githubText }}</span>
           <Icon name="lucide:external-link" size="11" />
         </a>
@@ -100,9 +138,9 @@ function githubLabel(url?: string) {
           <span class="mp-card__owner-label">作者</span>
           <span class="mp-card__owner-name">{{ ownerName }}</span>
         </span>
-        <span class="mp-card__installs">
-          <Icon name="lucide:download" size="13" />
-          {{ script.installCount || 0 }}
+        <span class="mp-card__published">
+          <Icon name="lucide:calendar-days" size="13" />
+          上架 {{ publishTime }}
         </span>
       </div>
     </div>
@@ -119,7 +157,7 @@ function githubLabel(url?: string) {
 .mp-card__plate {
   position: relative;
   display: flex;
-  min-height: 254px;
+  min-height: 286px;
   height: 100%;
   flex-direction: column;
   overflow: hidden;
@@ -188,7 +226,7 @@ function githubLabel(url?: string) {
 .mp-card__heading,
 .mp-card__footer,
 .mp-card__owner,
-.mp-card__installs,
+.mp-card__published,
 .mp-card__info-item {
   display: flex;
   align-items: center;
@@ -297,6 +335,45 @@ function githubLabel(url?: string) {
   white-space: nowrap;
 }
 
+.mp-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.mp-card__metric {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.mp-card__metric dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mp-card__metric dd {
+  min-width: 0;
+  margin: 6px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mp-card__info {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -309,10 +386,6 @@ function githubLabel(url?: string) {
   gap: 6px;
   color: var(--text-muted);
   font-size: var(--text-xs);
-}
-
-.mp-card__info > .mp-card__info-item:first-child {
-  justify-self: end;
 }
 
 .mp-card__github {
@@ -334,6 +407,7 @@ function githubLabel(url?: string) {
 }
 
 .mp-card__text,
+.mp-card__repo-label,
 .mp-card__owner-name {
   min-width: 0;
   overflow: hidden;
@@ -342,6 +416,11 @@ function githubLabel(url?: string) {
 }
 
 .mp-card__owner-label {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.mp-card__repo-label {
   flex-shrink: 0;
   color: var(--text-muted);
 }
@@ -381,7 +460,7 @@ function githubLabel(url?: string) {
   font-weight: 800;
 }
 
-.mp-card__installs {
+.mp-card__published {
   gap: 5px;
   flex-shrink: 0;
   color: var(--text-muted);
@@ -455,6 +534,16 @@ function githubLabel(url?: string) {
   color: #4f46e5;
 }
 
+:global(html[data-theme='light'] .mp-card__metric) {
+  border-color: rgba(15, 23, 42, 0.07);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82) inset;
+}
+
+:global(html[data-theme='light'] .mp-card__metric dd) {
+  color: #334155;
+}
+
 :global(html[data-theme='light'] .mp-card__summary) {
   color: #4b5563;
 }
@@ -496,7 +585,7 @@ function githubLabel(url?: string) {
 
 @media (max-width: 640px) {
   .mp-card__plate {
-    min-height: 236px;
+    min-height: 268px;
   }
 
   .mp-card:hover .mp-card__plate {
