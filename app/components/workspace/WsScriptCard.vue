@@ -204,7 +204,6 @@ function cancelCaptcha() {
 <template>
   <div class="script-card">
     <div class="script-card__header">
-      <h3 class="script-card__title" :title="script.title">{{ script.title }}</h3>
       <div class="script-card__icon" aria-hidden="true">
         <Icon
           :name="`lucide:${script.icon || 'file-archive'}`"
@@ -213,20 +212,20 @@ function cancelCaptcha() {
           :style="script.iconColor ? { color: script.iconColor } : undefined"
         />
       </div>
+      <div class="script-card__heading">
+        <h3 class="script-card__title" :title="script.title">{{ script.title }}</h3>
+        <div class="script-card__meta-row">
+          <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
+          <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
+        </div>
+      </div>
     </div>
-
-    <div class="script-card__divider" aria-hidden="true" />
 
     <p v-if="script.description" class="script-card__desc" :title="script.description">
       {{ script.description }}
     </p>
 
-    <div class="script-card__meta-row">
-      <span v-if="script.category" class="script-card__cat-badge">{{ script.category }}</span>
-      <span v-if="script.language" class="script-card__lang-badge">{{ script.language }}</span>
-    </div>
-
-    <dl class="script-card__info">
+    <dl class="script-card__info script-card__info--summary">
       <div class="script-card__info-row">
         <dt>大小</dt>
         <dd>{{ formatSize(script.zipSize) }}</dd>
@@ -245,11 +244,7 @@ function cancelCaptcha() {
         </dd>
       </div>
       <div class="script-card__info-row">
-        <dt>上传</dt>
-        <dd>{{ formatDate(script.createdAt) }}</dd>
-      </div>
-      <div class="script-card__info-row">
-        <dt>修改</dt>
+        <dt>更新</dt>
         <dd>{{ formatDate(script.updatedAt || script.createdAt) }}</dd>
       </div>
     </dl>
@@ -421,34 +416,43 @@ function cancelCaptcha() {
 .script-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  position: relative;
+  gap: 0;
   height: 100%;
-  padding: 16px;
+  min-height: 254px;
+  padding: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   animation: cardReveal 0.35s ease both;
 }
 
 .script-card:hover {
   border-color: var(--border-accent);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .script-card__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 11px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.script-card__heading {
+  min-width: 0;
+  flex: 1;
 }
 
 .script-card__title {
   margin: 0;
   min-width: 0;
-  flex: 1;
   font-size: var(--text-base);
   font-weight: 700;
   line-height: 1.35;
@@ -460,14 +464,14 @@ function cancelCaptcha() {
 
 .script-card__icon {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: var(--bg-muted);
-  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
 }
 
 .script-card__divider {
@@ -477,14 +481,16 @@ function cancelCaptcha() {
 }
 
 .script-card__desc {
-  margin: 0;
+  margin: 18px 16px 0;
+  padding: 0;
   font-size: var(--text-sm);
+  min-height: 38px;
   line-height: 1.5;
   color: var(--text-secondary);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-clamp: 3;
+  line-clamp: 2;
   overflow: hidden;
   word-break: break-word;
 }
@@ -499,6 +505,13 @@ function cancelCaptcha() {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
+  opacity: 0.65;
+  transition: opacity 0.18s ease;
+}
+
+.script-card:hover .script-card__actions,
+.script-card:focus-within .script-card__actions {
+  opacity: 1;
 }
 
 .script-card__edit {
@@ -758,7 +771,8 @@ function cancelCaptcha() {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  margin-top: 5px;
 }
 
 .script-card__meta-item {
@@ -776,14 +790,23 @@ function cancelCaptcha() {
   justify-content: space-between;
   gap: 8px;
   margin-top: auto;
-  padding-top: 8px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
 }
 
 .script-card__info {
-  margin: 0;
+  margin: 18px 16px 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.script-card__info--summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .script-card__info-row {
@@ -793,6 +816,18 @@ function cancelCaptcha() {
   gap: 8px;
   font-size: var(--text-xs);
   line-height: 1.4;
+}
+
+.script-card__info--summary .script-card__info-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+}
+
+.script-card__info--summary .script-card__info-row:last-child {
+  grid-column: auto;
 }
 
 .script-card__info-row dt {
@@ -808,6 +843,12 @@ function cancelCaptcha() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.script-card__info--summary .script-card__info-row dd {
+  max-width: 100%;
+  color: var(--text);
+  font-weight: 600;
 }
 
 .script-card__owner {
@@ -846,9 +887,8 @@ function cancelCaptcha() {
 .script-card__cta {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr);
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
+  gap: 10px;
+  padding: 12px 16px 18px;
 }
 
 .script-card__cta > * {
@@ -860,7 +900,7 @@ function cancelCaptcha() {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 28px;
+  min-height: 30px;
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -890,7 +930,7 @@ function cancelCaptcha() {
   justify-content: center;
   gap: 4px;
   width: 100%;
-  min-height: 28px;
+  min-height: 40px;
   padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -922,7 +962,7 @@ function cancelCaptcha() {
   justify-content: center;
   width: 100%;
   min-width: 0;
-  min-height: 28px;
+  min-height: 40px;
   padding: 0 8px;
   overflow: hidden;
   border: 1px solid var(--accent-border);
@@ -1040,6 +1080,8 @@ function cancelCaptcha() {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+  margin: 14px 16px 0;
+  padding: 0;
 }
 
 .script-card__tag {
@@ -1088,4 +1130,8 @@ function cancelCaptcha() {
     animation: none;
   }
 }
+.script-card__info script-card__info--summary {
+  padding: 10px;
+}
+
 </style>

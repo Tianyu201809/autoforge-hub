@@ -442,14 +442,8 @@ async function handleUpload(payload: { title: string; description: string; readm
 
 .ws-script-list {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-@media (max-width: 1100px) {
-  .ws-script-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
 }
 
 @media (max-width: 720px) {

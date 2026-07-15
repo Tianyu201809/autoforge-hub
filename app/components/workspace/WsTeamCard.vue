@@ -54,12 +54,10 @@ function handleDelete() {
       </div>
       <div class="team-card__info">
         <h3 class="team-card__name">{{ team.name }}</h3>
-        <p class="team-card__meta">
-          {{ team.memberCount }} 名成员 · {{ formatDate(team.createdAt) }} 创建
-        </p>
+        <p class="team-card__meta">{{ formatDate(team.createdAt) }} 创建</p>
       </div>
       <div class="team-card__actions">
-        <span v-if="isOwner" class="team-card__owner-badge">创建者</span>
+        <Icon name="lucide:arrow-up-right" size="17" class="team-card__arrow" aria-hidden="true" />
         <button
           v-if="canDelete"
           type="button"
@@ -74,6 +72,16 @@ function handleDelete() {
     </div>
 
     <p v-if="team.description" class="team-card__desc">{{ team.description }}</p>
+
+    <div class="team-card__footer">
+      <span class="team-card__members">
+        <span class="team-card__member-icon" aria-hidden="true">
+          <Icon name="lucide:users" size="13" />
+        </span>
+        {{ team.memberCount }} 名成员
+      </span>
+      <span v-if="isOwner" class="team-card__owner-badge">创建者</span>
+    </div>
   </NuxtLink>
 </template>
 
@@ -81,36 +89,37 @@ function handleDelete() {
 .team-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
+  gap: 14px;
+  min-height: 172px;
+  padding: 20px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
-  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   animation: cardReveal 0.35s ease both;
   color: inherit;
 }
 
 .team-card:hover {
   border-color: var(--secondary-border);
-  box-shadow: var(--shadow-card-hover), var(--shadow-glow-purple);
+  box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
 }
 
 .team-card__header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
 }
 
 .team-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   background: var(--secondary-soft);
   flex-shrink: 0;
   overflow: hidden;
@@ -134,7 +143,7 @@ function handleDelete() {
 .team-card__name {
   margin: 0;
   font-size: var(--text-base);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -150,19 +159,30 @@ function handleDelete() {
 .team-card__actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .team-card__owner-badge {
-  padding: 3px 8px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: var(--secondary-soft);
   border: 1px solid var(--secondary-border);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   color: var(--secondary);
   white-space: nowrap;
+}
+
+.team-card__arrow {
+  margin-right: 4px;
+  color: var(--text-muted);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.team-card:hover .team-card__arrow {
+  color: var(--secondary);
+  transform: translate(2px, -2px);
 }
 
 .team-card__delete {
@@ -192,12 +212,43 @@ function handleDelete() {
 .team-card__desc {
   margin: 0;
   font-size: var(--text-sm);
-  line-height: var(--leading-snug);
+  min-height: calc(var(--text-sm) * 2 * 1.45);
+  line-height: 1.45;
   color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.team-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.team-card__members {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.team-card__member-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--secondary-soft);
+  color: var(--secondary);
 }
 
 @keyframes cardReveal {
