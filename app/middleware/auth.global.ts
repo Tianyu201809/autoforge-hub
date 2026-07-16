@@ -27,7 +27,7 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (isPublic && isAuthenticated.value) {
-    return navigateTo('/')
+    return navigateTo('/workspace', { replace: true })
   }
 
   if (!isPublic && !isAuthenticated.value) {

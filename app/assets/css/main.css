@@ -149,13 +149,16 @@
   --shadow-md: 0 14px 34px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 14px 30px rgba(15, 23, 42, 0.07), 0 2px 8px rgba(15, 23, 42, 0.04);
   --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.94) inset, 0 22px 44px rgba(15, 23, 42, 0.1), 0 7px 18px rgba(234, 88, 12, 0.08);
-  --shadow-glow-orange: 0 8px 18px rgba(234, 88, 12, 0.16);
+  --shadow-glow-orange: none;
   --shadow-glow-purple: 0 8px 18px rgba(79, 70, 229, 0.08);
   --logo-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
   --icon-accent-filter: none;
   --icon-purple-filter: none;
   --overlay-bg: rgba(247, 248, 251, 0.84);
-  --gradient-orange: linear-gradient(135deg, #c2410c 0%, #ea580c 56%, #fb923c 100%);
+  --btn-primary-bg: #e77732;
+  --btn-primary-hover-bg: #d76724;
+  --btn-primary-active-bg: #bf571c;
+  --gradient-orange: var(--btn-primary-bg);
   --gradient-hero: linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%);
   --marketplace-page-bg:
     radial-gradient(ellipse 48% 36% at 10% 0%, rgba(15, 23, 42, 0.03) 0%, transparent 60%),
@@ -193,6 +196,25 @@ a {
 button {
   font: inherit;
   cursor: pointer;
+}
+
+html[data-theme='light'] :is(button, .af-download, .btn-login, .ws-upload-btn, .ws-empty__btn, .mp-hero__cta) {
+  transition-property: background-color, border-color, color, opacity !important;
+  transition-duration: 160ms !important;
+  transition-timing-function: ease !important;
+}
+
+html[data-theme='light'] :is(button, a, [role='button']):hover:not(:disabled) {
+  --gradient-orange: var(--btn-primary-hover-bg);
+}
+
+html[data-theme='light'] :is(button, a, [role='button']):active:not(:disabled) {
+  --gradient-orange: var(--btn-primary-active-bg);
+}
+
+html[data-theme='light'] :is(button, .af-download, .btn-login, .ws-upload-btn, .ws-empty__btn, .mp-hero__cta):hover,
+html[data-theme='light'] :is(button, .af-download, .btn-login, .ws-upload-btn, .ws-empty__btn, .mp-hero__cta):active {
+  transform: none !important;
 }
 
 ::selection {

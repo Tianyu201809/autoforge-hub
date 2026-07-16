@@ -1020,6 +1020,22 @@ function cancelCaptcha() {
   animation: addLocalShine 1.1s ease-in-out infinite;
 }
 
+:global(html[data-theme='light'] .script-card__add-local) {
+  background: var(--gradient-orange);
+  box-shadow: none;
+  filter: none;
+}
+
+:global(html[data-theme='light'] .script-card__add-local:hover:not(:disabled)),
+:global(html[data-theme='light'] .script-card__add-local:active:not(:disabled)) {
+  box-shadow: none;
+  filter: none;
+}
+
+:global(html[data-theme='light'] .script-card__add-local-shine) {
+  display: none;
+}
+
 .script-card__add-local-inner {
   position: relative;
   z-index: 1;
