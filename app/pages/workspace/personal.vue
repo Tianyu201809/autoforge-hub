@@ -13,6 +13,7 @@ useHead({
 const { user } = useAuth()
 const {
   scripts,
+  total,
   hasMore,
   listLoading,
   listLoadingMore,
@@ -146,6 +147,78 @@ async function handleUpload(payload: { title: string; description: string; readm
   showUpload.value = false
   await refreshScriptList()
 }
+
+const RELEASES_URL = 'https://github.com/Tianyu201809/autoforge/releases'
+const loadedScripts = computed(() => scripts.value || [])
+
+function buildFilterItems(kind: 'category' | 'language', values: readonly string[], activeValue: string) {
+  const counts = new Map<string, number>()
+  for (const script of loadedScripts.value) {
+    const value = script[kind]
+    if (value) counts.set(value, (counts.get(value) || 0) + 1)
+  }
+
+  return values
+    .map(value => ({
+      label: value,
+      value,
+      count: counts.get(value) || 0,
+      active: activeValue === value,
+    }))
+    .filter(item => item.count > 0 || item.active)
+}
+
+const personalSidebarStats = computed(() => [
+  { label: '结果总数', value: total.value, icon: 'lucide:library' },
+  { label: '当前显示', value: loadedScripts.value.length, icon: 'lucide:layout-grid' },
+  {
+    label: '已发布',
+    value: loadedScripts.value.filter(script => script.visibility === 'public').length,
+    icon: 'lucide:store',
+  },
+  {
+    label: '总安装',
+    value: loadedScripts.value.reduce((sum, script) => sum + Number(script.installCount || 0), 0),
+    icon: 'lucide:download',
+  },
+])
+
+const personalSidebarActions = [
+  { key: 'upload', label: '上传脚本', icon: 'lucide:upload', primary: true },
+  { key: 'guide', label: '查看上传规范', icon: 'lucide:book-open-check' },
+  { key: 'marketplace', label: '前往脚本集市', icon: 'lucide:store', to: '/workspace/marketplace' },
+  { key: 'teams', label: '切换团队空间', icon: 'lucide:users', to: '/workspace/teams' },
+  { key: 'download', label: '下载 Autoforge', icon: 'lucide:download', to: RELEASES_URL, external: true },
+]
+
+const personalSidebarFilterGroups = computed(() => [
+  {
+    key: 'category' as const,
+    title: '分类',
+    icon: 'lucide:folder',
+    items: buildFilterItems('category', SCRIPT_CATEGORIES, filterCategory.value),
+  },
+  {
+    key: 'language' as const,
+    title: '语言',
+    icon: 'lucide:code-2',
+    items: buildFilterItems('language', SCRIPT_LANGUAGES, filterLanguage.value),
+  },
+])
+
+function handleSidebarAction(key: string) {
+  if (key === 'upload' || key === 'guide') {
+    showUpload.value = true
+  }
+}
+
+function handleSidebarFilter(payload: { kind: 'category' | 'language'; value: string }) {
+  if (payload.kind === 'category') {
+    filterCategory.value = filterCategory.value === payload.value ? '' : payload.value
+  } else {
+    filterLanguage.value = filterLanguage.value === payload.value ? '' : payload.value
+  }
+}
 </script>
 
 <template>
@@ -168,6 +241,22 @@ async function handleUpload(payload: { title: string; description: string; readm
           切换到团队空间
         </NuxtLink>
       </div>
+
+      <div class="ws-layout">
+        <div class="ws-layout__sidebar">
+          <WorkspaceWsSpaceInsightSidebar
+            tone="personal"
+            title="个人脚本库"
+            description="快速查看脚本规模、分布和常用入口。"
+            :stats="personalSidebarStats"
+            :actions="personalSidebarActions"
+            :filter-groups="personalSidebarFilterGroups"
+            @action="handleSidebarAction"
+            @filter="handleSidebarFilter"
+          />
+        </div>
+
+        <main class="ws-layout__main">
       <div class="ws-toolbar">
         <div class="ws-toolbar__search">
           <Icon name="lucide:search" size="16" class="ws-toolbar__search-icon" />
@@ -262,8 +351,10 @@ async function handleUpload(payload: { title: string; description: string; readm
       <div v-if="scripts.length > 0" class="ws-load-more">
         <div ref="loadMoreSentinel" class="ws-load-more__sentinel" aria-hidden="true" />
         <p v-if="listLoadingMore" class="ws-load-more__text">加载中…</p>
-        <p v-else-if="!hasMore" class="ws-load-more__text">没有更多了</p>
-        <p v-else-if="listError" class="ws-load-more__text ws-load-more__text--error">{{ listError }}</p>
+          <p v-else-if="!hasMore" class="ws-load-more__text">没有更多了</p>
+          <p v-else-if="listError" class="ws-load-more__text ws-load-more__text--error">{{ listError }}</p>
+        </div>
+        </main>
       </div>
     </div>
 
@@ -299,7 +390,7 @@ async function handleUpload(payload: { title: string; description: string; readm
 }
 
 .ws-page__body {
-  max-width: 900px;
+  max-width: 1500px;
   margin: 0 auto;
   padding: 32px 24px 80px;
 }
@@ -335,6 +426,18 @@ async function handleUpload(payload: { title: string; description: string; readm
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+.ws-layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.ws-layout__sidebar,
+.ws-layout__main {
+  min-width: 0;
 }
 
 .ws-toolbar {
@@ -442,11 +545,30 @@ async function handleUpload(payload: { title: string; description: string; readm
 
 .ws-script-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
+  .ws-script-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .ws-layout {
+    grid-template-columns: 260px minmax(0, 1fr);
+    gap: 22px;
+  }
+}
+
+@media (max-width: 960px) {
+  .ws-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
   .ws-script-list {
     grid-template-columns: 1fr;
   }

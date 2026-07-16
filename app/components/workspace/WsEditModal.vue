@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const title = ref(props.script.title)
 const description = ref(props.script.description)
 const readme = ref(props.script.readme || "")
-const readmeTab = ref<'edit' | 'preview'>('edit')
+const readmeTab = ref<"edit" | "preview">("edit")
 const tagsText = ref(props.script.tags.join(", "))
 const category = ref(props.script.category || "")
 const language = ref(props.script.language || "")
@@ -69,9 +69,9 @@ function onSubmit() {
             <Icon name="lucide:pencil" size="18" class="modal__title-icon" />
             编辑脚本
           </h2>
-          <p class="modal__subtitle">更新脚本信息与说明书</p>
+          <p class="modal__subtitle">更新脚本展示信息与说明书，脚本 ZIP 包不会被替换</p>
         </div>
-        <button type="button" class="modal__close" @click="emit('close')">
+        <button type="button" class="modal__close" aria-label="关闭" @click="emit('close')">
           <Icon name="lucide:x" size="18" />
         </button>
       </div>
@@ -79,45 +79,63 @@ function onSubmit() {
       <form class="modal-form" @submit.prevent="onSubmit">
         <div class="modal__body">
           <div class="modal__pane modal__pane--form">
-            <div class="modal-form__field">
-              <label class="modal-form__label">脚本名称 *</label>
-              <input v-model="title" type="text" class="modal-form__input" placeholder="输入脚本名称" maxlength="30" :disabled="saving">
-            </div>
-
-            <div class="modal-form__field">
-              <label class="modal-form__label">描述</label>
-              <textarea v-model="description" class="modal-form__textarea" placeholder="简要描述脚本的功能" rows="3" maxlength="150" :disabled="saving" />
-            </div>
-
-            <div class="modal-form__row">
-              <div class="modal-form__field">
-                <label class="modal-form__label">分类</label>
-                <select v-model="category" class="modal-form__input" :disabled="saving">
-                  <option value="">选择分类</option>
-                  <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
-                    {{ cat }}
-                  </option>
-                </select>
+            <section class="modal-section" aria-labelledby="edit-basic-title">
+              <div class="modal-section__head">
+                <div>
+                  <h3 id="edit-basic-title" class="modal-section__title">基础信息</h3>
+                  <p class="modal-section__desc">用于卡片标题、搜索和详情页摘要</p>
+                </div>
               </div>
+
               <div class="modal-form__field">
-                <label class="modal-form__label">编程语言</label>
-                <select v-model="language" class="modal-form__input" :disabled="saving">
-                  <option value="">选择语言</option>
-                  <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
-                    {{ lang }}
-                  </option>
-                </select>
+                <label class="modal-form__label">脚本名称 *</label>
+                <input v-model="title" type="text" class="modal-form__input" placeholder="输入脚本名称" maxlength="30" :disabled="saving">
               </div>
-            </div>
 
-            <div class="modal-form__field">
-              <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
-            </div>
+              <div class="modal-form__field">
+                <label class="modal-form__label">描述</label>
+                <textarea v-model="description" class="modal-form__textarea" placeholder="简要描述脚本的功能" rows="3" maxlength="150" :disabled="saving" />
+              </div>
+            </section>
 
-            <div class="modal-form__field">
-              <label class="modal-form__label">标签</label>
-              <input v-model="tagsText" type="text" class="modal-form__input" placeholder="逗号分隔，例如：数据, 分析" :disabled="saving">
-            </div>
+            <section class="modal-section" aria-labelledby="edit-meta-title">
+              <div class="modal-section__head">
+                <div>
+                  <h3 id="edit-meta-title" class="modal-section__title">展示设置</h3>
+                  <p class="modal-section__desc">设置分类、语言、图标和标签，方便团队快速识别</p>
+                </div>
+              </div>
+
+              <div class="modal-form__row">
+                <div class="modal-form__field">
+                  <label class="modal-form__label">分类</label>
+                  <select v-model="category" class="modal-form__input" :disabled="saving">
+                    <option value="">选择分类</option>
+                    <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
+                      {{ cat }}
+                    </option>
+                  </select>
+                </div>
+                <div class="modal-form__field">
+                  <label class="modal-form__label">编程语言</label>
+                  <select v-model="language" class="modal-form__input" :disabled="saving">
+                    <option value="">选择语言</option>
+                    <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
+                      {{ lang }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="modal-form__field">
+                <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
+              </div>
+
+              <div class="modal-form__field">
+                <label class="modal-form__label">标签</label>
+                <input v-model="tagsText" type="text" class="modal-form__input" placeholder="逗号分隔，例如：数据, 分析" :disabled="saving">
+              </div>
+            </section>
           </div>
 
           <div class="modal__pane modal__pane--docs">
@@ -168,13 +186,17 @@ function onSubmit() {
             <Icon name="lucide:alert-circle" size="15" />
             {{ error }}
           </div>
+          <div v-else class="modal__footer-hint">
+            <Icon name="lucide:info" size="14" />
+            仅保存脚本资料，不会修改 ZIP 包
+          </div>
           <div class="modal-form__actions">
             <button type="button" class="modal-form__cancel" :disabled="saving" @click="emit('close')">
               取消
             </button>
             <button type="submit" class="modal-form__submit" :disabled="saving">
               <Icon v-if="saving" name="lucide:loader-circle" size="16" class="modal-form__spinner" />
-              {{ saving ? "保存中..." : "保存" }}
+              {{ saving ? "保存中..." : "保存修改" }}
             </button>
           </div>
         </div>
@@ -200,8 +222,8 @@ function onSubmit() {
 .modal {
   display: flex;
   flex-direction: column;
-  width: min(960px, calc(100vw - 32px));
-  max-height: min(88vh, 720px);
+  width: min(1040px, calc(100vw - 32px));
+  max-height: min(90vh, 760px);
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
@@ -215,17 +237,17 @@ function onSubmit() {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px 14px;
+  padding: 18px 22px 14px;
   border-bottom: 1px solid var(--border);
 }
 
 .modal__title {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
 }
 
 .modal__subtitle {
@@ -265,11 +287,11 @@ function onSubmit() {
 
 .modal__body {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
-  gap: 16px;
+  grid-template-columns: minmax(340px, 0.92fr) minmax(360px, 1.08fr);
+  gap: 18px;
   flex: 1;
   min-height: 0;
-  padding: 16px 20px;
+  padding: 18px 22px;
   overflow-y: auto;
 }
 
@@ -280,17 +302,49 @@ function onSubmit() {
 .modal__pane--form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .modal__pane--docs {
   display: flex;
-  min-height: 360px;
+  min-height: 390px;
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-muted);
   overflow: hidden;
+}
+
+.modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 2px;
+}
+
+.modal-section + .modal-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.modal-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-section__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.modal-section__desc {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .modal-form__row {
@@ -323,7 +377,7 @@ function onSubmit() {
   font-size: var(--text-base);
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .modal-form__input,
@@ -348,8 +402,8 @@ select.modal-form__input option {
 }
 
 .modal-form__textarea {
+  min-height: 76px;
   resize: vertical;
-  min-height: 72px;
 }
 
 .modal-docs__head {
@@ -384,6 +438,7 @@ select.modal-form__input option {
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: 700;
+  transition: background 0.12s, color 0.12s;
 }
 
 .modal-docs__tab--active {
@@ -420,21 +475,29 @@ select.modal-form__input option {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 20px 18px;
+  padding: 14px 22px 18px;
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
 }
 
+.modal__footer-hint,
 .modal-form__error {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.modal__footer-hint {
+  color: var(--text-muted);
+}
+
+.modal-form__error {
   padding: 8px 12px;
+  border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
-  border: 1px solid var(--danger-border);
-  font-size: var(--text-sm);
   color: var(--danger);
 }
 
@@ -445,13 +508,22 @@ select.modal-form__input option {
   margin-left: auto;
 }
 
+.modal-form__cancel,
+.modal-form__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
 .modal-form__cancel {
   padding: 8px 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   background: transparent;
-  font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--text-secondary);
   transition: background 0.12s, border-color 0.12s;
 }
@@ -462,15 +534,9 @@ select.modal-form__input option {
 }
 
 .modal-form__submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   padding: 8px 20px;
   border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
   background: var(--gradient-orange);
-  font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--btn-primary-text);
   box-shadow: var(--shadow-glow-orange);
   transition: transform 0.15s, opacity 0.15s;
@@ -489,19 +555,38 @@ select.modal-form__input option {
   animation: spin 0.8s linear infinite;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 860px) {
   .modal__body {
     grid-template-columns: 1fr;
   }
 
   .modal__pane--docs {
-    min-height: 300px;
+    min-height: 320px;
   }
 
   .modal-form__row {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .modal__head,
+  .modal__body,
+  .modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .modal-docs__head,
   .modal__footer {
     align-items: stretch;
     flex-direction: column;
@@ -509,6 +594,11 @@ select.modal-form__input option {
 
   .modal-form__actions {
     width: 100%;
+  }
+
+  .modal-form__cancel,
+  .modal-form__submit {
+    flex: 1;
   }
 }
 

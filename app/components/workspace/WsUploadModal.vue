@@ -18,55 +18,59 @@ const emit = defineEmits<{
   }]
 }>()
 
-const title = ref('')
-const description = ref('')
-const readme = ref('')
-const paneTab = ref<'spec' | 'docs'>('spec')
-const readmeTab = ref<'edit' | 'preview'>('edit')
-const category = ref('')
-const language = ref('')
-const icon = ref('file-archive')
+const title = ref("")
+const description = ref("")
+const readme = ref("")
+const paneTab = ref<"spec" | "docs">("spec")
+const readmeTab = ref<"edit" | "preview">("edit")
+const category = ref("")
+const language = ref("")
+const icon = ref("file-archive")
 const iconColor = ref<string | undefined>(undefined)
-const tagsText = ref('')
+const tagsText = ref("")
 const zipFile = ref<File | null>(null)
-const error = ref('')
+const error = ref("")
 const uploading = ref(false)
 const dragOver = ref(false)
 
 const fileInputRef = ref<HTMLInputElement>()
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
+const hasZip = computed(() => Boolean(zipFile.value))
+
+function deriveTitleFromZip(fileName: string): string {
+  const withoutExt = fileName.replace(/\.zip$/i, "").trim()
+  return (withoutExt || "未命名脚本").slice(0, 30)
+}
+
+function applyZipFile(file: File) {
+  if (!file.name.toLowerCase().endsWith(".zip")) {
+    error.value = "仅支持 .zip 格式的脚本包"
+    return
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    error.value = "文件大小不能超过 20MB"
+    zipFile.value = null
+    if (fileInputRef.value) fileInputRef.value.value = ""
+    return
+  }
+
+  zipFile.value = file
+  title.value = deriveTitleFromZip(file.name)
+  error.value = ""
+}
 
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   if (input.files?.length) {
-    const file = input.files[0]
-    if (file.size > MAX_FILE_SIZE) {
-      error.value = '文件大小不能超过 20MB'
-      zipFile.value = null
-      if (fileInputRef.value) fileInputRef.value.value = ''
-      return
-    }
-    zipFile.value = file
-    error.value = ''
+    applyZipFile(input.files[0])
   }
 }
 
 function onDrop(e: DragEvent) {
   dragOver.value = false
   const file = e.dataTransfer?.files[0]
-  if (file) {
-    if (!file.name.endsWith('.zip')) {
-      error.value = '仅支持 .zip 格式的脚本包'
-      return
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      error.value = '文件大小不能超过 20MB'
-      return
-    }
-    zipFile.value = file
-    error.value = ''
-  }
+  if (file) applyZipFile(file)
 }
 
 function onDragOver(e: DragEvent) {
@@ -79,21 +83,21 @@ function onDragLeave() {
 }
 
 function validate(): boolean {
-  error.value = ''
-  if (!title.value.trim()) {
-    error.value = '请输入脚本名称'
-    return false
-  }
+  error.value = ""
   if (!zipFile.value) {
-    error.value = '请选择要上传的 .zip 文件'
+    error.value = "请先选择要上传的 .zip 文件"
     return false
   }
-  if (!zipFile.value.name.endsWith('.zip')) {
-    error.value = '仅支持 .zip 格式的脚本包'
+  if (!title.value.trim()) {
+    error.value = "脚本名称会由 ZIP 文件名自动生成，请重新选择文件"
+    return false
+  }
+  if (!zipFile.value.name.toLowerCase().endsWith(".zip")) {
+    error.value = "仅支持 .zip 格式的脚本包"
     return false
   }
   if (zipFile.value.size > MAX_FILE_SIZE) {
-    error.value = '文件大小不能超过 20MB'
+    error.value = "文件大小不能超过 20MB"
     return false
   }
   return true
@@ -110,7 +114,7 @@ function onSubmit() {
 
   setTimeout(() => {
     uploading.value = false
-    emit('uploaded', {
+    emit("uploaded", {
       title: title.value.trim(),
       description: description.value.trim(),
       readme: readme.value,
@@ -128,18 +132,19 @@ function onSubmit() {
 
 function removeFile() {
   zipFile.value = null
-  if (fileInputRef.value) fileInputRef.value.value = ''
+  title.value = ""
+  if (fileInputRef.value) fileInputRef.value.value = ""
 }
 
 function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  if (bytes < 1024) return bytes + " B"
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB"
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB"
 }
 </script>
 
 <template>
-  <div class="upload-overlay">
+  <div class="upload-overlay" @click.self="emit('close')">
     <div class="upload-modal" role="dialog" aria-label="上传脚本">
       <div class="upload-modal__head">
         <div>
@@ -147,58 +152,37 @@ function formatSize(bytes: number): string {
             <Icon name="lucide:upload" size="18" class="upload-modal__title-icon" />
             上传脚本
           </h2>
-          <p class="upload-modal__subtitle">补充基础信息、按规范上传脚本包，并可选填写使用说明</p>
+          <p class="upload-modal__subtitle">先上传 ZIP 包，系统会自动生成脚本名称，再补充展示信息与说明书</p>
         </div>
-        <button type="button" class="upload-modal__close" @click="emit('close')">
+        <button type="button" class="upload-modal__close" aria-label="关闭" @click="emit('close')">
           <Icon name="lucide:x" size="18" />
         </button>
       </div>
 
       <form class="upload-form" @submit.prevent="onSubmit">
+        <div class="upload-modal__steps" aria-label="上传步骤">
+          <div class="upload-step upload-step--done">
+            <span class="upload-step__index">1</span>
+            <span class="upload-step__text">上传 ZIP</span>
+          </div>
+          <div class="upload-step__line" :class="{ 'upload-step__line--active': hasZip }" />
+          <div class="upload-step" :class="{ 'upload-step--done': hasZip }">
+            <span class="upload-step__index">2</span>
+            <span class="upload-step__text">补充信息</span>
+          </div>
+        </div>
+
         <div class="upload-modal__body">
           <div class="upload-modal__pane upload-modal__pane--form">
-            <div class="upload-form__field">
-              <label class="upload-form__label">脚本名称 *</label>
-              <input v-model="title" type="text" class="upload-form__input" placeholder="例如：数据清洗脚本" maxlength="30" :disabled="uploading">
-            </div>
-
-            <div class="upload-form__field">
-              <label class="upload-form__label">描述</label>
-              <textarea v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3" maxlength="150" :disabled="uploading" />
-            </div>
-
-            <div class="upload-form__row">
-              <div class="upload-form__field">
-                <label class="upload-form__label">分类</label>
-                <select v-model="category" class="upload-form__select" :disabled="uploading">
-                  <option value="">选择分类</option>
-                  <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
-                    {{ cat }}
-                  </option>
-                </select>
+            <section class="upload-section upload-section--zip" aria-labelledby="upload-zip-title">
+              <div class="upload-section__head">
+                <div>
+                  <h3 id="upload-zip-title" class="upload-section__title">上传 .zip 包</h3>
+                  <p class="upload-section__desc">选择后自动带入脚本名称，无需手动填写</p>
+                </div>
+                <span class="upload-section__badge">必填</span>
               </div>
-              <div class="upload-form__field">
-                <label class="upload-form__label">编程语言</label>
-                <select v-model="language" class="upload-form__select" :disabled="uploading">
-                  <option value="">选择语言</option>
-                  <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
-                    {{ lang }}
-                  </option>
-                </select>
-              </div>
-            </div>
 
-            <div class="upload-form__field">
-              <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
-            </div>
-
-            <div class="upload-form__field">
-              <label class="upload-form__label">标签</label>
-              <input v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化" :disabled="uploading">
-            </div>
-
-            <div class="upload-form__field">
-              <label class="upload-form__label">上传 .zip 包 *</label>
               <div
                 class="upload-dropzone"
                 :class="{ 'upload-dropzone--active': dragOver, 'upload-dropzone--has-file': zipFile }"
@@ -208,25 +192,77 @@ function formatSize(bytes: number): string {
                 @click="fileInputRef?.click()"
               >
                 <template v-if="!zipFile">
-                  <Icon name="lucide:file-archive" size="32" class="upload-dropzone__icon" />
+                  <Icon name="lucide:file-archive" size="34" class="upload-dropzone__icon" />
                   <p class="upload-dropzone__text">
                     拖拽 .zip 文件到此处，或<span class="upload-dropzone__link">点击选择</span>
                   </p>
                   <p class="upload-dropzone__hint">仅支持 .zip 格式，最大 20MB</p>
                 </template>
                 <template v-else>
-                  <Icon name="lucide:file-text" size="24" class="upload-dropzone__file-icon" />
+                  <div class="upload-dropzone__file-mark">
+                    <Icon name="lucide:package-check" size="22" />
+                  </div>
                   <div class="upload-dropzone__file-info">
+                    <span class="upload-dropzone__file-label">已选择脚本包</span>
                     <span class="upload-dropzone__file-name">{{ zipFile.name }}</span>
                     <span class="upload-dropzone__file-size">{{ formatSize(zipFile.size) }}</span>
                   </div>
-                  <button type="button" class="upload-dropzone__remove" @click.stop="removeFile">
+                  <button type="button" class="upload-dropzone__remove" title="移除文件" @click.stop="removeFile">
                     <Icon name="lucide:x" size="16" />
                   </button>
                 </template>
                 <input ref="fileInputRef" type="file" accept=".zip" class="upload-dropzone__input" @change="onFileChange">
               </div>
-            </div>
+            </section>
+
+            <section class="upload-section" :class="{ 'upload-section--muted': !hasZip }" aria-labelledby="upload-info-title">
+              <div class="upload-section__head">
+                <div>
+                  <h3 id="upload-info-title" class="upload-section__title">脚本信息</h3>
+                  <p class="upload-section__desc">{{ hasZip ? '这些信息会显示在脚本卡片与详情页' : '先选择 ZIP 包后继续填写' }}</p>
+                </div>
+              </div>
+
+              <div class="upload-form__field">
+                <label class="upload-form__label">脚本名称</label>
+                <input v-model="title" type="text" class="upload-form__input" placeholder="选择 ZIP 后自动生成，可手动修改" maxlength="30" :disabled="uploading || !hasZip">
+              </div>
+
+              <div class="upload-form__field">
+                <label class="upload-form__label">描述</label>
+                <textarea v-model="description" class="upload-form__textarea" placeholder="简要描述脚本的功能..." rows="3" maxlength="150" :disabled="uploading || !hasZip" />
+              </div>
+
+              <div class="upload-form__row">
+                <div class="upload-form__field">
+                  <label class="upload-form__label">分类</label>
+                  <select v-model="category" class="upload-form__select" :disabled="uploading || !hasZip">
+                    <option value="">选择分类</option>
+                    <option v-for="cat in SCRIPT_CATEGORIES" :key="cat" :value="cat">
+                      {{ cat }}
+                    </option>
+                  </select>
+                </div>
+                <div class="upload-form__field">
+                  <label class="upload-form__label">编程语言</label>
+                  <select v-model="language" class="upload-form__select" :disabled="uploading || !hasZip">
+                    <option value="">选择语言</option>
+                    <option v-for="lang in SCRIPT_LANGUAGES" :key="lang" :value="lang">
+                      {{ lang }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="upload-form__field">
+                <WorkspaceWsIconPicker v-model="icon" v-model:color="iconColor" />
+              </div>
+
+              <div class="upload-form__field">
+                <label class="upload-form__label">标签</label>
+                <input v-model="tagsText" type="text" class="upload-form__input" placeholder="以逗号分隔，例如：数据, 分析, 自动化" :disabled="uploading || !hasZip">
+              </div>
+            </section>
           </div>
 
           <div class="upload-modal__pane upload-modal__pane--docs">
@@ -241,7 +277,7 @@ function formatSize(bytes: number): string {
                   @click="paneTab = 'spec'"
                 >
                   <Icon name="lucide:package-check" size="13" />
-                  脚本上传规格说明
+                  上传规格
                 </button>
                 <button
                   type="button"
@@ -252,7 +288,7 @@ function formatSize(bytes: number): string {
                   @click="paneTab = 'docs'"
                 >
                   <Icon name="lucide:file-text" size="13" />
-                  脚本使用说明
+                  使用说明
                 </button>
               </div>
 
@@ -308,13 +344,17 @@ function formatSize(bytes: number): string {
             <Icon name="lucide:alert-circle" size="15" />
             {{ error }}
           </div>
+          <div v-else class="upload-modal__footer-hint">
+            <Icon name="lucide:info" size="14" />
+            {{ hasZip ? '确认信息后即可上传' : '请先选择 ZIP 文件' }}
+          </div>
           <div class="upload-form__actions">
             <button type="button" class="upload-form__cancel" :disabled="uploading" @click="emit('close')">
               取消
             </button>
             <button type="submit" class="upload-form__submit" :disabled="uploading">
               <Icon v-if="uploading" name="lucide:loader-circle" size="16" class="upload-form__spinner" />
-              {{ uploading ? '上传中...' : '上传' }}
+              {{ uploading ? '上传中...' : '上传脚本' }}
             </button>
           </div>
         </div>
@@ -340,8 +380,8 @@ function formatSize(bytes: number): string {
 .upload-modal {
   display: flex;
   flex-direction: column;
-  width: min(960px, calc(100vw - 32px));
-  max-height: min(88vh, 720px);
+  width: min(1040px, calc(100vw - 32px));
+  max-height: min(90vh, 760px);
   border: 1px solid var(--secondary-border);
   border-radius: var(--radius-lg);
   background: var(--bg-elevated);
@@ -355,17 +395,17 @@ function formatSize(bytes: number): string {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 20px 14px;
+  padding: 18px 22px 14px;
   border-bottom: 1px solid var(--border);
 }
 
 .upload-modal__title {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
 }
 
 .upload-modal__subtitle {
@@ -403,13 +443,63 @@ function formatSize(bytes: number): string {
   flex-direction: column;
 }
 
+.upload-modal__steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-muted) 74%, transparent);
+}
+
+.upload-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.upload-step--done {
+  color: var(--accent);
+}
+
+.upload-step__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: inherit;
+  font-size: 12px;
+}
+
+.upload-step--done .upload-step__index {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.upload-step__line {
+  width: 42px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.upload-step__line--active {
+  background: var(--accent-border);
+}
+
 .upload-modal__body {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
-  gap: 16px;
+  grid-template-columns: minmax(340px, 0.92fr) minmax(360px, 1.08fr);
+  gap: 18px;
   flex: 1;
   min-height: 0;
-  padding: 16px 20px;
+  padding: 18px 22px;
   overflow-y: auto;
 }
 
@@ -420,17 +510,64 @@ function formatSize(bytes: number): string {
 .upload-modal__pane--form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .upload-modal__pane--docs {
   display: flex;
-  min-height: 360px;
+  min-height: 390px;
   flex-direction: column;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--bg-muted);
   overflow: hidden;
+}
+
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-top: 2px;
+}
+
+.upload-section + .upload-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.upload-section--muted {
+  opacity: 0.72;
+}
+
+.upload-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-section__title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--text);
+}
+
+.upload-section__desc {
+  margin: 4px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.upload-section__badge {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: 700;
 }
 
 .upload-form__row {
@@ -464,7 +601,7 @@ function formatSize(bytes: number): string {
   font-size: var(--text-base);
   color: var(--text);
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .upload-form__input,
@@ -491,24 +628,24 @@ function formatSize(bytes: number): string {
 }
 
 .upload-form__textarea {
+  min-height: 76px;
   resize: vertical;
-  min-height: 72px;
 }
 
 .upload-dropzone {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 100px;
-  padding: 28px 16px;
+  min-height: 136px;
+  padding: 26px 16px;
   border: 2px dashed var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--bg-muted);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  position: relative;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
 }
 
 .upload-dropzone:hover {
@@ -519,17 +656,19 @@ function formatSize(bytes: number): string {
 .upload-dropzone--active {
   border-color: var(--accent);
   background: var(--accent-soft);
+  transform: translateY(-1px);
 }
 
 .upload-dropzone--has-file {
+  min-height: 92px;
   flex-direction: row;
   justify-content: flex-start;
   gap: 12px;
-  min-height: auto;
   padding: 16px;
   border-style: solid;
-  border-color: var(--border);
-  cursor: default;
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  cursor: pointer;
 }
 
 .upload-dropzone__icon {
@@ -538,14 +677,14 @@ function formatSize(bytes: number): string {
 
 .upload-dropzone__text {
   margin: 0;
+  text-align: center;
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  text-align: center;
 }
 
 .upload-dropzone__link {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .upload-dropzone__hint {
@@ -554,26 +693,39 @@ function formatSize(bytes: number): string {
   color: var(--text-muted);
 }
 
-.upload-dropzone__file-icon {
-  color: var(--accent);
+.upload-dropzone__file-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--accent);
 }
 
 .upload-dropzone__file-info {
-  flex: 1;
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
+}
+
+.upload-dropzone__file-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .upload-dropzone__file-name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
 }
 
 .upload-dropzone__file-size {
@@ -585,13 +737,13 @@ function formatSize(bytes: number): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
-  flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
 }
 
@@ -614,7 +766,8 @@ function formatSize(bytes: number): string {
   background: var(--bg-elevated);
 }
 
-.upload-docs__pane-tabs {
+.upload-docs__pane-tabs,
+.upload-docs__tabs {
   display: inline-flex;
   padding: 2px;
   border: 1px solid var(--border);
@@ -622,11 +775,8 @@ function formatSize(bytes: number): string {
   background: var(--bg-muted);
 }
 
-.upload-docs__pane-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
+.upload-docs__pane-tab,
+.upload-docs__tab {
   border: none;
   border-radius: calc(var(--radius-sm) - 2px);
   background: transparent;
@@ -636,7 +786,19 @@ function formatSize(bytes: number): string {
   transition: background 0.12s, color 0.12s;
 }
 
-.upload-docs__pane-tab--active {
+.upload-docs__pane-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+}
+
+.upload-docs__tab {
+  padding: 5px 10px;
+}
+
+.upload-docs__pane-tab--active,
+.upload-docs__tab--active {
   background: var(--bg-elevated);
   color: var(--accent);
   box-shadow: var(--shadow-sm);
@@ -661,30 +823,6 @@ function formatSize(bytes: number): string {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-}
-
-.upload-docs__tabs {
-  display: inline-flex;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-muted);
-}
-
-.upload-docs__tab {
-  padding: 5px 10px;
-  border: none;
-  border-radius: calc(var(--radius-sm) - 2px);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-.upload-docs__tab--active {
-  background: var(--bg-elevated);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
 }
 
 .upload-docs__textarea {
@@ -715,21 +853,29 @@ function formatSize(bytes: number): string {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 20px 18px;
+  padding: 14px 22px 18px;
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
 }
 
+.upload-modal__footer-hint,
 .upload-form__error {
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.upload-modal__footer-hint {
+  color: var(--text-muted);
+}
+
+.upload-form__error {
   padding: 8px 12px;
+  border: 1px solid var(--danger-border);
   border-radius: var(--radius-sm);
   background: var(--danger-soft);
-  border: 1px solid var(--danger-border);
-  font-size: var(--text-sm);
   color: var(--danger);
 }
 
@@ -740,13 +886,22 @@ function formatSize(bytes: number): string {
   margin-left: auto;
 }
 
+.upload-form__cancel,
+.upload-form__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
 .upload-form__cancel {
   padding: 8px 16px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   background: transparent;
-  font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--text-secondary);
   transition: background 0.12s, border-color 0.12s;
 }
@@ -757,15 +912,9 @@ function formatSize(bytes: number): string {
 }
 
 .upload-form__submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   padding: 8px 20px;
   border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
   background: var(--gradient-orange);
-  font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--btn-primary-text);
   box-shadow: var(--shadow-glow-orange);
   transition: transform 0.15s, opacity 0.15s;
@@ -784,19 +933,39 @@ function formatSize(bytes: number): string {
   animation: spin 0.8s linear infinite;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 860px) {
   .upload-modal__body {
     grid-template-columns: 1fr;
   }
 
   .upload-modal__pane--docs {
-    min-height: 300px;
+    min-height: 320px;
   }
 
   .upload-form__row {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 640px) {
+  .upload-overlay {
+    padding: 12px;
+  }
+
+  .upload-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+  }
+
+  .upload-modal__head,
+  .upload-modal__steps,
+  .upload-modal__body,
+  .upload-modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .upload-docs__head,
   .upload-modal__footer {
     align-items: stretch;
     flex-direction: column;
@@ -804,6 +973,11 @@ function formatSize(bytes: number): string {
 
   .upload-form__actions {
     width: 100%;
+  }
+
+  .upload-form__cancel,
+  .upload-form__submit {
+    flex: 1;
   }
 }
 
