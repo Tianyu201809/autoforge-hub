@@ -43,18 +43,21 @@ export default defineEventHandler(async (event) => {
 
   let joinRequests: any[] | undefined
   if (currentUserRole === "owner" || currentUserRole === "admin") {
-    const requestsResult = db.exec(`
+    const requestStmt = db.prepare(`
       SELECT r.id, r.user_id, r.status, r.created_at, r.updated_at,
              u.email, u.display_name, u.avatar_url
       FROM team_join_requests r
       JOIN users u ON u.id = r.user_id
-      WHERE r.team_id = '" + teamId.replace(/'/g, "''") + "' AND r.status = 'pending'
+      WHERE r.team_id = ? AND r.status = 'pending'
       ORDER BY r.updated_at DESC
-    `)[0]
-    joinRequests = requestsResult ? requestsResult.values.map((r: any[]) => {
-      const c = requestsResult!.columns
-      return { id: r[c.indexOf("id")], userId: r[c.indexOf("user_id")], status: r[c.indexOf("status")], createdAt: r[c.indexOf("created_at")], updatedAt: r[c.indexOf("updated_at")], email: r[c.indexOf("email")], displayName: r[c.indexOf("display_name")], avatarUrl: r[c.indexOf("avatar_url")] || "" }
-    }) : []
+    `)
+    requestStmt.bind([teamId])
+    const requestRows: any[] = []
+    while (requestStmt.step()) requestRows.push(requestStmt.getAsObject())
+    requestStmt.free()
+    joinRequests = requestRows.map((r: any) => {
+      return { id: r.id, userId: r.user_id, status: r.status, createdAt: r.created_at, updatedAt: r.updated_at, email: r.email, displayName: r.display_name, avatarUrl: r.avatar_url || "" }
+    })
   }
 
   // Get scripts count
