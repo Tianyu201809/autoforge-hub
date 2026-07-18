@@ -177,6 +177,21 @@ export async function getDb(): Promise<SqlJsDbType> {
     CREATE INDEX IF NOT EXISTS idx_team_messages_team_created
     ON team_messages(team_id, created_at DESC)
   `)
+  _sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS team_join_requests (
+      id TEXT PRIMARY KEY,
+      team_id TEXT NOT NULL REFERENCES teams(id),
+      user_id TEXT NOT NULL REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(team_id, user_id)
+    )
+  `)
+  _sqlDb.run(`
+    CREATE INDEX IF NOT EXISTS idx_team_join_requests_team_status
+    ON team_join_requests(team_id, status, updated_at DESC)
+  `)
   saveDb()
 
   return _sqlDb

@@ -135,7 +135,7 @@ export function useTeams() {
 
   async function manageMember(
     teamId: string,
-    action: "kick" | "setRole",
+    action: "kick" | "setRole" | "approveJoin" | "rejectJoin",
     targetUserId: string,
     role?: "admin" | "member",
   ): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
@@ -148,6 +148,10 @@ export function useTeams() {
     } catch (err: any) {
       return { ok: false, error: err.message || "操作失败" }
     }
+  }
+
+  async function getJoinStatus(teamId: string): Promise<{ status: "none" | "pending" | "approved" | "rejected"; updatedAt?: string }> {
+    return apiFetch(`/teams/${teamId}/join-status`)
   }
 
   function getTeamAvatarSrc(url?: string | null): string {
@@ -209,6 +213,7 @@ export function useTeams() {
     isTeamOwner, isTeamMember, createTeam, joinTeam, leaveTeam, deleteTeam,
     getTeamInviteCode, resolveInviteCode,
     updateTeamSettings, manageMember,
+    getJoinStatus,
     getTeamAvatarSrc, updateTeamIcon, fetchTeamMessages, postTeamMessage, deleteTeamMessage,
   }
 }

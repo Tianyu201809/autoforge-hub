@@ -380,6 +380,16 @@ async function confirmSetRole() {
   refreshDetail()
 }
 
+async function handleJoinRequest(request: any, action: 'approveJoin' | 'rejectJoin') {
+  actionError.value = ''
+  const result = await manageMember(teamId.value, action, request.id)
+  if (!result.ok) { actionError.value = result.error; return }
+  actionSuccess.value = result.message
+  setTimeout(() => { actionSuccess.value = '' }, 3000)
+  await refreshDetail()
+  await loadTeams()
+}
+
 // ─── Permission settings (owner only) ───
 const editingPermissions = ref(false)
 const pendingPermissions = ref({ upload: true, edit: true, delete: false, download: true })
@@ -842,6 +852,37 @@ function handleTeamSidebarFilter(payload: { kind: 'category' | 'language'; value
               <span>{{ roleLabel(currentUserRole) }}</span>
             </div>
           </div>
+
+          <section v-if="isAdminOrOwner" class="manage-requests">
+            <div class="manage-requests__head">
+              <div>
+                <p class="manage-requests__eyebrow">加入申请</p>
+                <h3 class="manage-requests__title">待审批申请</h3>
+              </div>
+              <span class="manage-requests__count">{{ teamDetail.joinRequests?.length || 0 }}</span>
+            </div>
+            <div v-if="teamDetail.joinRequests?.length" class="ws-member-list ws-member-list--modal">
+              <div v-for="request in teamDetail.joinRequests" :key="request.id" class="ws-member ws-member--modal">
+                <div class="ws-member__avatar">
+                  <img v-if="request.avatarUrl" :src="getAvatarSrc(request.avatarUrl)" alt="" class="ws-member__avatar-img">
+                  <span v-else class="ws-member__avatar-text">{{ (request.displayName || request.email).slice(0, 2).toUpperCase() }}</span>
+                </div>
+                <div class="ws-member__info">
+                  <span class="ws-member__name">{{ request.displayName || request.email }}</span>
+                  <span class="ws-member__email">{{ request.email }}</span>
+                </div>
+                <div class="ws-member__actions">
+                  <button type="button" class="ws-member__btn" title="批准申请" @click="handleJoinRequest(request, 'approveJoin')">
+                    <Icon name="lucide:check" size="14" />
+                  </button>
+                  <button type="button" class="ws-member__btn ws-member__btn--danger" title="拒绝申请" @click="handleJoinRequest(request, 'rejectJoin')">
+                    <Icon name="lucide:x" size="14" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p v-else class="manage-requests__empty">暂无待审批申请</p>
+          </section>
 
           <div class="ws-member-list ws-member-list--modal">
             <div
@@ -2260,6 +2301,55 @@ function handleTeamSidebarFilter(payload: { kind: 'category' | 'language'; value
   font-size: var(--text-xs);
   font-weight: 700;
   color: var(--text-secondary);
+}
+
+.manage-requests {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--secondary-border);
+  border-radius: var(--radius-md);
+  background: var(--secondary-soft);
+}
+
+.manage-requests__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.manage-requests__eyebrow,
+.manage-requests__title {
+  margin: 0;
+}
+
+.manage-requests__eyebrow {
+  font-size: var(--text-xs);
+  color: var(--secondary);
+}
+
+.manage-requests__title {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.manage-requests__count {
+  min-width: 24px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-align: center;
+}
+
+.manage-requests__empty {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .manage-modal__foot {

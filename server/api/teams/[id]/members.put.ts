@@ -32,6 +32,28 @@ export default defineEventHandler(async (event) => {
 
   const memberIds: string[] = JSON.parse(row.member_ids || "[]")
 
+  if (action === "approveJoin" || action === "rejectJoin") {
+    const requestStmt = db.prepare("SELECT id, status FROM team_join_requests WHERE id = ? AND team_id = ?")
+    requestStmt.bind([targetUserId, teamId])
+    if (!requestStmt.step()) { requestStmt.free(); throw createError({ statusCode: 404, message: "加入申请不存在" }) }
+    const request = requestStmt.getAsObject() as any
+    requestStmt.free()
+    if (request.status !== "pending") throw createError({ statusCode: 400, message: "该申请已处理" })
+    const now = new Date().toISOString()
+    if (action === "approveJoin") {
+      const targetStmt = db.prepare("SELECT user_id FROM team_join_requests WHERE id = ?")
+      targetStmt.bind([targetUserId]); targetStmt.step(); const target = targetStmt.getAsObject() as any; targetStmt.free()
+      if (!memberIds.includes(target.user_id)) memberIds.push(target.user_id)
+      db.run("UPDATE teams SET member_ids = ?, updated_at = ? WHERE id = ?", [JSON.stringify(memberIds), now, teamId])
+      db.run("UPDATE team_join_requests SET status = 'approved', updated_at = ? WHERE id = ?", [now, targetUserId])
+      saveDb()
+      return { ok: true, message: "申请已批准" }
+    }
+    db.run("UPDATE team_join_requests SET status = 'rejected', updated_at = ? WHERE id = ?", [now, targetUserId])
+    saveDb()
+    return { ok: true, message: "申请已拒绝" }
+  }
+
   if (action === "kick") {
     // Cannot kick owner
     if (targetUserId === row.owner_id) {

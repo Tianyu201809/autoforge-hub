@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
   }
 
   db.run("DELETE FROM team_messages WHERE team_id = ?", [teamId])
+  db.run("DELETE FROM team_join_requests WHERE team_id = ?", [teamId])
   // Delete team scripts
   db.run("DELETE FROM scripts WHERE team_id = ?", [teamId])
   // Delete team

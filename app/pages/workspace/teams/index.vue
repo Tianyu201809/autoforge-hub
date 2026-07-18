@@ -77,7 +77,7 @@ async function handleJoin(code: string) {
   }
 
   showJoin.value = false
-  actionSuccess.value = '已成功加入团队！'
+  actionSuccess.value = '加入申请已提交，等待管理员审批。'
   setTimeout(() => { actionSuccess.value = '' }, 4000)
 }
 

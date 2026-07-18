@@ -41,6 +41,22 @@ export default defineEventHandler(async (event) => {
       }
     }) : []
 
+  let joinRequests: any[] | undefined
+  if (currentUserRole === "owner" || currentUserRole === "admin") {
+    const requestsResult = db.exec(`
+      SELECT r.id, r.user_id, r.status, r.created_at, r.updated_at,
+             u.email, u.display_name, u.avatar_url
+      FROM team_join_requests r
+      JOIN users u ON u.id = r.user_id
+      WHERE r.team_id = '" + teamId.replace(/'/g, "''") + "' AND r.status = 'pending'
+      ORDER BY r.updated_at DESC
+    `)[0]
+    joinRequests = requestsResult ? requestsResult.values.map((r: any[]) => {
+      const c = requestsResult!.columns
+      return { id: r[c.indexOf("id")], userId: r[c.indexOf("user_id")], status: r[c.indexOf("status")], createdAt: r[c.indexOf("created_at")], updatedAt: r[c.indexOf("updated_at")], email: r[c.indexOf("email")], displayName: r[c.indexOf("display_name")], avatarUrl: r[c.indexOf("avatar_url")] || "" }
+    }) : []
+  }
+
   // Get scripts count
   const scripts = db.exec("SELECT COUNT(*) as c FROM scripts WHERE team_id = ?")[0]
   const scriptCount = scripts ? (scripts.values[0]?.[0] || 0) : 0
@@ -59,5 +75,6 @@ export default defineEventHandler(async (event) => {
     avatarUrl: row.avatar_url || "",
     createdAt: row.created_at,
     currentUserRole,
+    ...(joinRequests ? { joinRequests } : {}),
   }
 })

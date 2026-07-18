@@ -50,3 +50,12 @@ export const teamMessages = sqliteTable('team_messages', {
   content: text('content').notNull(),
   createdAt: text('created_at').notNull(),
 })
+
+export const teamJoinRequests = sqliteTable('team_join_requests', {
+  id: text('id').primaryKey(),
+  teamId: text('team_id').notNull(),
+  userId: text('user_id').notNull(),
+  status: text('status').notNull().default('pending'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+})
