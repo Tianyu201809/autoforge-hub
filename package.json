@@ -27,6 +27,7 @@
     "bcryptjs": "^3.0.3",
     "dompurify": "^3.4.12",
     "drizzle-orm": "^0.45.2",
+    "fflate": "^0.8.2",
     "gsap": "^3.15.0",
     "h3": "^1.15.11",
     "jsonwebtoken": "^9.0.3",

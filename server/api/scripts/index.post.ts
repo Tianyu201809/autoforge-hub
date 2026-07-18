@@ -2,6 +2,7 @@ import { getDb, saveDb } from "../../db/index"
 import { saveFile } from "../../utils/storage"
 import { parseSettings, checkMemberPermission } from "../../utils/team-permissions"
 import { createAuditLog } from "../../utils/audit-log"
+import { extractRootReadme } from "#shared/utils/zip-readme"
 
 export default defineEventHandler(async (event) => {
   const auth = event.context.auth
@@ -18,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const title = getField("title").trim()
   const description = getField("description").trim()
-  const readme = getField("readme")
+  let readme = getField("readme")
   const tagsRaw = getField("tags")
   const category = getField("category") || ""
   const language = getField("language") || ""
@@ -36,6 +37,17 @@ export default defineEventHandler(async (event) => {
   const filename = fileField.filename
   if (!filename.endsWith(".zip")) {
     throw createError({ statusCode: 400, message: "Only .zip format is supported" })
+  }
+
+  if (!readme.trim()) {
+    try {
+      readme = extractRootReadme(fileField.data) || ""
+    } catch (error) {
+      console.warn("[scripts] failed to extract root README.md:", error)
+    }
+  }
+  if (readme.length > 50000) {
+    throw createError({ statusCode: 400, message: "README is too long (maximum 50000 characters)" })
   }
 
   const userId = auth.user.userId

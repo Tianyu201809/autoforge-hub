@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { SCRIPT_CATEGORIES, SCRIPT_LANGUAGES } from "~/types/workspace"
+import { extractRootReadme } from "#shared/utils/zip-readme"
 
 const emit = defineEmits<{
   close: []
@@ -31,7 +32,9 @@ const tagsText = ref("")
 const zipFile = ref<File | null>(null)
 const error = ref("")
 const uploading = ref(false)
+const readmeImporting = ref(false)
 const dragOver = ref(false)
+let zipSelectionVersion = 0
 
 const fileInputRef = ref<HTMLInputElement>()
 
@@ -43,7 +46,9 @@ function deriveTitleFromZip(fileName: string): string {
   return (withoutExt || "未命名脚本").slice(0, 30)
 }
 
-function applyZipFile(file: File) {
+async function applyZipFile(file: File) {
+  const selectionVersion = ++zipSelectionVersion
+  readmeImporting.value = false
   if (!file.name.toLowerCase().endsWith(".zip")) {
     error.value = "仅支持 .zip 格式的脚本包"
     return
@@ -58,19 +63,37 @@ function applyZipFile(file: File) {
   zipFile.value = file
   title.value = deriveTitleFromZip(file.name)
   error.value = ""
+
+  readmeImporting.value = true
+  try {
+    const readmeFromZip = extractRootReadme(new Uint8Array(await file.arrayBuffer()))
+    if (selectionVersion !== zipSelectionVersion || readmeFromZip === null) return
+    if (!readme.value.trim()) {
+      readme.value = readmeFromZip
+      return
+    }
+    if (readme.value === readmeFromZip) return
+    if (window.confirm("ZIP 根目录检测到 README.md，是否覆盖当前说明书？")) {
+      readme.value = readmeFromZip
+    }
+  } catch (parseError) {
+    console.warn("[WsUploadModal] failed to extract root README.md:", parseError)
+  } finally {
+    if (selectionVersion === zipSelectionVersion) readmeImporting.value = false
+  }
 }
 
 function onFileChange(e: Event) {
   const input = e.target as HTMLInputElement
   if (input.files?.length) {
-    applyZipFile(input.files[0])
+    void applyZipFile(input.files[0])
   }
 }
 
 function onDrop(e: DragEvent) {
   dragOver.value = false
   const file = e.dataTransfer?.files[0]
-  if (file) applyZipFile(file)
+  if (file) void applyZipFile(file)
 }
 
 function onDragOver(e: DragEvent) {
@@ -104,6 +127,10 @@ function validate(): boolean {
 }
 
 function onSubmit() {
+  if (readmeImporting.value) {
+    error.value = "正在读取 ZIP 中的说明书，请稍候"
+    return
+  }
   if (!validate()) return
   uploading.value = true
 
@@ -352,9 +379,9 @@ function formatSize(bytes: number): string {
             <button type="button" class="upload-form__cancel" :disabled="uploading" @click="emit('close')">
               取消
             </button>
-            <button type="submit" class="upload-form__submit" :disabled="uploading">
+            <button type="submit" class="upload-form__submit" :disabled="uploading || readmeImporting">
               <Icon v-if="uploading" name="lucide:loader-circle" size="16" class="upload-form__spinner" />
-              {{ uploading ? '上传中...' : '上传脚本' }}
+              {{ uploading ? '上传中...' : readmeImporting ? '读取说明中...' : '上传脚本' }}
             </button>
           </div>
         </div>
