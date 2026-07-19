@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, statSync, statSync as fsStatSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import SftpClient from 'ssh2-sftp-client'
@@ -165,7 +165,7 @@ async function verifyOutput(sftp) {
   for (const rel of samples) {
     const localPath = path.join(LOCAL_OUTPUT, ...rel.split('/'))
     if (!existsSync(localPath)) continue
-    const localSize = fsStatSync(localPath).size
+    const localSize = statSync(localPath).size
     const remotePath = `${REMOTE_NEXT}/${rel}`
     const remoteStat = await sftp.stat(remotePath)
     if (remoteStat.size !== localSize) {
@@ -229,6 +229,23 @@ function shellQuote(value) {
 }
 
 /** @param {SftpClient} sftp */
+async function reloadPm2(sftp) {
+  log('6/6', 'pm2 reload all...')
+  const { code, stdout, stderr } = await remoteExec(
+    sftp,
+    `cd ${shellQuote(REMOTE_DIR)} && pm2 reload all`,
+  )
+  if (stdout.trim()) console.log(stdout.trimEnd())
+  if (stderr.trim()) console.error(stderr.trimEnd())
+  if (code !== 0) {
+    throw new Error(
+      '代码已切换，但 PM2 reload 失败，请手动检查 (pm2 reload all exited non-zero)',
+    )
+  }
+  console.log('  PM2 reload OK')
+}
+
+/** @param {SftpClient} sftp */
 async function disconnectSftp(sftp) {
   await sftp.end()
 }
@@ -249,10 +266,12 @@ async function main() {
       throw err
     }
     await switchOutput(sftp)
-    log('5/6', 'Switch OK. PM2 reload not implemented yet — stop here for Task 4.')
+    await reloadPm2(sftp)
   } finally {
     await disconnectSftp(sftp)
   }
+
+  console.log('\nRelease complete.')
 }
 
 main().catch((err) => {
