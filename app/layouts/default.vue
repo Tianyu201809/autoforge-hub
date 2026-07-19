@@ -8,7 +8,6 @@
       <div class="bg-nebula__orb bg-nebula__orb--4" />
       <div class="bg-nebula__stars" />
     </div>
-
     <div class="layout__content">
       <slot />
     </div>

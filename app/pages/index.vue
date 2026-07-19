@@ -1,4 +1,8 @@
 ﻿<script setup lang="ts">
+import pkg from '../../package.json'
+
+console.log('app version', 'v' + pkg.version)
+
 definePageMeta({
   layout: 'default'
 })
