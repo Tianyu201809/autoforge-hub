@@ -17,7 +17,10 @@
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "release": "node release-app.js",
+    "release:prod": "node release-app.js --env prod",
+    "test:release-helpers": "node --test scripts/release-app-helpers.test.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.35",
@@ -42,6 +45,8 @@
     "@types/dompurify": "^3.0.5",
     "cross-env": "^10.1.0",
     "eslint": "^10.6.0",
+    "ssh2": "^1.17.0",
+    "ssh2-sftp-client": "^12.1.1",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.6"
   }
