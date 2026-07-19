@@ -7,8 +7,8 @@ import {
 } from './release-app-helpers.mjs'
 
 describe('parseEnv', () => {
-  it('defaults to staging', () => {
-    assert.equal(parseEnv(['node', 'release-app.js']), 'staging')
+  it('defaults to development', () => {
+    assert.equal(parseEnv(['node', 'release-app.js']), 'development')
   })
 
   it('reads --env prod', () => {

@@ -31,3 +31,4 @@ output/
 # Brainstorm visual companion sessions
 .superpowers/
 ssh-config.json
+.release-output.tgz

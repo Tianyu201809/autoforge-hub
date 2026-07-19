@@ -1,6 +1,5 @@
-
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, statSync, readFileSync} from 'node:fs'
+import { existsSync, statSync, readFileSync, unlinkSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import SftpClient from 'ssh2-sftp-client'
@@ -21,11 +20,14 @@ const SSH = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = __dirname
 const LOCAL_OUTPUT = path.join(ROOT, '.output')
+const LOCAL_ARCHIVE = path.join(ROOT, '.release-output.tgz')
+const REMOTE_ARCHIVE_NAME = '.release-output.tgz'
 
 const REMOTE_DIR = '/root/project/autoforge-hub'
 const REMOTE_OUTPUT = `${REMOTE_DIR}/.output`
 const REMOTE_NEXT = `${REMOTE_DIR}/.output.next`
 const REMOTE_PREV = `${REMOTE_DIR}/.output.prev`
+const REMOTE_ARCHIVE = `${REMOTE_DIR}/${REMOTE_ARCHIVE_NAME}`
 
 function log(step, message) {
   console.log(`[${step}] ${message}`)
@@ -98,22 +100,49 @@ async function remoteExec(sftp, command) {
   })
 }
 
-/** Collect relative file paths under dir (posix-style for remote). */
-function listFilesRecursive(dir, base = dir) {
-  /** @type {string[]} */
-  const files = []
-  for (const name of readdirSync(dir)) {
-    const abs = path.join(dir, name)
-    const st = statSync(abs)
-    if (st.isDirectory()) files.push(...listFilesRecursive(abs, base))
-    else files.push(path.relative(base, abs).split(path.sep).join('/'))
+/**
+ * Pack .output into a single .tgz — avoids ~1000 SFTP round-trips.
+ * @returns {Promise<string>} local archive path
+ */
+function packOutput() {
+  return new Promise((resolve, reject) => {
+    if (existsSync(LOCAL_ARCHIVE)) unlinkSync(LOCAL_ARCHIVE)
+    const started = Date.now()
+    console.log('  Packing .output → .release-output.tgz...')
+    const child = spawn(
+      'tar',
+      ['-czf', LOCAL_ARCHIVE, '-C', LOCAL_OUTPUT, '.'],
+      { cwd: ROOT, stdio: 'inherit', shell: true },
+    )
+    child.on('error', reject)
+    child.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`tar pack failed with exit code ${code}`))
+        return
+      }
+      const mb = (statSync(LOCAL_ARCHIVE).size / 1024 / 1024).toFixed(2)
+      console.log(`  Packed ${mb} MB in ${Date.now() - started}ms`)
+      resolve(LOCAL_ARCHIVE)
+    })
+  })
+}
+
+function cleanupLocalArchive() {
+  if (existsSync(LOCAL_ARCHIVE)) {
+    try {
+      unlinkSync(LOCAL_ARCHIVE)
+    } catch {
+      // ignore
+    }
   }
-  return files
 }
 
 /** @param {SftpClient} sftp */
 async function uploadOutput(sftp) {
-  log('3/6', 'Uploading .output → .output.next...')
+  log('3/6', 'Uploading .output → .output.next (archive)...')
+  const started = Date.now()
+
+  await packOutput()
 
   const existsNext = await sftp.exists(REMOTE_NEXT)
   if (existsNext) {
@@ -121,23 +150,25 @@ async function uploadOutput(sftp) {
     await remoteExec(sftp, `rm -rf ${shellQuote(REMOTE_NEXT)}`)
   }
 
-  await sftp.mkdir(REMOTE_NEXT, true)
+  console.log('  Uploading archive...')
+  const uploadStarted = Date.now()
+  await sftp.fastPut(LOCAL_ARCHIVE, REMOTE_ARCHIVE)
+  console.log(`  Archive uploaded in ${Date.now() - uploadStarted}ms`)
 
-  const files = listFilesRecursive(LOCAL_OUTPUT)
-  let done = 0
-  for (const rel of files) {
-    const localPath = path.join(LOCAL_OUTPUT, ...rel.split('/'))
-    const remotePath = `${REMOTE_NEXT}/${rel}`
-    const remoteDir = remotePath.slice(0, remotePath.lastIndexOf('/'))
-    if (remoteDir && remoteDir !== REMOTE_NEXT) {
-      await sftp.mkdir(remoteDir, true)
-    }
-    await sftp.fastPut(localPath, remotePath)
-    done += 1
-    if (done % 25 === 0 || done === files.length) {
-      console.log(`  Uploaded ${done}/${files.length}`)
-    }
+  console.log('  Extracting on remote...')
+  const extractCmd = [
+    `rm -rf ${shellQuote(REMOTE_NEXT)}`,
+    `mkdir -p ${shellQuote(REMOTE_NEXT)}`,
+    `tar -xzf ${shellQuote(REMOTE_ARCHIVE)} -C ${shellQuote(REMOTE_NEXT)}`,
+    `rm -f ${shellQuote(REMOTE_ARCHIVE)}`,
+  ].join(' && ')
+  const { code, stderr } = await remoteExec(sftp, extractCmd)
+  if (code !== 0) {
+    throw new Error(`Remote extract failed: ${stderr || `exit ${code}`}`)
   }
+
+  cleanupLocalArchive()
+  console.log(`  Deploy payload ready in ${Date.now() - started}ms`)
 }
 
 /** @param {SftpClient} sftp */
@@ -264,11 +295,13 @@ async function main() {
       await verifyOutput(sftp)
     } catch (err) {
       await cleanupNext(sftp)
+      await remoteExec(sftp, `rm -f ${shellQuote(REMOTE_ARCHIVE)}`).catch(() => {})
       throw err
     }
     await switchOutput(sftp)
     await reloadPm2(sftp)
   } finally {
+    cleanupLocalArchive()
     await disconnectSftp(sftp)
   }
 
