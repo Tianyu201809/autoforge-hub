@@ -7,11 +7,16 @@ export default defineNuxtRouteMiddleware((to) => {
   const { isAuthenticated, hydrated, loadSession } = useAuth()
   const isPublic = PUBLIC_ROUTES.includes(to.path)
 
-  // SSR can't read localStorage; redirect guests so first paint uses auth layout.
+  // SSR can't read localStorage; use the auth-hint cookie for first paint redirects.
   if (import.meta.server) {
-    if (isPublic) return
     const event = useRequestEvent()
     const hasSessionHint = event ? Boolean(getCookie(event, AUTH_HINT_COOKIE)) : false
+    if (isPublic) {
+      if (hasSessionHint) {
+        return navigateTo('/workspace', { replace: true })
+      }
+      return
+    }
     if (!hasSessionHint) {
       const redirect = to.fullPath !== '/' ? to.fullPath : undefined
       return navigateTo({
@@ -27,6 +32,11 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (isPublic && isAuthenticated.value) {
+    // Soft navigateTo during hydration can leave the SSR login page stuck;
+    // force a full navigation (same approach as guest → /login below).
+    if (useNuxtApp().isHydrating) {
+      return navigateTo('/workspace', { replace: true, external: true })
+    }
     return navigateTo('/workspace', { replace: true })
   }
 
