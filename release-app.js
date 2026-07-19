@@ -1,5 +1,6 @@
+
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, statSync, readFileSync} from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import SftpClient from 'ssh2-sftp-client'
@@ -9,17 +10,17 @@ import {
   buildScriptForEnv,
 } from './scripts/release-app-helpers.mjs'
 
+const sshConfig = JSON.parse(readFileSync('./ssh-config.json', 'utf8'))
+const SSH = {
+  host: sshConfig.host,
+  port: sshConfig.port,
+  username: sshConfig.username,
+  password: sshConfig.password,
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = __dirname
 const LOCAL_OUTPUT = path.join(ROOT, '.output')
-
-/** Fill in locally. Keep password empty in git. */
-const SSH = {
-  host: '',
-  port: 22,
-  username: 'root',
-  password: '',
-}
 
 const REMOTE_DIR = '/root/project/autoforge-hub'
 const REMOTE_OUTPUT = `${REMOTE_DIR}/.output`

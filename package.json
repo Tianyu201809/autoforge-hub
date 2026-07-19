@@ -18,8 +18,8 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "release": "node release-app.js",
-    "release:prod": "node release-app.js --env prod",
+    "release:dev": "npm run build:dev && node release-app.js --env development",
+    "release:prod": "npm run build:prod && node release-app.js --env production",
     "test:release-helpers": "node --test scripts/release-app-helpers.test.mjs"
   },
   "dependencies": {

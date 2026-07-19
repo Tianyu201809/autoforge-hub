@@ -30,3 +30,4 @@ output/
 
 # Brainstorm visual companion sessions
 .superpowers/
+ssh-config.json

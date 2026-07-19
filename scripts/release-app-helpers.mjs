@@ -1,13 +1,13 @@
 /**
  * @param {string[]} argv
- * @returns {'staging' | 'prod'}
+ * @returns {'staging' | 'prod' | 'development'}
  */
 export function parseEnv(argv) {
   const idx = argv.indexOf('--env')
-  if (idx === -1) return 'staging'
+  if (idx === -1) return 'development'
   const value = argv[idx + 1]
-  if (value !== 'staging' && value !== 'prod') {
-    throw new Error(`Invalid --env "${value ?? ''}". Use staging|prod.`)
+  if (value !== 'staging' && value !== 'prod' && value !== 'development') {
+    throw new Error(`Invalid --env "${value ?? ''}". Use staging|prod|development.`)
   }
   return value
 }
@@ -25,8 +25,8 @@ export function validateSshConfig(ssh) {
 }
 
 /**
- * @param {'staging' | 'prod'} env
+ * @param {'staging' | 'prod' | 'development'} env
  */
 export function buildScriptForEnv(env) {
-  return env === 'prod' ? 'build:prod' : 'build:staging'
+  return env === 'prod' ? 'build:prod' : env === 'staging' ? 'build:staging' : 'build:dev'
 }
