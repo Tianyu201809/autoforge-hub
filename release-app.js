@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, statSync, statSync as fsStatSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import SftpClient from 'ssh2-sftp-client'
@@ -139,6 +139,90 @@ async function uploadOutput(sftp) {
   }
 }
 
+/** @param {SftpClient} sftp */
+async function cleanupNext(sftp) {
+  const existsNext = await sftp.exists(REMOTE_NEXT)
+  if (existsNext) {
+    const { code, stderr } = await remoteExec(
+      sftp,
+      `rm -rf ${shellQuote(REMOTE_NEXT)}`,
+    )
+    if (code !== 0) {
+      throw new Error(`Failed to remove .output.next: ${stderr}`)
+    }
+  }
+}
+
+/** @param {SftpClient} sftp */
+async function verifyOutput(sftp) {
+  log('4/6', 'Verifying upload...')
+  const entryRemote = `${REMOTE_NEXT}/server/index.mjs`
+  if (!(await sftp.exists(entryRemote))) {
+    throw new Error(`Remote entry missing after upload: ${entryRemote}`)
+  }
+
+  const samples = ['server/index.mjs', 'server/package.json']
+  for (const rel of samples) {
+    const localPath = path.join(LOCAL_OUTPUT, ...rel.split('/'))
+    if (!existsSync(localPath)) continue
+    const localSize = fsStatSync(localPath).size
+    const remotePath = `${REMOTE_NEXT}/${rel}`
+    const remoteStat = await sftp.stat(remotePath)
+    if (remoteStat.size !== localSize) {
+      throw new Error(
+        `Size mismatch for ${rel}: local=${localSize} remote=${remoteStat.size}`,
+      )
+    }
+  }
+  console.log('  Verify OK')
+}
+
+/** @param {SftpClient} sftp */
+async function switchOutput(sftp) {
+  log('5/6', 'Switching .output...')
+  const hasOutput = Boolean(await sftp.exists(REMOTE_OUTPUT))
+  let movedPrev = false
+
+  try {
+    if (hasOutput) {
+      const r1 = await remoteExec(
+        sftp,
+        `mv ${shellQuote(REMOTE_OUTPUT)} ${shellQuote(REMOTE_PREV)}`,
+      )
+      if (r1.code !== 0) {
+        throw new Error(`mv .output → .output.prev failed: ${r1.stderr}`)
+      }
+      movedPrev = true
+    }
+
+    const r2 = await remoteExec(
+      sftp,
+      `mv ${shellQuote(REMOTE_NEXT)} ${shellQuote(REMOTE_OUTPUT)}`,
+    )
+    if (r2.code !== 0) {
+      throw new Error(`mv .output.next → .output failed: ${r2.stderr}`)
+    }
+
+    if (movedPrev || (await sftp.exists(REMOTE_PREV))) {
+      const r3 = await remoteExec(sftp, `rm -rf ${shellQuote(REMOTE_PREV)}`)
+      if (r3.code !== 0) {
+        console.warn(`  Warning: failed to remove .output.prev: ${r3.stderr}`)
+      }
+    }
+    console.log('  Switch OK')
+  } catch (err) {
+    if (movedPrev) {
+      console.error('  Switch failed — restoring .output.prev → .output')
+      await remoteExec(
+        sftp,
+        `mv ${shellQuote(REMOTE_PREV)} ${shellQuote(REMOTE_OUTPUT)}`,
+      )
+    }
+    await cleanupNext(sftp).catch(() => {})
+    throw err
+  }
+}
+
 /** @param {string} value */
 function shellQuote(value) {
   return `'${value.replace(/'/g, `'\\''`)}'`
@@ -158,7 +242,14 @@ async function main() {
   const sftp = await connectSftp()
   try {
     await uploadOutput(sftp)
-    log('3/6', 'Upload OK. Verify/switch not implemented yet — stop here for Task 3.')
+    try {
+      await verifyOutput(sftp)
+    } catch (err) {
+      await cleanupNext(sftp)
+      throw err
+    }
+    await switchOutput(sftp)
+    log('5/6', 'Switch OK. PM2 reload not implemented yet — stop here for Task 4.')
   } finally {
     await disconnectSftp(sftp)
   }
