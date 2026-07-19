@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import SftpClient from 'ssh2-sftp-client'
 import {
   parseEnv,
   validateSshConfig,
@@ -59,13 +60,108 @@ function assertLocalOutput() {
   }
 }
 
+/** @returns {Promise<SftpClient>} */
+async function connectSftp() {
+  log('2/6', `Connecting SSH ${SSH.username}@${SSH.host}:${SSH.port}...`)
+  const sftp = new SftpClient()
+  await sftp.connect({
+    host: SSH.host,
+    port: SSH.port,
+    username: SSH.username,
+    password: SSH.password,
+  })
+  return sftp
+}
+
+/**
+ * @param {SftpClient} sftp
+ * @param {string} command
+ * @returns {Promise<{ code: number, stdout: string, stderr: string }>}
+ */
+async function remoteExec(sftp, command) {
+  // ssh2-sftp-client v12 has no sftp.exec — use underlying ssh2 client.
+  const conn = sftp.client
+  return new Promise((resolve, reject) => {
+    conn.exec(command, (err, stream) => {
+      if (err) return reject(err)
+      let stdout = ''
+      let stderr = ''
+      stream.on('data', (d) => {
+        stdout += d.toString()
+      })
+      stream.stderr.on('data', (d) => {
+        stderr += d.toString()
+      })
+      stream.on('close', (code) => resolve({ code: code ?? 0, stdout, stderr }))
+    })
+  })
+}
+
+/** Collect relative file paths under dir (posix-style for remote). */
+function listFilesRecursive(dir, base = dir) {
+  /** @type {string[]} */
+  const files = []
+  for (const name of readdirSync(dir)) {
+    const abs = path.join(dir, name)
+    const st = statSync(abs)
+    if (st.isDirectory()) files.push(...listFilesRecursive(abs, base))
+    else files.push(path.relative(base, abs).split(path.sep).join('/'))
+  }
+  return files
+}
+
+/** @param {SftpClient} sftp */
+async function uploadOutput(sftp) {
+  log('3/6', 'Uploading .output → .output.next...')
+
+  const existsNext = await sftp.exists(REMOTE_NEXT)
+  if (existsNext) {
+    console.log('  Removing leftover .output.next...')
+    await remoteExec(sftp, `rm -rf ${shellQuote(REMOTE_NEXT)}`)
+  }
+
+  await sftp.mkdir(REMOTE_NEXT, true)
+
+  const files = listFilesRecursive(LOCAL_OUTPUT)
+  let done = 0
+  for (const rel of files) {
+    const localPath = path.join(LOCAL_OUTPUT, ...rel.split('/'))
+    const remotePath = `${REMOTE_NEXT}/${rel}`
+    const remoteDir = remotePath.slice(0, remotePath.lastIndexOf('/'))
+    if (remoteDir && remoteDir !== REMOTE_NEXT) {
+      await sftp.mkdir(remoteDir, true)
+    }
+    await sftp.fastPut(localPath, remotePath)
+    done += 1
+    if (done % 25 === 0 || done === files.length) {
+      console.log(`  Uploaded ${done}/${files.length}`)
+    }
+  }
+}
+
+/** @param {string} value */
+function shellQuote(value) {
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+/** @param {SftpClient} sftp */
+async function disconnectSftp(sftp) {
+  await sftp.end()
+}
+
 async function main() {
   const env = parseEnv(process.argv)
   validateSshConfig(SSH)
   await runBuild(env)
   assertLocalOutput()
-  log('1/6', 'Build OK. Upload not implemented yet — stop here for Task 2.')
-  // Task 3+ will continue: connect → upload → verify → switch → pm2
+
+  const sftp = await connectSftp()
+  try {
+    await uploadOutput(sftp)
+    log('3/6', 'Upload OK. Verify/switch not implemented yet — stop here for Task 3.')
+  } finally {
+    await disconnectSftp(sftp)
+  }
 }
 
 main().catch((err) => {
