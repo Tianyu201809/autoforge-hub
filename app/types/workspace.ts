@@ -114,12 +114,20 @@ export type ScriptListQuery = {
   sort?: ScriptSort | MarketplaceSort
 }
 
+export type ScriptDistribution = Record<string, number>
+
+export type ScriptDistributions = {
+  category: ScriptDistribution
+  language: ScriptDistribution
+}
+
 export type ScriptListResult = {
   items: Script[]
   total: number
   page: number
   pageSize: number
   hasMore: boolean
+  distributions: ScriptDistributions
 }
 
 export const MARKETPLACE_CATEGORIES = [

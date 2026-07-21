@@ -15,6 +15,7 @@ const {
   scripts,
   total,
   hasMore,
+  distributions,
   listLoading,
   listLoadingMore,
   listError,
@@ -152,17 +153,12 @@ const RELEASES_URL = 'https://github.com/Tianyu201809/autoforge/releases'
 const loadedScripts = computed(() => scripts.value || [])
 
 function buildFilterItems(kind: 'category' | 'language', values: readonly string[], activeValue: string) {
-  const counts = new Map<string, number>()
-  for (const script of loadedScripts.value) {
-    const value = script[kind]
-    if (value) counts.set(value, (counts.get(value) || 0) + 1)
-  }
-
+  const counts = distributions.value[kind]
   return values
     .map(value => ({
       label: value,
       value,
-      count: counts.get(value) || 0,
+      count: counts[value] || 0,
       active: activeValue === value,
     }))
     .filter(item => item.count > 0 || item.active)

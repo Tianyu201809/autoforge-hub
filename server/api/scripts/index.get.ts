@@ -1,4 +1,67 @@
-import { getDb } from "../../db/index"
+import { getDb, type SqlJsDbType } from "../../db/index"
+
+type DistributionKind = "category" | "language"
+
+type WhereOptions = {
+  teamId: string
+  isMarketplace: boolean
+  scope: string
+  userId: string
+  category: string
+  language: string
+  q: string
+  ignore?: DistributionKind
+}
+
+function buildWhere(options: WhereOptions) {
+  let where = "WHERE"
+  const params: string[] = []
+
+  if (options.teamId) {
+    where += " s.team_id = ?"
+    params.push(options.teamId)
+  } else if (options.isMarketplace) {
+    where += " s.visibility = 'public' AND s.team_id IS NULL"
+  } else if (options.scope === "personal") {
+    where += " s.owner_id = ? AND s.team_id IS NULL"
+    params.push(options.userId)
+  } else {
+    where += " 1=1"
+  }
+
+  if (options.category && options.ignore !== "category") {
+    where += " AND s.category = ?"
+    params.push(options.category)
+  }
+  if (options.language && options.ignore !== "language") {
+    where += " AND s.language = ?"
+    params.push(options.language)
+  }
+  if (options.q) {
+    where += " AND (LOWER(s.title) LIKE ? OR LOWER(s.description) LIKE ? OR LOWER(s.tags) LIKE ?)"
+    const like = `%${options.q}%`
+    params.push(like, like, like)
+  }
+
+  return { where, params }
+}
+
+function readDistribution(db: SqlJsDbType, column: DistributionKind, where: string, params: string[]) {
+  const statement = db.prepare(
+    `SELECT s.${column} AS value, COUNT(*) AS count
+FROM scripts s
+${where} AND COALESCE(s.${column}, '') <> ''
+GROUP BY s.${column}`
+  )
+  statement.bind(params)
+  const result: Record<string, number> = {}
+  while (statement.step()) {
+    const row = statement.getAsObject() as { value?: string; count?: number }
+    if (row.value) result[row.value] = Number(row.count || 0)
+  }
+  statement.free()
+  return result
+}
 
 function mapRow(row: any, opts: { includeReadme?: boolean } = {}) {
   const includeReadme = opts.includeReadme !== false
@@ -44,35 +107,8 @@ export default defineEventHandler(async (event) => {
   const userId = auth.user.userId
   const db = await getDb()
   const isMarketplace = scope === "marketplace"
-
-  let where = "WHERE"
-  const params: any[] = []
-
-  if (teamId) {
-    where += " s.team_id = ?"
-    params.push(teamId)
-  } else if (isMarketplace) {
-    where += " s.visibility = 'public' AND s.team_id IS NULL"
-  } else if (scope === "personal") {
-    where += " s.owner_id = ? AND s.team_id IS NULL"
-    params.push(userId)
-  } else {
-    where += " 1=1"
-  }
-
-  if (category) {
-    where += " AND s.category = ?"
-    params.push(category)
-  }
-  if (language) {
-    where += " AND s.language = ?"
-    params.push(language)
-  }
-  if (q) {
-    where += " AND (LOWER(s.title) LIKE ? OR LOWER(s.description) LIKE ? OR LOWER(s.tags) LIKE ?)"
-    const like = `%${q}%`
-    params.push(like, like, like)
-  }
+  const whereOptions = { teamId, isMarketplace, scope, userId, category, language, q }
+  const { where, params } = buildWhere(whereOptions)
 
   let orderBy = "ORDER BY s.created_at DESC"
   if (isMarketplace) {
@@ -110,11 +146,18 @@ ${where} ${orderBy} LIMIT ? OFFSET ?`
   }
   listStmt.free()
 
+  const categoryWhere = buildWhere({ ...whereOptions, ignore: "category" })
+  const languageWhere = buildWhere({ ...whereOptions, ignore: "language" })
+
   return {
     items,
     total,
     page,
     pageSize,
     hasMore: page * pageSize < total,
+    distributions: {
+      category: readDistribution(db, "category", categoryWhere.where, categoryWhere.params),
+      language: readDistribution(db, "language", languageWhere.where, languageWhere.params),
+    },
   }
 })

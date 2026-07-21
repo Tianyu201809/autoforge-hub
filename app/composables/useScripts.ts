@@ -1,7 +1,11 @@
-﻿import type { Script, ScriptListQuery, ScriptListResult } from "~/types/workspace"
+﻿import type { Script, ScriptDistributions, ScriptListQuery, ScriptListResult } from "~/types/workspace"
 
 const API_BASE = "/api"
 const PAGE_SIZE_DEFAULT = 30
+
+function emptyDistributions(): ScriptDistributions {
+  return { category: {}, language: {} }
+}
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const token = import.meta.client ? localStorage.getItem("autoforge-token") : null
@@ -53,6 +57,7 @@ export function useScripts() {
   const scripts = useState<Script[]>("workspace-scripts", () => [])
   const total = useState<number>("workspace-scripts-total", () => 0)
   const hasMore = useState<boolean>("workspace-scripts-has-more", () => false)
+  const distributions = useState<ScriptDistributions>("workspace-script-distributions", emptyDistributions)
   const listLoading = useState<boolean>("workspace-scripts-loading", () => false)
   const listLoadingMore = useState<boolean>("workspace-scripts-loading-more", () => false)
   const listError = useState<string>("workspace-scripts-error", () => "")
@@ -84,12 +89,14 @@ export function useScripts() {
       scripts.value = (data.items || []).map(toScript)
       total.value = data.total
       hasMore.value = data.hasMore
+      distributions.value = data.distributions || emptyDistributions()
       currentPage.value = data.page
     } catch (err: any) {
       console.error("[useScripts] loadScripts error:", err)
       scripts.value = []
       total.value = 0
       hasMore.value = false
+      distributions.value = emptyDistributions()
       listError.value = err?.message || "加载失败"
     } finally {
       listLoading.value = false
@@ -109,6 +116,7 @@ export function useScripts() {
       scripts.value = [...scripts.value, ...mapped]
       total.value = data.total
       hasMore.value = data.hasMore
+      distributions.value = data.distributions || emptyDistributions()
       currentPage.value = data.page
     } catch (err: any) {
       console.error("[useScripts] loadMoreScripts error:", err)
@@ -126,11 +134,27 @@ export function useScripts() {
   }
 
   function removeScriptLocal(id: string) {
+    const removedScript = scripts.value.find(script => script.id === id)
     const before = scripts.value.length
     scripts.value = scripts.value.filter(s => s.id !== id)
     if (scripts.value.length < before) {
       total.value = Math.max(0, total.value - 1)
       hasMore.value = scripts.value.length < total.value
+
+      if (removedScript) {
+        const nextDistributions = {
+          category: { ...distributions.value.category },
+          language: { ...distributions.value.language },
+        }
+        for (const kind of ["category", "language"] as const) {
+          const value = removedScript[kind]
+          if (!value || !nextDistributions[kind][value]) continue
+          const nextCount = nextDistributions[kind][value] - 1
+          if (nextCount > 0) nextDistributions[kind][value] = nextCount
+          else delete nextDistributions[kind][value]
+        }
+        distributions.value = nextDistributions
+      }
     }
   }
 
@@ -196,6 +220,7 @@ export function useScripts() {
     scripts,
     total,
     hasMore,
+    distributions,
     listLoading,
     listLoadingMore,
     listError,
