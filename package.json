@@ -2,7 +2,7 @@
   "name": "AutoforgeHub",
   "type": "module",
   "private": true,
-  "version": "1.11.0",
+  "version": "1.12.0",
   "engines": {
     "node": ">=20.0.0"
   },
